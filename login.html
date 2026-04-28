@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Climario ERP</title>
+    <link rel="icon" type="image/jpg" href="./img/logo-site.jpg">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 h-screen flex items-center justify-center font-sans">
+
+    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-2xl">
+        <div class="text-center">
+            <div class="flex justify-center items-center mb-8">
+                <img class="w-30" src="./img/logo-climario.png" alt="logo-climario">
+            </div>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">
+                Orçamentos <span class="text-blue-700">Multisplit</span>
+            </h1>
+        </div>
+
+        <form id="login-form" class="space-y-4 pt-5">
+            <div>
+                <label for="email" class="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail Corporativo</label>
+                <input type="email" id="email" required placeholder="vendedor@climario.com.br"
+                       class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700 outline-none transition-all text-sm">
+            </div>
+
+            <div>
+                <label for="password" class="block text-xs font-bold text-slate-700 uppercase mb-1">Senha</label>
+                <input type="password" id="password" required placeholder="••••••••"
+                       class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700 outline-none transition-all text-sm">
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-lg transform transition-all active:scale-[0.98] uppercase text-xs tracking-widest">
+                Entrar no Sistema
+            </button>
+        </form>
+
+        <div class="text-center pt-4">
+            <p class="text-slate-400 text-[10px] uppercase font-medium">
+                Desenvolvido por Breno Dobroski | Rio de Janeiro
+            </p>
+        </div>
+    </div>
+
+    <script type="module" src="login.js"></script>
+</body>
+</html>

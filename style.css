@@ -1,0 +1,178 @@
+/* Reset básico para tirar margens do navegador */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif; /* Depois podemos trocar por uma fonte mais moderna */
+}
+
+/* Fundo geral da tela */
+body {
+    background-color: #f8fafc; /* slate-50 */
+    color: #0f172a; /* slate-900 */
+}
+
+/* Estrutura que divide a tela entre Sidebar e Conteúdo */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* =========================================
+   SIDEBAR (MENU LATERAL)
+   ========================================= */
+.sidebar {
+    width: 256px;
+    height: 100vh;
+    background-color: #0f172a; /* slate-900 */
+    color: #cbd5e1; /* slate-300 */
+    display: flex;
+    flex-direction: column;
+    position: fixed; /* Fica travada na tela */
+    left: 0;
+    top: 0;
+    border-right: 1px solid #1e293b; /* slate-800 */
+}
+
+/* Cabeçalho da Sidebar (Logo) */
+.sidebar-header {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    background-color: #020617; /* slate-950 */
+    border-bottom: 1px solid #1e293b;
+}
+
+.logo-icon {
+    color: #3b82f6; /* blue-500 */
+    margin-right: 8px;
+}
+
+.logo-text {
+    font-weight: bold;
+    font-size: 18px;
+    color: #ffffff;
+}
+
+.logo-highlight {
+    color: #64748b; /* slate-500 */
+}
+
+/* Corpo do Menu */
+.nav-menu {
+    flex: 1; /* Ocupa todo o espaço do meio */
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nav-title {
+    font-size: 10px;
+    font-weight: bold;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 12px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+/* Botões do Menu */
+.nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    background: transparent;
+    color: inherit;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+/* Estilo do botão quando o mouse passa por cima */
+.nav-item:not(.active):hover {
+    background-color: #1e293b; /* slate-800 */
+    color: #ffffff;
+}
+
+/* Estilo do botão da página atual (Ativo) */
+.nav-item.active {
+    background-color: rgba(30, 58, 138, 0.4); /* blue-900/40 */
+    color: #60a5fa; /* blue-400 */
+    border: 1px solid rgba(30, 58, 138, 0.5);
+}
+
+/* Rodapé da Sidebar (Usuário) */
+.sidebar-footer {
+    padding: 16px;
+    background-color: #020617; /* slate-950 */
+    border-top: 1px solid #1e293b;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #1e293b;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.user-email {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.btn-logout {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    color: #f87171; /* red-400 */
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background-color: rgba(69, 10, 10, 0.2); /* red-950/20 */
+    border-color: rgba(127, 29, 29, 0.3);
+}
+
+/* =========================================
+   CONTEÚDO PRINCIPAL
+   ========================================= */
+.main-content {
+    flex: 1;
+    margin-left: 256px; /* Empurra o conteúdo para a direita, respeitando a largura da sidebar */
+    padding: 32px;
+}

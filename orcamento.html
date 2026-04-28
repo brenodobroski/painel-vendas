@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamento Comercial - Climario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .table-print { border-collapse: collapse; width: 100%; }
+        .table-print th, .table-print td { border: 1px solid #e2e8f0; padding: 12px 8px;}
+        .table-print th { background-color: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
+        .table-print .no-border td { border: none; padding-top: 4px; padding-bottom: 4px; }
+        @media print {
+            .no-print { display: none; }
+            body { background: white; padding: 0; }
+            .shadow-xl { box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 p-6">
+
+    <div class="max-w-[1100px] mx-auto flex justify-between items-center mb-6 no-print">
+        <h2 class="text-slate-500 font-medium">Pré-visualização do Orçamento</h2>
+        <div class="flex gap-3">
+            <button onclick="window.close()" class="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-200 rounded-lg transition-all">Fechar</button>
+            <button onclick="gerarPDFReal()" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2">
+                <span>📄</span> Salvar como PDF
+            </button>
+        </div>
+    </div>
+
+    <div id="area-pdf" class="max-w-[1100px] mx-auto bg-white p-10 shadow-xl border border-slate-200">
+        
+        <div class="flex justify-between items-center mb-8">
+            <div class="w-1/3">
+                <img src="./img/logo-climario.png" alt="Logo ClimaRio" class="h-14 object-contain">
+            </div>
+            
+            <div class="w-1/3 text-center">
+                <h2 class="text-lg font-extrabold uppercase tracking-widest text-slate-800">ORÇAMENTO MULTISPLIT</h2>
+                <h3 class="text-md font-bold text-blue-600 uppercase" id="texto-marca-header"></h3>
+            </div>
+
+            <div class="w-1/3 flex flex-col items-end">
+                <img id="logo-marca" src="" alt="Logo Fabricante" class="h-10 object-contain mb-3 hidden">
+                <p class="text-[11px] text-slate-900 font-normal mb-0.5">Emissão: <span id="texto-data-emissao" class="font-bold text-slate-900"></span></p>
+                <p class="text-[11px] text-slate-900 font-normal">Válido até: <span id="texto-data-validade" class="font-bold text-red-600 font-bold"></span></p>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-8 py-4 border-y border-slate-100">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vendedor</p>
+                <p class="text-sm font-bold text-slate-800" id="texto-vendedor"></p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Forma de Pagamento</p>
+                <p class="text-sm font-bold text-slate-800" id="texto-pagamento"></p>
+            </div>
+        </div>
+
+        <table class="table-print text-sm mb-6">
+            <thead>
+                <tr>
+                    <th class="w-[10%]">SKU</th>
+                    <th class="w-[35%] text-left">DESCRIÇÃO DO EQUIPAMENTO</th>
+                    <th class="w-[15%]">CÓD. FABRICANTE</th>
+                    <th class="w-[5%]">QTD</th>
+                    <th class="w-[15%]">DISPONIBILIDADE</th>
+                    <th class="w-[10%]">UNITÁRIO</th>
+                    <th class="w-[10%]">SUBTOTAL</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo" class="text-slate-900">
+                </tbody>
+            <tfoot>
+                <tr class="no-border bg-white text-slate-900 mt-2 border-t border-slate-300">
+                    <td colspan="6" class="text-right uppercase text-[11px] font-bold pt-4">Total K BTUs/h Evaporadoras</td>
+                    <td colspan="1" class="text-right font-mono font-bold text-sm pt-4" id="celula-btu-evap"></td>
+                </tr>
+                <tr class="no-border bg-white text-slate-900">
+                    <td colspan="6" class="text-right uppercase text-[11px] font-bold">Total K BTUs/h Condensadoras</td>
+                    <td colspan="1" class="text-right font-mono font-bold text-sm" id="celula-btu-cond"></td>
+                </tr>
+                <tr class="no-border bg-white text-slate-900">
+                    <td colspan="6" class="text-right uppercase text-[11px] font-bold pb-4">Simultaneidade</td>
+                    <td colspan="1" class="text-right font-mono font-bold text-sm pb-4" id="celula-simultaneidade"></td>
+                </tr>
+
+                <tr class="font-bold bg-slate-50 text-slate-900 border-t-1 border-slate-300">
+                    <td colspan="6" class="text-right py-3 px-4 uppercase text-[11px] tracking-wider">
+                        Frete<span id="span-uf" class="text-blue-700 mx-1"></span> (<span id="span-percentual-frete"></span>%)
+                    </td>
+                    <td colspan="1" class="text-right py-3 px-4 text-orange-600" id="celula-frete"></td>
+                </tr>
+                <tr class="font-extrabold bg-blue-600 text-white">
+                    <td colspan="6" class="text-right py-4 px-4 uppercase tracking-wider">Valor Total</td>
+                    <td colspan="1" class="text-right py-4 px-4 text-xl" id="celula-total"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="mt-8 text-[11px] text-slate-500 border-t border-slate-200 pt-6">
+            <p class="font-bold text-slate-700 uppercase mb-2">Observações Importantes:</p>
+            <ul class="space-y-1">
+                <li>• Preços sujeitos a alteração sem aviso prévio.</li>
+                <li>• Faturamento direto da fábrica para o cliente final.</li>
+                <li><span class="text-red-500 font-bold">• Atenção:</span> A disponibilidade "Pronta Entrega" refere-se ao momento da cotação e deve ser reconfirmada no fechamento do pedido.</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <script>
+        const formataMoeda = (valor) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dadosStr = sessionStorage.getItem('orcamentoDados');
+            if (!dadosStr) return;
+
+            const dados = JSON.parse(dadosStr);
+            
+            // --- INSERÇÃO DINÂMICA DA LOGO E NOME DA MARCA ---
+            document.getElementById('texto-marca-header').innerText = dados.marcaNome;
+            
+            const logoMarcaEl = document.getElementById('logo-marca');
+            if (dados.marcaLogo) {
+                // A imagem precisa ter o nome exato (ex: samsung.png, lg.png, daikin.png)
+                logoMarcaEl.src = './img/' + dados.marcaLogo + '.png'; 
+                logoMarcaEl.classList.remove('hidden');
+            }
+            // ------------------------------------------------
+
+            const corpoTabela = document.getElementById('tabela-corpo');
+
+            dados.itens.forEach(item => {
+                const emEstoque = parseInt(item.estoque) > 0;
+                const statusTexto = emEstoque ? "Pronta Entrega" : "A confirmar";
+                const statusCor = emEstoque ? "text-green-600" : "text-red-500";
+
+                corpoTabela.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="text-center font-bold text-[12px] text-slate-800">${item.codigo}</td>
+                        <td class="font-bold text-slate-800">${item.descricao}</td>
+                        <td class="text-center text-slate-800 font-bold text-[12px]">${item.modelo}</td>
+                        <td class="text-center font-bold text-slate-800">${item.qtd}</td>
+                        <td class="text-center font-bold text-[11px] uppercase ${statusCor}">${statusTexto}</td>
+                        <td class="text-center font-bold text-slate-800">${formataMoeda(item.valorUnitario)}</td>
+                        <td class="text-center font-bold text-blue-700">${formataMoeda(item.subtotal)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('texto-data-emissao').innerText = dados.dataEmissao;
+            document.getElementById('texto-data-validade').innerText = dados.dataValidade;
+            document.getElementById('texto-vendedor').innerText = dados.vendedor;
+            document.getElementById('texto-pagamento').innerText = dados.formaPagamento;
+
+            document.getElementById('celula-btu-evap').innerText = (dados.totalBtuEvap / 1000).toFixed(0);
+            document.getElementById('celula-btu-cond').innerText = (dados.totalBtuCond / 1000).toFixed(0);
+            
+            const simElement = document.getElementById('celula-simultaneidade');
+            simElement.innerText = dados.simultaneidade.toFixed(0) + '%';
+            if (dados.simultaneidade > 150) simElement.classList.add('text-red-600');
+            else if (dados.simultaneidade > 0) simElement.classList.add('text-green-600');
+
+            document.getElementById('span-uf').innerText = dados.ufDestino;
+            document.getElementById('span-percentual-frete').innerText = dados.percentualFrete;
+            document.getElementById('celula-frete').innerText = formataMoeda(dados.valorFrete);
+            document.getElementById('celula-total').innerText = formataMoeda(dados.totalGeral);
+        });
+
+        function gerarPDFReal() {
+            const elemento = document.getElementById('area-pdf');
+            const opt = {
+                margin: [5, 5, 5, 5], // Margens mínimas (5mm em todos os lados)
+                filename: `orcamento_climario_${Date.now()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, // Mantém a nitidez, mas o jsPDF vai ajustar ao tamanho da folha
+                    useCORS: true,
+                    letterRendering: true
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                // A mágica para não criar outras folhas está aqui:
+                pagebreak: { mode: 'avoid-all' }
+            };
+            html2pdf().set(opt).from(elemento).save();
+        }
+    </script>
+</body>
+</html>
