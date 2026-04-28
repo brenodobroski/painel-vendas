@@ -6,6 +6,13 @@
     <title>Climario - Multisplit</title>
     <link rel="icon" type="image/jpg" href="./img/logo-site.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    // Bloqueio Síncrono Imediato: Verifica se o token do Supabase existe na memória
+    // Se não existir, redireciona antes mesmo de o navegador desenhar a página
+    if (!localStorage.getItem('sb-ijkzolhxuuqmkuztdliv-auth-token')) {
+        window.location.replace('login.html'); // Usamos replace para não sujar o histórico do botão "Voltar"
+    }
+</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
