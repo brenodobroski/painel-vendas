@@ -4,7 +4,8 @@ const SUPABASE_URL = 'https://ijkzolhxuuqmkuztdliv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqa3pvbGh4dXVxbWt1enRkbGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjE1NTgsImV4cCI6MjA5Mjc5NzU1OH0.37ihEUrCAUHpzOymrPUTau164DXmvhhWal8uX4V0oI0'; 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-window.minhasSolicitacoes = []; // Armazena as solicitações do usuário ativo
+window.minhasSolicitacoes = []; 
+window.filialVendedor = '1028'; // Variável global para armazenar a filial do vendedor logado
 
 // Verifica se quem esta logando tem conta
 async function verificarAcesso() {
@@ -16,7 +17,6 @@ async function verificarAcesso() {
     }
 
     try {
-        // Atualiza a Interface com os dados do Vendedor Logado
         const nomeUsuario = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
         document.getElementById('perfil-nome').innerText = nomeUsuario;
         document.getElementById('perfil-email').innerText = session.user.email;
@@ -33,8 +33,11 @@ async function verificarAcesso() {
             return;
         }
 
+        // Salva a filial globalmente para usar no número do orçamento
+        window.filialVendedor = String(perfil?.filial || '1028');
+
         // REGRA 1: Teste de Hipótese (Apenas Filial 1028 ou Admin)
-        if (String(perfil?.filial) === '1028' || perfil?.role === 'admin') {
+        if (window.filialVendedor === '1028' || perfil?.role === 'admin') {
             const boxHipotese = document.getElementById('container-teste-hipotese');
             if (boxHipotese) boxHipotese.classList.remove('hidden');
         }
@@ -97,162 +100,180 @@ carregarProdutosSupabase();
 // FAMILIAS E REGRAS (MANTIDO)
 // ==========================================
 const familiasConfig = {
-    "SAMSUNG BI 18K": ["29753"],
-    "SAMSUNG TRI 24K": ["29754"],
-    "SAMSUNG QUADRI 28K": ["29755"],
-    "SAMSUNG PENTA 34K": ["42326", "29764"], 
-    "SAMSUNG PENTA 48K": ["42325", "29765"],
-    "SAMSUNG HW 7K": ["33872", "29756"], 
-    "SAMSUNG HW 9K": ["34076", "29752"], 
-    "SAMSUNG HW 12K": ["33806", "34445"], 
-    "SAMSUNG HW 18K": ["34078"],
-    "SAMSUNG HW 24K": ["34077", "29760"], 
-    "SAMSUNG HW BLACK 9K": ["44612"],
-    "SAMSUNG HW BLACK 12K": ["44613"],
-    "SAMSUNG HW BLACK 18K": ["44614"],
-    "SAMSUNG HW BLACK 24K": ["44615"],
-    "SAMSUNG K7 4 VIAS 9K": ["41851"],
-    "SAMSUNG K7 4 VIAS 12K": ["41797"],
-    "SAMSUNG K7 4 VIAS 18K": ["41796"],
-    "SAMSUNG GRELHA K7 4 VIAS": ["17105"],
-    "SAMSUNG K7 1 VIA 9K": ["44610", "29761", "47977"],
-    "SAMSUNG K7 1 VIA 12K": ["43406","44611", "29762"],
-    "SAMSUNG K7 1 VIA 18K": ["47978", "29763", "42647"],
-    "SAMSUNG K7 1 VIA 24K": ["43408", "42328"],
+    "COND BI SAMSUNG 18K": ["29753"],
+    "COND TRI SAMSUNG 24K": ["29754"],
+    "COND QUADRI SAMSUNG 28K": ["29755"],
+    "COND PENTA SAMSUNG 34K": ["42326", "29764"], 
+    "COND PENTA SAMSUNG 48K": ["42325", "29765"],
+    "EVAP HW SAMSUNG 7K": ["33872", "29756"], 
+    "EVAP HW  SAMSUNG 9K": ["34076", "29752"], 
+    "EVAP HW SAMSUNG 12K": ["33806", "34445"], 
+    "EVAP HW SAMSUNG 18K": ["34078"],
+    "EVAP HW SAMSUNG 24K": ["34077", "29760"], 
+    "EVAP HW SAMSUNG BLACK 9K": ["44612"],
+    "EVAP HW SAMSUNG BLACK 12K": ["44613"],
+    "EVAP HW SAMSUNG BLACK 18K": ["44614"],
+    "EVAP HW SAMSUNG BLACK 24K": ["44615"],
+    "EVAP K7 4 VIAS SAMSUNG  9K": ["41851"],
+    "EVAP K7 4 VIAS SAMSUNG 12K": ["41797"],
+    "EVAP K7 4 VIAS SAMSUNG 18K": ["41796"],
+    "GRELHA K7 4 VIAS SAMSUNG": ["17105"],
+    "EVAP K7 1 VIA SAMSUNG 9K": ["44610", "29761", "47977"],
+    "EVAP K7 1 VIA SAMSUNG 12K": ["43406","44611", "29762"],
+    "EVAP K7 1 VIA SAMSUNG 18K": ["47978", "29763", "42647"],
+    "EVAP K7 1 VIA SAMSUNG 24K": ["43408", "42328"],
     "SAMSUNG GRELHA K7 1 VIA 9 A 12K": ["14407"], 
     "SAMSUNG GRELHA K7 1 VIA 18 A 24K": ["16506"],
     "SAMSUNG CONTROLE SEM FIO": ["14412"],
     "SAMSUNG KIT WI-FI": ["21843"],
     "SAMSUNG PLACA DE INTERFACE HW": ["29767"],
-    "LG BI 18K": ["43180", "29973"],
-    "LG BI 21K FRIO": ["48758"],
-    "LG TRI 21K": ["43182", "30310"],
-    "LG TRI 24K": ["43632", "24415"],
-    "LG TRI 24K FRIO": ["48761"],
-    "LG QUADRI 30K": ["43631", "15467"],
-    "LG QUADRI 30K FRIO": ["48762"],
-    "LG QUADRI 36K FRIO": ["48764"],
-    "LG PENTA 36K": ["43679", "15472"],
-    "LG PENTA 48K": ["43680", "23774"],
-    "LG PENTA 48K FRIO": ["48765"],
-    "LG PENTA 54K FRIO": ["48763"],
-    "LG HW 7K": ["43638", "32215"],
-    "LG HW 9K": ["43224", "15466"],
-    "LG HW 12K": ["43681", "32246"],
-    "LG HW 18K": ["43226", "32260"],
-    "LG HW 24K": ["43227", "32267"],
-    "LG HW ARTCOOL 7K": ["32251"],
-    "LG HW ARTCOOL 9K": ["32214"],
-    "LG HW ARTCOOL 12K": ["32208"],
-    "LG HW ARTCOOL 18K": ["34399"],
-    "LG HW ARTCOOL 24K": ["35667"],
-    "LG PAINEL GALLERY 9K": ["20789"],
-    "LG PAINEL GALLERY 12K": ["20788"],
-    "LG K7 4 VIAS 9K": ["18517"],
-    "LG K7 4 VIAS 12K": ["17465"],
-    "LG K7 4 VIAS 18K": ["49980"],
-    "LG K7 4 VIAS 24K": ["49981", "43244"],
-    "LG GRELHA K7 4 VIAS 9 A 12K": ["30405"],
-    "LG GRELHA K7 4 VIAS 18 A 24K": ["42443"],
-    "LG K7 1 VIA 7K": ["48445"],
-    "LG K7 1 VIA 9K": ["17591"],
-    "LG K7 1 VIA 12K": ["17590"],
-    "LG K7 1 VIA 18K": ["23773"],
-    "LG K7 1 VIA 24K": ["30327"],
+
+    // LG
+    "COND BI LG 18K": ["43180", "29973", "15468"],
+    "COND BI LG 21K FRIO": ["48758"],
+    "COND TRI LG 21K": ["43182", "30310"],
+    "COND TRI LG 24K": ["43632", "24415"],
+    "COND TRI LG 24K FRIO": ["48761"],
+    "COND QUADRI LG 30K": ["43631", "15467"],
+    "COND QUADRI LG 30K FRIO": ["48762"],
+    "COND QUADRI LG 36K FRIO": ["48764"],
+    "COND PENTA LG 36K": ["43679", "15472"],
+    "COND PENTA LG 48K": ["43680", "23774"],
+    "COND PENTA LG 48K FRIO": ["48765"],
+    "COND PENTA LG 54K FRIO": ["48763"],
+    "EVAP HW LG 7K": ["43638", "32215"],
+    "EVAP HW LG 9K": ["43224", "15466"],
+    "EVAP HW LG 12K": ["43681", "32246"],
+    "EVAP HW LG 18K": ["43226", "32260"],
+    "EVAP HW LG 24K": ["43227", "32267"],
+    "EVAP HW ARTCOOL LG 7K": ["32251"],
+    "EVAP HW ARTCOOL LG 9K": ["32214"],
+    "EVAP HW ARTCOOL LG 12K": ["32208"],
+    "EVAP HW ARTCOOL LG 18K": ["34399"],
+    "EVAP HW ARTCOOL LG 24K": ["35667"],
+    "EVAP PAINEL GALLERY LG  9K": ["20789"],
+    "EVAP PAINEL GALLERY LG  12K": ["20788"],
+    "EVAP K7 4 VIAS LG  9K": ["18517"],
+    "EVAP K7 4 VIAS LG  12K": ["17465"],
+    "EVAP K7 4 VIAS LG 18K": ["49980"],
+    "EVAP K7 4 VIAS LG 24K": ["49981", "43244"],
+    "GRELHA K7 4 VIAS LG 9 A 12K": ["30405"],
+    "GRELHA K7 4 VIAS LG 18 A 24K": ["42443"],
+    "EVAP K7 1 VIA LG 7K": ["48445"],
+    "EVAP K7 1 VIA LG 9K": ["17591"],
+    "EVAP K7 1 VIA LG 12K": ["17590"],
+    "EVAP K7 1 VIA LG 18K": ["23773"],
+    "EVAP K7 1 VIA LG 24K": ["30327"],
+
+    // LG BI
     "LG BI 16K FRIO": ["33175"],
     "LG HW 9K FRIO": ["33176"],
     "LG HW 12K FRIO": ["33177"],
-    "DAIKIN BI 18K": ["24540"],
-    "DAIKIN TRI 18K": ["26426"],
-    "DAIKIN TRI 24K": ["24542"],
-    "DAIKIN QUADRI 28K": ["24544"],
-    "DAIKIN QUADRI 34K": ["24546"],
-    "DAIKIN PENTA 38K": ["5836"],
-    "DAIKIN HW 9K": ["30312"],
-    "DAIKIN HW 12K": ["26429"],
-    "DAIKIN HW 18K": ["23647"],
-    "DAIKIN HW 20K": ["33390"],
-    "DAIKIN HW 24K": ["27177"],
-    "DAIKIN K7 4 VIAS 9K": ["5844"],
-    "DAIKIN K7 4 VIAS 12K": ["5845"],
-    "DAIKIN K7 4 VIAS 17K": ["5846"],
-    "DAIKIN K7 4 VIAS 20K": ["5847"],
-    "DAIKIN GRELHA K7 4 VIA": ["7443"],
-    "DAIKIN K7 1 VIA 9K": ["10178"],
-    "DAIKIN K7 1 VIA 12K": ["10179"],
-    "DAIKIN K7 1 VIA 18K": ["10180"],
-    "DAIKIN GRELHA K7 1 VIA": ["10181"],
-    "DAIKIN BUILT IN 9K": ["5840"],
-    "DAIKIN BUILT IN 12K": ["5841"],
-    "DAIKIN BUILT IN 18K": ["5842"],
-    "DAIKIN BUILT IN 21K": ["5843"],
+
+    // DAIKIN
+    "COND BI DAIKIN 18K": ["24540"],
+    "COND TRI DAIKIN 18K": ["26426"],
+    "COND TRI DAIKIN 24K": ["24542"],
+    "COND QUADRI DAIKIN 28K": ["24544"],
+    "COND QUADRI DAIKIN 34K": ["24546"],
+    "COND PENTA DAIKIN 38K": ["5836"],
+    "EVAP HW DAIKIN 9K": ["30312"],
+    "EVAP HW DAIKIN 12K": ["26429"],
+    "EVAP HW DAIKIN 18K": ["23647"],
+    "EVAP HW DAIKIN 20K": ["33390"],
+    "EVAP HW DAIKIN 24K": ["27177"],
+    "EVAP K7 4 VIAS DAIKIN 9K": ["5844"],
+    "EVAP K7 4 VIAS DAIKIN 12K": ["5845"],
+    "EVAP K7 4 VIAS DAIKIN 17K": ["5846"],
+    "EVAP K7 4 VIAS DAIKIN 20K": ["5847"],
+    "GRELHA K7 4 VIA DAIKIN ": ["7443"],
+    "EVAP K7 1 VIA DAIKIN 9K": ["10178"],
+    "EVAP K7 1 VIA DAIKIN 12K": ["10179"],
+    "EVAP K7 1 VIA DAIKIN 18K": ["10180"],
+    "GRELHA K7 1 VIA DAIKIN ": ["10181"],
+    "EVAP BUILT IN DAIKIN 9K": ["5840"],
+    "EVAP BUILT IN DAIKIN 12K": ["5841"],
+    "EVAP BUILT IN DAIKIN 18K": ["5842"],
+    "EVAPBUILT IN DAIKIN 21K": ["5843"],
     "DAIKIN CONTROLE SEM FIO": ["5849"],
-    "DAIKIN BI 18K R32": ["30456"],
-    "DAIKIN HW BI 9K R32": ["30457"],
-    "DAIKIN HW BI 12K R32": ["30458"],
-    "DAIKIN TRI 18K R32 FRIO": ["33087"],
-    "DAIKIN HW TRI 9K R32": ["33085"],
-    "DAIKIN HW TRI 12K R32": ["33086"],
-    "MIDEA BI 18K": ["35269"],
-    "MIDEA TRI 27K": ["33117"],
-    "MIDEA QUADRI 36K": ["33118"],
-    "MIDEA PENTA 42K": ["32510"],
-    "MIDEA HW 9K": ["48165", "33250"],
-    "MIDEA HW 12K": ["33251", "48171"],
-    "MIDEA HW 18K": ["48721", "35699"],
-    "MIDEA HW 24K": ["35700", "48173"],
-    "MIDEA HW BLACK 9K": ["33988"],
-    "MIDEA HW BLACK 12K": ["33984"],
-    "MIDEA HW BLACK 18K": ["33985"],
-    "MIDEA HW BLACK 24K": ["33986"],
-    "MIDEA K7 1 VIA 12K": ["35850"],
-    "MIDEA K7 1 VIA 18K": ["35852"],
-    "MIDEA GRELHA K7 1 VIA 12K": ["35857"],
-    "MIDEA GRELHA K7 1 VIA 18K": ["35858"],
-    "MIDEA BUILT IN 9K": ["22093"],
-    "MIDEA BUILT IN 12K": ["22094"],
-    "ELGIN BI 18K": ["41232"],
-    "ELGIN TRI 27K": ["41235"],
-    "ELGIN HW 9K": ["41230"],
-    "ELGIN HW 12K": ["41231"],
-    "ELGIN HW 18K": ["48623"],
-    "GREE BI 18K": ["34545"],
-    "GREE TRI 24K": ["34515"],
-    "GREE TRI 30K": ["34501"],
-    "GREE QUADRI 36K": ["34502"],
-    "GREE PENTA 42K": ["34518"],
-    "GREE PENTA 48K": ["34519"],
-    "GREE HW 9K": ["34541"],
-    "GREE HW 12K": ["34543"],
-    "GREE HW 18K": ["34540"],
-    "GREE HW 24K": ["34544"],
-    "GREE HW DIAMOND 9K": ["41426"],
-    "GREE HW DIAMOND 12K": ["41423"],
-    "GREE HW DIAMOND 18K": ["41424"],
-    "GREE HW DIAMOND 24K": ["41421"],
-    "GREE K7 1 VIA 9K": ["34513"],
-    "GREE K7 1 VIA 12K": ["34514"],
-    "GREE K7 1 VIA 18K": ["34496"],
-    "GREE K7 1 VIA 24K": ["34492"],
-    "GREE GRELHA K7 1 VIA": ["34499"],
-    "FUJITSU BI 18K": ["10548"],
-    "FUJITSU TRI 18K": ["10549"],
-    "FUJITSU TRI 24K": ["10555"],
-    "FUJITSU QUADRI 30K": ["10556"],
-    "FUJITSU QUADRI 36K": ["10557"],
-    "FUJITSU HEXA 45K": ["10561"],
-    "FUJITSU HW 7K": ["10581"],
-    "FUJITSU HW 9K": ["10567"],
-    "FUJITSU HW 12K": ["10571"],
-    "FUJITSU HW 18K": ["10582"],
-    "FUJITSU HW 24K": ["10562"],
-    "FUJITSU PISO 12K": ["7034"],
-    "FUJITSU K7 4 VIAS 9K": ["10576"],
-    "FUJITSU K7 4 VIAS 12K": ["10577"],
-    "FUJITSU K7 4 VIAS 18K": ["10578"],
-    "FUJITSU GRELHA K7 4 VIAS": ["10579"],
-    "FUJITSU BUILT IN 12K": ["10564"],
-    "FUJITSU BUILT IN 18K": ["10565"]
+
+    // DAIKIN BI - R32
+    "COND BI DAIKIN  18K R32": ["30456"],
+    "EVAP HW DAIKIN 9K R32 - BI": ["30457"],
+    "EVAP HW DAIKIN 12K R32 - BI": ["30458"],
+
+    // DAIKIN TRI - R32
+    "COND TRI DAIKIN 18K R32 FRIO": ["33087"],
+    "EVAP HW DAIKIN 9K R32 - TRI": ["33085"],
+    "EVAP HW DAIKIN 12K R32 - TRI": ["33086"],
+
+    // MIDEA
+    "COND BI MIDEA 18K": ["35269"],
+    "COND TRI MIDEA 27K": ["33117"],
+    "COND QUADRI MIDEA 36K": ["33118"],
+    "COND PENTA MIDEA 42K": ["32510"],
+    "EVAP HW MIDEA 9K": ["48165", "33250"],
+    "EVAP HW MIDEA 12K": ["33251", "48171"],
+    "EVAP HW  MIDEA 18K": ["48721", "35699"],
+    "EVAP HW MIDEA 24K": ["35700", "48173"],
+    "EVAP HW MIDEA BLACK 9K": ["33988"],
+    "EVAP HW MIDEA BLACK 12K": ["33984"],
+    "EVAP HW MIDEA BLACK 18K": ["33985"],
+    "EVAP HW MIDEA BLACK 24K": ["33986"],
+    "EVAP K7 1 VIA MIDEA 12K": ["35850"],
+    "EVAP K7 1 VIA MIDEA 18K": ["35852"],
+    "GRELHA K7 1 VIA MIDEA 12K": ["35857"],
+    "GRELHA K7 1 VIA MIDEA 18K": ["35858"],
+    "EVAP BUILT IN MIDEA 9K": ["22093"],
+    "EVAP BUILT IN MIDEA 12K": ["22094"],
+
+    // ELGIN
+    "COND BI ELGIN 18K": ["41232"],
+    "COND TRI ELGIN 27K": ["41235"],
+    "EVAP HW ELGIN 9K": ["41230"],
+    "EVAP HW ELGIN 12K": ["41231"],
+    "EVAP HW ELGIN 18K": ["48623"],
+
+    // GREE
+    "COND BI GREE 18K": ["34545"],
+    "COND TRI GREE 24K": ["34515"],
+    "COND TRI GREE 30K": ["34501"],
+    "COND QUADRI GREE 36K": ["34502"],
+    "COND PENTA GREE 42K": ["34518"],
+    "COND PENTA GREE 48K": ["34519"],
+    "EVAP HW GREE 9K": ["34541"],
+    "EVAP HW GREE 12K": ["34543"],
+    "EVAP HW GREE 18K": ["34540"],
+    "EVAP HW GREE 24K": ["34544"],
+    "EVAP HW GREE DIAMOND 9K": ["41426"],
+    "EVAP HW GREE DIAMOND 12K": ["41423"],
+    "EVAP HW GREE DIAMOND 18K": ["41424"],
+    "EVAP HW GREE DIAMOND 24K": ["41421"],
+    "EVAP K7 1 VIA GREE 9K": ["34513"],
+    "EVAP K7 1 VIA GREE 12K": ["34514"],
+    "EVAP K7 1 VIA GREE 18K": ["34496"],
+    "EVAP K7 1 VIA GREE 24K": ["34492"],
+    "GRELHA K7 1 VIA GREE": ["34499"],
+
+    //FUJITSU
+    "COND BI FUJITSU 18K": ["10548"],
+    "COND TRI FUJITSU 18K": ["10549"],
+    "COND TRI FUJITSU 24K": ["10555"],
+    "COND QUADRI FUJITSU 30K": ["10556"],
+    "COND QUADRI FUJITSU 36K": ["10557"],
+    "COND HEXA FUJITSU 45K": ["10561"],
+    "EVAP HW FUJITSU 7K": ["10581"],
+    "EVAP HW FUJITSU 9K": ["10567"],
+    "EVAP HW FUJITSU 12K": ["10571"],
+    "EVAP HW FUJITSU 18K": ["10582"],
+    "EVAP HW FUJITSU 24K": ["10562"],
+    "EVAP PISO FUJITSU 12K": ["7034"],
+    "EVAP K7 4 VIAS FUJITSU 9K": ["10576"],
+    "EVAP K7 4 VIAS FUJITSU 12K": ["10577"],
+    "EVAP K7 4 VIAS FUJITSU 18K": ["10578"],
+    "GRELHA K7 4 VIAS FUJITSU": ["10579"],
+    "EVAP BUILT IN FUJITSU 12K": ["10564"],
+    "EVAP BUILT IN FUJITSU 18K": ["10565"]
 };
 
 const regrasAcessorios = {
@@ -497,6 +518,7 @@ window.atualizarResumo = function() {
     const marcaBaseParaLogo = marcaSelecionada.split(' ')[0].toLowerCase();
     const nomeVendedorAtual = document.getElementById('perfil-nome').innerText || "Vendedor Climario";
 
+    // O código inteligente será gerado e inserido dentro do enviarSolicitacaoSupabase
     window.dadosParaOrcamento = {
         itens: itensParaImpressao,
         totalBruto: totalBrutoTabela,
@@ -564,9 +586,22 @@ window.atualizarResumo = function() {
             btnFinalizar.innerText = "Gerar Orçamento";
             btnFinalizar.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
             
-            btnFinalizar.onclick = () => {
-                sessionStorage.setItem('orcamentoDados', JSON.stringify(window.dadosParaOrcamento));
-                window.open('orcamento.html', '_blank');
+            // Alteração para Salvar no DB antes de gerar o PDF
+            btnFinalizar.onclick = async () => {
+                const txtAnterior = btnFinalizar.innerText;
+                btnFinalizar.innerText = "Registrando... Aguarde";
+                btnFinalizar.disabled = true;
+
+                // Tenta enviar para o banco. Se for true, o sistema abre o PDF
+                const sucesso = await enviarSolicitacaoSupabase('aprovado');
+                
+                if (sucesso) {
+                    sessionStorage.setItem('orcamentoDados', JSON.stringify(window.dadosParaOrcamento));
+                    window.open('orcamento.html', '_blank');
+                }
+
+                btnFinalizar.innerText = txtAnterior;
+                btnFinalizar.disabled = false;
             };
         }
     }
@@ -717,95 +752,6 @@ window.mostrarNomeArquivo = function(input) {
     }
 };
 
-window.enviarSolicitacaoSupabase = async function() {
-    const btnEnviar = document.getElementById('btn-enviar-solicitacao');
-    const motivo = document.getElementById('input-motivo-solicitacao').value;
-    const inputArquivo = document.getElementById('input-arquivo-solicitacao');
-    const valorAlvo = document.getElementById('input-evidencia').value;
-    
-    if (!motivo) {
-        alert("Por favor, preencha o motivo da solicitação.");
-        return;
-    }
-    if (!inputArquivo.files || inputArquivo.files.length === 0) {
-        alert("Por favor, anexe a evidência (PDF ou Imagem).");
-        return;
-    }
-    
-    const textoOriginal = btnEnviar.innerText;
-    btnEnviar.innerText = "Enviando... Aguarde";
-    btnEnviar.disabled = true;
-    btnEnviar.classList.replace('bg-orange-500', 'bg-slate-400');
-
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("Sessão expirada. Faça login novamente.");
-
-        const { data: perfil } = await supabase
-            .from('usuarios')
-            .select('filial')
-            .eq('id', session.user.id)
-            .single();
-
-        const file = inputArquivo.files[0];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${session.user.id}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('evidencias')
-            .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-            .from('evidencias')
-            .getPublicUrl(fileName);
-            
-        const urlEvidencia = publicUrlData.publicUrl;
-
-        const rtAtual = document.getElementById('input-rt').value || 0;
-        const pagamentoAtual = document.getElementById('texto-select-pagamento')?.innerText || 'À vista';
-        const descontoSolicitado = document.getElementById('input-desconto').value;
-
-        const payload = {
-            vendedor_id: session.user.id,
-            vendedor_email: session.user.email,
-            filial: perfil?.filial || 'Indefinida',
-            valor_alvo: parseFloat(valorAlvo),
-            desconto_solicitado: parseFloat(descontoSolicitado),
-            rt: parseFloat(rtAtual),
-            pagamento: pagamentoAtual,
-            motivo: motivo,
-            url_evidencia: urlEvidencia,
-            itens: window.dadosParaOrcamento.itens,
-            total_bruto: window.dadosParaOrcamento.totalBruto,
-            status: 'pendente',
-            snapshot: window.dadosParaOrcamento // Salva o estado perfeito da tela no banco
-        };
-
-        const { error: dbError } = await supabase
-            .from('solicitacoes_orcamento')
-            .insert([payload]);
-
-        if (dbError) throw dbError;
-
-        alert("Solicitação enviada com sucesso!");
-        fecharModalSolicitacao();
-        
-        // Recarrega a tabela de acompanhamento e muda de aba
-        carregarMinhasSolicitacoes(session.user.id);
-        if(typeof mudarAba === 'function') mudarAba('solicitacoes');
-
-    } catch (error) {
-        console.error("Erro no fluxo de envio:", error);
-        alert("Erro ao enviar: " + error.message);
-    } finally {
-        btnEnviar.innerText = textoOriginal;
-        btnEnviar.disabled = false;
-        btnEnviar.classList.replace('bg-slate-400', 'bg-orange-500');
-    }
-};
-
 // ==========================================
 // ABA: MINHAS SOLICITAÇÕES
 // ==========================================
@@ -821,7 +767,9 @@ async function carregarMinhasSolicitacoes(userId) {
 
         if (error) throw error;
 
-        window.minhasSolicitacoes = data || [];
+        // FILTRO: Esconde os orçamentos que passaram direto pelo botão verde (já resolvidos)
+        window.minhasSolicitacoes = (data || []).filter(req => req.motivo !== 'Aprovado Automaticamente pelo Sistema');
+        
         renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
 
     } catch (error) {
@@ -835,7 +783,7 @@ function renderizarMinhasSolicitacoes(lista) {
     corpo.innerHTML = '';
 
     if (lista.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Você ainda não enviou nenhuma solicitação.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Nenhuma solicitação manual pendente ou respondida.</td></tr>`;
         return;
     }
 
@@ -856,7 +804,6 @@ function renderizarMinhasSolicitacoes(lista) {
             acoesHtml = `<span class="text-xs text-slate-400 italic">Aguardando...</span>`;
         }
 
-        // Calcula a quantidade de máquinas totais no pedido
         let qtdItens = 0;
         if(req.itens) {
             req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
@@ -876,7 +823,6 @@ function renderizarMinhasSolicitacoes(lista) {
     });
 }
 
-// Ações dos Botões da Tabela
 window.verMotivoReprovacao = function(id) {
     const req = window.minhasSolicitacoes.find(s => s.id === id);
     if (!req) return;
@@ -891,8 +837,132 @@ window.abrirOrcamentoAprovado = function(id) {
         alert("Erro: O snapshot deste orçamento não foi encontrado no banco de dados.");
         return;
     }
-
-    // Passa o objeto perfeito da época direto para a página de impressão
     sessionStorage.setItem('orcamentoDados', JSON.stringify(req.snapshot));
     window.open('orcamento.html', '_blank');
+};
+
+// ==========================================
+// GERADOR DE CÓDIGO DE ORÇAMENTO INTELIGENTE
+// ==========================================
+function gerarNumeroOrcamento(rt, desconto, valorPagamento, filial) {
+    const rtFormatado = Math.floor(parseFloat(rt) || 0).toString();
+    const descBase = Math.floor(parseFloat(desconto) || 0);
+    const descFormatado = descBase.toString().padStart(2, '0');
+
+    // Pega direto o valor numérico que veio do input (0 ou 5)
+    const pagFormatado = Math.floor(parseFloat(valorPagamento) || 0).toString(); 
+    
+    const filialFormatada = String(filial || '1028').trim();
+    const numAleatorio = Math.floor(1000 + Math.random() * 9000).toString();
+
+    return `${rtFormatado}${descFormatado}${pagFormatado}${filialFormatada}${numAleatorio}`;
+}
+
+window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
+    const btnEnviar = document.getElementById('btn-enviar-solicitacao');
+    const motivo = document.getElementById('input-motivo-solicitacao')?.value || '';
+    const inputArquivo = document.getElementById('input-arquivo-solicitacao');
+    const valorAlvo = document.getElementById('input-evidencia')?.value || window.dadosParaOrcamento.totalBruto;
+    
+    if (statusDefinido === 'pendente') {
+        if (!motivo) {
+            alert("Por favor, preencha o motivo da solicitação.");
+            return false;
+        }
+        if (!inputArquivo || !inputArquivo.files || inputArquivo.files.length === 0) {
+            alert("Por favor, anexe a evidência (PDF ou Imagem).");
+            return false;
+        }
+        if (btnEnviar) {
+            btnEnviar.innerText = "Registrando... Aguarde";
+            btnEnviar.disabled = true;
+            btnEnviar.classList.replace('bg-orange-500', 'bg-slate-400');
+        }
+    }
+    
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Sessão expirada. Faça login novamente.");
+
+        const rtAtual = document.getElementById('input-rt')?.value || 0;
+        const descontoAtual = document.getElementById('input-desconto')?.value || 0;
+        
+        // --- CAPTURA BLINDADA PARA DROPDOWN CUSTOMIZADO ---
+        // 1. Pega o NÚMERO (0, 5) do input oculto para gerar o código
+        const valorPagamento = document.getElementById('select-pagamento')?.value || 0;
+        
+        // 2. Pega o TEXTO ("Em 10 vezes...") do span visual para salvar no banco/PDF
+        const elTextoPagamento = document.getElementById('texto-select-pagamento');
+        const textoPagamento = elTextoPagamento ? elTextoPagamento.innerText.trim() : 'Á vista 100% antecipado (PIX)';
+
+        // Geração do código passando o NÚMERO
+        const numeroOrcamentoGerado = gerarNumeroOrcamento(rtAtual, descontoAtual, valorPagamento, window.filialVendedor);
+
+        // Prepara os dados para o PDF
+        window.dadosParaOrcamento.codigoOrcamento = numeroOrcamentoGerado;
+        window.dadosParaOrcamento.filial = window.filialVendedor;
+        window.dadosParaOrcamento.formaPagamento = textoPagamento;
+
+        let urlEvidencia = null;
+        if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
+            const file = inputArquivo.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${session.user.id}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('evidencias')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabase.storage
+                .from('evidencias')
+                .getPublicUrl(fileName);
+                
+            urlEvidencia = publicUrlData.publicUrl;
+        }
+
+        const payload = {
+            codigo_orcamento: numeroOrcamentoGerado, 
+            vendedor_id: session.user.id,
+            vendedor_email: session.user.email,
+            filial: window.filialVendedor,
+            valor_alvo: parseFloat(valorAlvo),
+            desconto_solicitado: parseFloat(descontoAtual),
+            rt: parseFloat(rtAtual),
+            pagamento: textoPagamento, // Salva o texto no banco
+            motivo: statusDefinido === 'aprovado' ? 'Aprovado Automaticamente pelo Sistema' : motivo,
+            url_evidencia: urlEvidencia,
+            itens: window.dadosParaOrcamento.itens,
+            total_bruto: window.dadosParaOrcamento.totalBruto,
+            status: statusDefinido,
+            snapshot: window.dadosParaOrcamento 
+        };
+
+        const { error: dbError } = await supabase
+            .from('solicitacoes_orcamento')
+            .insert([payload]);
+
+        if (dbError) throw dbError;
+
+        if (statusDefinido === 'pendente') {
+            alert(`⏳ Solicitação #${numeroOrcamentoGerado} enviada para análise!`);
+            if(typeof fecharModalSolicitacao === 'function') fecharModalSolicitacao();
+            if(typeof carregarMinhasSolicitacoes === 'function') carregarMinhasSolicitacoes(session.user.id);
+            if(typeof mudarAba === 'function') mudarAba('solicitacoes');
+        }
+        
+        return true; 
+
+    } catch (error) {
+        console.error("Erro no fluxo de envio:", error);
+        alert("Erro ao processar: " + error.message);
+        return false;
+    } finally {
+        if (statusDefinido === 'pendente' && btnEnviar) {
+            btnEnviar.innerText = "Enviar Solicitação";
+            btnEnviar.disabled = false;
+            btnEnviar.classList.replace('bg-slate-400', 'bg-orange-500');
+        }
+    }
 };
