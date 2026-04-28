@@ -415,16 +415,22 @@ window.atualizarResumo = function() {
     const descontoBase = parseFloat(document.getElementById('input-desconto').value) || 0;
     const rt = parseFloat(document.getElementById('input-rt').value) || 0;
     const penalidadePagto = parseFloat(document.getElementById('select-pagamento').value) || 0;
+
+    const limiteAlcada = (window.filialVendedor === "1028") ? 21.99 : 18.00;
     
-    if (descontoBase === 18) {
-        window.testeHipoteseAtivo = false;
+    if (descontoBase <= limiteAlcada) {
+        window.testeHipoteseAtivo = false; // Libera o botão verde
         const msgHipotese = document.getElementById('msg-hipotese');
         const textoDescontoVisual = document.getElementById('texto-input-desconto');
-        if(msgHipotese) msgHipotese.classList.add('hidden');
-        if(textoDescontoVisual) {
+        
+        // Remove a cor da fonte apenas se não for um teste de hipótese (Alvo)
+        if (textoDescontoVisual && !textoDescontoVisual.innerText.includes('Alvo')) {
+            if(msgHipotese) msgHipotese.classList.add('hidden');
             textoDescontoVisual.style.color = ''; 
             textoDescontoVisual.style.fontWeight = '';
         }
+    } else {
+        window.testeHipoteseAtivo = true; // Estourou o limite, exige aprovação especial
     }
 
     const selectUf = document.getElementById('select-uf');
@@ -714,19 +720,49 @@ window.fazerTesteHipotese = function() {
     }
 
     let novoDesconto = (1 - (valorEvidencia / totalSemDesconto)) * 100;
-    let valorFormatado = novoDesconto.toFixed(2); 
-
-    inputDesconto.value = valorFormatado; 
     
+    // 1. Criamos duas versões do número:
+    let valorFormatado = novoDesconto.toFixed(2); // Para o vendedor ler (ex: 21.79)
+    let valorMatematico = novoDesconto.toFixed(6); // Para o computador calcular (ex: 21.793482)
+
+    // 2. Colocamos o valor matemático super preciso no input invisível
+    inputDesconto.value = valorMatematico; 
+    
+    // --- LÓGICA DE APROVAÇÃO DO TESTE DE HIPÓTESE ---
+    // (Aproveite para garantir que está com o String() da nossa última correção)
+    const limiteAlcada = (String(window.filialVendedor) === '1028') ? 21.99 : 18.00;
+
     const textoDescontoVisual = document.getElementById('texto-input-desconto');
-    if (textoDescontoVisual) {
-        textoDescontoVisual.innerText = `${valorFormatado}% (Alvo)`;
-        textoDescontoVisual.style.color = '#4f46e5'; 
-        textoDescontoVisual.style.fontWeight = '900';
+    const msgHipotese = document.getElementById('msg-hipotese');
+
+    if (novoDesconto > limiteAlcada) {
+        // ESTOUROU O LIMITE: BLOQUEIA A TELA
+        window.testeHipoteseAtivo = true;
+        if (msgHipotese) {
+            msgHipotese.innerText = `⚠️ Requer aprovação comercial.`;
+            msgHipotese.classList.remove('text-green-600');
+            msgHipotese.classList.add('text-red-600');
+        }
+        if (textoDescontoVisual) {
+            textoDescontoVisual.innerText = `${valorFormatado}%`;
+            textoDescontoVisual.style.color = '#dc2626'; // Vermelho
+            textoDescontoVisual.style.fontWeight = '900';
+        }
+    } else {
+        // DENTRO DO LIMITE: LIBERA A TELA (BOTÃO VERDE)
+        window.testeHipoteseAtivo = false;
+        if (msgHipotese) {
+            msgHipotese.innerText = `✅ Orçamento Liberado`;
+            msgHipotese.classList.remove('text-red-600');
+            msgHipotese.classList.add('text-green-600');
+        }
+        if (textoDescontoVisual) {
+            textoDescontoVisual.innerText = `${valorFormatado}%`;
+            textoDescontoVisual.style.color = '#16a34a'; // Verde
+            textoDescontoVisual.style.fontWeight = '900';
+        }
     }
     
-    window.testeHipoteseAtivo = true;
-    document.getElementById('msg-hipotese').classList.remove('hidden');
     window.atualizarResumo();
 };
 
