@@ -7,6 +7,33 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 window.minhasSolicitacoes = []; 
 window.filialVendedor = '1028'; // Variável global para armazenar a filial do vendedor logado
 
+// ==========================================
+// RASTREADOR DE LOCALIZAÇÃO E LOGS (ORÇAMENTO)
+// ==========================================
+async function registrarLogAcessoOrcamento(userId, email) {
+    // Usamos sessionStorage para gravar o log apenas UMA vez por aba aberta
+    if (sessionStorage.getItem('log_orcamento_enviado')) return;
+
+    try {
+        // API Gratuita para pegar IP e Localização
+        const response = await fetch('https://ipapi.co/json/');
+        const loc = await response.json();
+
+        // Salva na NOVA tabela exclusiva do orçamento
+        await supabase.from('logs_acesso_orcamento').insert([{
+            user_id: userId,
+            email: email,
+            ip: loc.ip || 'Desconhecido',
+            cidade: loc.city || 'Desconhecida',
+            estado: loc.region || 'Desconhecido'
+        }]);
+
+        sessionStorage.setItem('log_orcamento_enviado', 'true');
+    } catch (erro) {
+        console.error("Erro ao registrar log de localização:", erro);
+    }
+}
+
 // Verifica se quem esta logando tem conta
 async function verificarAcesso() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -22,9 +49,10 @@ async function verificarAcesso() {
         document.getElementById('perfil-email').innerText = session.user.email;
         document.getElementById('perfil-iniciais').innerText = nomeUsuario.substring(0, 2).toUpperCase();
 
+        // 1. Buscamos o perfil, a filial E O TOKEN DE SESSÃO DO BANCO
         const { data: perfil, error } = await supabase
             .from('usuarios')
-            .select('role, filial')
+            .select('role, filial, token_sessao') 
             .eq('id', session.user.id)
             .single();
 
@@ -32,6 +60,22 @@ async function verificarAcesso() {
             console.error("Erro ao buscar permissões do usuário:", error);
             return;
         }
+
+        // --- SISTEMA ANTI-COMPARTILHAMENTO DE CONTAS ---
+        const tokenLocal = localStorage.getItem('climario_token_sessao');
+        
+        // Se o token do banco for diferente do token da máquina, expulsa o usuário
+        if (perfil.token_sessao && perfil.token_sessao !== tokenLocal) {
+            alert("⚠️ Sua conta foi conectada em outro dispositivo. Você foi desconectado por segurança.");
+            await supabase.auth.signOut();
+            localStorage.removeItem('climario_token_sessao');
+            window.location.replace("login.html");
+            return;
+        }
+
+        // Se passou na trava, dispara o Log de Localização silenciosamente
+        registrarLogAcessoOrcamento(session.user.id, session.user.email);
+        // ------------------------------------------------
 
         // Salva a filial globalmente para usar no número do orçamento
         window.filialVendedor = String(perfil?.filial || '1028');
@@ -512,10 +556,22 @@ window.atualizarResumo = function() {
 
     // --- NOVO: BLOCO DO DESCONTO PROTHEUS DO PEDIDO ---
     if (custoTotalPedido > 0) {
+        const descontoBase = parseFloat(document.getElementById('input-desconto').value) || 0;
+        const rt = parseFloat(document.getElementById('input-rt').value) || 0;
+        const penalidadePagto = parseFloat(document.getElementById('select-pagamento').value) || 0;
+        const descDecimal = descontoBase / 100;
+        const rtDecimal = rt / 100;
+        const pagtoDecimal = penalidadePagto / 100;
+        const skuBuscado = "10561";
+        const produtoData = produtos.find(p => String(p.sku || p.SKU).trim() === String(skuBuscado).trim());
+        const custo = parseFloat(produtoData.custos?.custo || 0);
+        const verba = parseFloat(produtoData.custos?.verba || 0);
+        const novoMarkup = (1.63920658 * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / 0.965;
+
+
         // 1. Descobre o markup real de todo o pedido junto
-        const markupPedido = totalBrutoTabela / custoTotalPedido;
         // 2. Aplica a sua fórmula: (((MarkupPedido/1.699)-1)*-1)*100
-        let descProtheusPedido = (((markupPedido / 1.692) - 1) * -1) * 100;
+        let descProtheusPedido = (((novoMarkup / 1.699) - 1) * -1) * 100;
         
         // Evita que descontos muito pequenos fiquem negativos ou deem erro (ex: -0.01%)
         if (descProtheusPedido < 0) descProtheusPedido = 0;
