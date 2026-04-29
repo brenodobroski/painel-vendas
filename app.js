@@ -61,14 +61,14 @@ async function verificarAcesso() {
             return;
         }
 
-        // --- SISTEMA ANTI-COMPARTILHAMENTO DE CONTAS ---
-        const tokenLocal = localStorage.getItem('token_sessao');
+       // --- SISTEMA ANTI-COMPARTILHAMENTO DE CONTAS ---
+        const tokenLocal = localStorage.getItem('climario_token_sessao'); // <-- Nome corrigido aqui
         
         // Se o token do banco for diferente do token da máquina, expulsa o usuário
         if (perfil.token_sessao && perfil.token_sessao !== tokenLocal) {
             alert("⚠️ Sua conta foi conectada em outro dispositivo. Você foi desconectado por segurança.");
             await supabase.auth.signOut();
-            localStorage.removeItem('token_sessao');
+            localStorage.removeItem('climario_token_sessao'); // <-- Nome corrigido aqui
             window.location.replace("login.html");
             return;
         }
