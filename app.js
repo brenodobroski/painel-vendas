@@ -445,6 +445,7 @@ window.atualizarResumo = function() {
     let totalBrutoTabela = 0;
     let totalBtuCond = 0;
     let totalBtuEvap = 0;
+    let custoTotalPedido = 0; // NOVO: Para descobrir o custo real de tudo
     let itensHtml = "";
     let itensParaImpressao = [];
 
@@ -472,7 +473,9 @@ window.atualizarResumo = function() {
                 const novoMarkup = (MARKUP_BASE_FIXA * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / divisor;
                 let precoNumerico = (custo - verba) * novoMarkup;
 
+                // Soma o total de venda e o total de custo do pedido
                 totalBrutoTabela += (quantidade * precoNumerico);
+                custoTotalPedido += (quantidade * (custo - verba)); 
                 
                 const nomeItem = produtoData.produto || produtoData.DESCRIÇÃO || "Item";
                 const tipoItem = String(produtoData.tipo || produtoData.TIPO || "ITEM").toUpperCase();
@@ -498,7 +501,7 @@ window.atualizarResumo = function() {
                         <div class="flex flex-col flex-1 pr-2">
                             <div class="flex justify-between items-start gap-2 mb-1">
                                 <span class="text-[12px] font-bold text-slate-900 leading-tight">${nomeItem}</span>
-                                <span class="text-[10px] font-mono text-slate-400 shrink-0">SKU: ${skuBuscado}</span>
+                                <span class="text-[11px] font-bold text-slate-500 shrink-0">SKU: ${skuBuscado}</span>
                             </div>
                             <span class="text-[11px] text-slate-500">Qtd: ${quantidade} x R$ ${precoNumerico.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                         </div>
@@ -506,6 +509,24 @@ window.atualizarResumo = function() {
             }
         }
     });
+
+    // --- NOVO: BLOCO DO DESCONTO PROTHEUS DO PEDIDO ---
+    if (custoTotalPedido > 0) {
+        // 1. Descobre o markup real de todo o pedido junto
+        const markupPedido = totalBrutoTabela / custoTotalPedido;
+        // 2. Aplica a sua fórmula: (((MarkupPedido/1.699)-1)*-1)*100
+        let descProtheusPedido = (((markupPedido / 1.692) - 1) * -1) * 100;
+        
+        // Evita que descontos muito pequenos fiquem negativos ou deem erro (ex: -0.01%)
+        if (descProtheusPedido < 0) descProtheusPedido = 0;
+
+        // 3. Adiciona o bloco bonitão no final da lista
+        itensHtml += `
+            <div class="mt-4 p-4 bg-indigo-20 border border-indigo-200 text-center rounded-sm shadow-sm">
+                <span class=" text-md font-bold text-indigo-900"> Desconto Protheus: ${descProtheusPedido.toFixed(1)}%</span>
+            </div>
+        `;
+    }
 
     const subtotalComDesconto = totalBrutoTabela; 
     const valorFrete = subtotalComDesconto * (percentualFrete / 100);

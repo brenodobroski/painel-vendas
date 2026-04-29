@@ -7,10 +7,8 @@
     <link rel="icon" type="image/jpg" href="./img/logo-site.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-    // Bloqueio Síncrono Imediato: Verifica se o token do Supabase existe na memória
-    // Se não existir, redireciona antes mesmo de o navegador desenhar a página
     if (!localStorage.getItem('sb-ijkzolhxuuqmkuztdliv-auth-token')) {
-        window.location.replace('login.html'); // Usamos replace para não sujar o histórico do botão "Voltar"
+        window.location.replace('login.html'); 
     }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -25,58 +23,97 @@
         margin: 0;
     }
 
-    /* Remove as setas no Firefox */
     input[type=number] {
         -moz-appearance: textfield;
     }
-    </style>
 
+    /* Transições Suaves para o Menu Retrátil */
+    #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+    #main-content { transition: margin-left 0.3s ease; }
+    .nav-text, .profile-info, .logo-text { transition: opacity 0.2s ease; }
+    
+    /* Classe para esconder texto quando colapsado */
+    .sidebar-collapsed .nav-text, 
+    .sidebar-collapsed .profile-info, 
+    .sidebar-collapsed .logo-text,
+    .sidebar-collapsed .nav-title {
+        display: none;
+    }
+
+    /* Ajuste de largura colapsada */
+    .sidebar-collapsed { width: 80px !important; }
+    .sidebar-collapsed-margin { margin-left: 80px !important; }
+    </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900">
+<body class="bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
+
+    <div class="md:hidden flex items-center justify-between bg-slate-950 text-white p-4 sticky top-0 z-40 shadow-md">
+        <div class="flex items-center">
+            <img class="w-8 rounded-lg mr-3" src="./img/logo-site.jpg" alt="Logo Climario">
+            <span class="font-bold text-lg tracking-tight">Climario <span class="text-slate-500 text-sm">Multi</span></span>
+        </div>
+        <button onclick="toggleMobileMenu()" class="text-slate-300 hover:text-white focus:outline-none">
+            <i class="fas fa-bars text-2xl"></i>
+        </button>
+    </div>
+
+    <div id="sidebar-backdrop" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-40 hidden md:hidden backdrop-blur-sm"></div>
 
     <div class="flex">
-        <aside class="w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col h-screen fixed left-0 top-0 border-r border-slate-800 z-50">
+        
+        <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col h-screen fixed left-0 top-0 border-r border-slate-800 z-50 transform -translate-x-full md:translate-x-0">
             
-            <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
-                <img class="w-8 rounded-lg mr-3" src="./img/logo-site.jpg" alt="Logo Climario">
-                <span class="font-bold text-lg text-white tracking-tight"> Climario <span class="text-slate-500">Multisplit</span></span>
+            <div class="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-950 overflow-hidden">
+                <div class="flex items-center flex-shrink-0">
+                    <img class="w-8 rounded-lg" src="./img/logo-site.jpg" alt="Logo">
+                    <span class="logo-text font-bold text-lg text-white tracking-tight ml-3 whitespace-nowrap">Climario <span class="text-slate-500">Multi</span></span>
+                </div>
+                <button onclick="toggleSidebarDesktop()" class="hidden md:flex text-slate-500 hover:text-white p-1 ml-1">
+                    <i id="toggle-icon" class="fas fa-chevron-left"></i>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-slate-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
             
-            <nav class="flex-1 p-4 space-y-2">
-                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">Comercial</div>
+            <nav class="flex-1 p-3 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
+                <div class="nav-title text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2 whitespace-nowrap">Comercial</div>
                 
-                <button onclick="mudarAba('simulador')" id="btn-aba-simulador" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium bg-blue-900/40 text-blue-400 transition-colors">
-                    📊 Novo Orçamento
+                <button onclick="mudarAba('simulador')" id="btn-aba-simulador" class="w-full flex items-center gap-4 px-3 py-3 rounded-md text-sm font-medium bg-blue-900/40 text-blue-400 transition-colors group">
+                    <i class="fas fa-chart-bar text-lg flex-shrink-0 w-6 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Novo Orçamento</span>
                 </button>
                 
-                <button onclick="mudarAba('solicitacoes')" id="btn-aba-solicitacoes" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors relative">
-                    📋 Minhas Solicitações
+                <button onclick="mudarAba('solicitacoes')" id="btn-aba-solicitacoes" class="w-full flex items-center gap-4 px-3 py-3 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors group">
+                    <i class="fas fa-clipboard-list text-lg flex-shrink-0 w-6 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Minhas Solicitações</span>
                 </button>
             </nav>
 
-            <div class="p-4 border-t border-slate-800 bg-slate-950">
+            <div class="p-3 border-t border-slate-800 bg-slate-950 overflow-hidden">
                 <div class="flex items-center gap-3 mb-4 px-1">
-                    <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center font-bold text-xs text-white" id="perfil-iniciais">--</div>
-                    <div class="overflow-hidden">
+                    <div class="w-10 h-10 rounded bg-slate-800 flex items-center justify-center font-bold text-sm text-white flex-shrink-0 shadow-inner" id="perfil-iniciais">--</div>
+                    <div class="profile-info overflow-hidden min-w-0">
                         <p class="text-sm font-bold text-white truncate" id="perfil-nome">Carregando...</p>
-                        <p class="text-xs text-slate-500 truncate" id="perfil-email">Aguarde</p>
+                        <p class="text-[10px] text-slate-500 truncate" id="perfil-email">Aguarde</p>
                     </div>
                 </div>
-                <button id="btn-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium text-red-400 hover:bg-red-950/20 hover:text-red-300 transition-colors">
-                    <span>🚪</span> Sair
+                <button id="btn-logout" class="w-full flex items-center gap-4 px-3 py-2 rounded-md text-xs font-medium text-red-400 hover:bg-red-950/20 transition-colors group">
+                    <i class="fas fa-sign-out-alt text-lg flex-shrink-0 w-6 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Sair do Sistema</span>
                 </button>
             </div>
         </aside>
 
-        <main class="flex-1 ml-64 p-8 min-h-screen">
+        <main id="main-content" class="flex-1 ml-0 md:ml-64 p-4 md:p-8 min-h-screen w-full overflow-x-hidden">
             <div class="max-w-[1600px] mx-auto space-y-6">
                 
-                <div class="flex flex-col md:flex-row justify-between items-center border-b border-slate-200 pb-4 gap-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4">
                     <div>
-                        <h2 id="titulo-pagina" class="text-2xl font-bold text-slate-900">Configurador Multi-Split</h2>
+                        <h2 id="titulo-pagina" class="text-xl sm:text-2xl font-bold text-slate-900">Configurador Multi-Split</h2>
                         <p id="subtitulo-pagina" class="text-slate-500 text-xs font-medium mt-1">Configure os parâmetros e selecione os itens abaixo.</p>
                     </div>
-                    <button onclick="window.location.reload()" class="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-all">
+                    <button onclick="window.location.reload()" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-all flex items-center justify-center">
                         <i class="fas fa-sync-alt mr-2"></i> Atualizar Sistema
                     </button>
                 </div>
@@ -86,37 +123,37 @@
                         
                         <div class="lg:col-span-2 space-y-6">
                             
-                            <div class="bg-white border border-slate-200 rounded-md shadow-sm p-6">
-                                <div class="grid grid-cols-4 gap-6 mb-8 pb-6 border-b border-slate-100">
+                            <div class="bg-white border border-slate-200 rounded-md shadow-sm p-4 sm:p-6">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 pb-6 border-b border-slate-100">
                                     
                                     <div>
                                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Desconto</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-input-desconto">
                                             <button type="button" id="btn-input-desconto" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('input-desconto')">
                                                 <span id="texto-input-desconto" class="truncate pr-2 text-left">0%</span>
-                                                <svg class="w-4 h-4 text-slate-500 transition-transform duration-200 flex-shrink-0 ml-2" id="seta-input-desconto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-input-desconto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </button>
                                             <div id="lista-input-desconto" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
                                                 <ul class="py-1 text-sm text-slate-700 font-bold">
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="0">0%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="1">1%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="2">2%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3">3%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4">4%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="5">5%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="6">6%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="7">7%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="8">8%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="9">9%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10">10%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="11">11%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="12">12%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="13">13%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="14">14%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="15">15%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="16">16%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="17">17%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="18">18%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">0%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="1">1%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="2">2%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3">3%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4">4%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">5%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="6">6%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="7">7%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="8">8%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="9">9%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10">10%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="11">11%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="12">12%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="13">13%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="14">14%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="15">15%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="16">16%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="17">17%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="18">18%</li>
                                                 </ul>
                                             </div>
                                             <input type="hidden" id="input-desconto" value="0" onchange="atualizarResumo()">
@@ -124,25 +161,25 @@
                                     </div>
                                     
                                     <div>
-                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2 ">RT</label>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">RT</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-input-rt">
                                             <button type="button" id="btn-input-rt" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('input-rt')">
                                                 <span id="texto-input-rt" class="truncate pr-2 text-left">0%</span>
-                                                <svg class="w-4 h-4 text-slate-500 transition-transform duration-200 flex-shrink-0 ml-2" id="seta-input-rt" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-input-rt" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </button>
                                             <div id="lista-input-rt" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
                                                 <ul class="py-1 text-sm text-slate-700 font-bold">
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="0">0%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="1">1%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="2">2%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3">3%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4">4%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="5">5%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="6">6%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="7">7%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="8">8%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="9">9%</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10">10%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">0%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="1">1%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="2">2%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3">3%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4">4%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">5%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="6">6%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="7">7%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="8">8%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="9">9%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="10">10%</li>
                                                 </ul>
                                             </div>
                                             <input type="hidden" id="input-rt" value="0" onchange="atualizarResumo()">
@@ -150,92 +187,90 @@
                                     </div>
 
                                     <div>
-                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Forma de Pagamento</label>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Pagamento</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-select-pagamento">
                                             <button type="button" id="btn-select-pagamento" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('select-pagamento')">
-                                                <span id="texto-select-pagamento" class="truncate pr-2 text-left">Á vista 100% antecipado (PIX)</span>
-                                                <svg class="w-4 h-4 text-slate-500 transition-transform duration-200 flex-shrink-0 ml-2" id="seta-select-pagamento" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                <span id="texto-select-pagamento" class="truncate pr-2 text-left text-xs">Á vista 100% antecipado (PIX)</span>
+                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-select-pagamento" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </button>
                                             <div id="lista-select-pagamento" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
                                                 <ul class="py-1 text-sm text-slate-700 font-bold">
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="0">Á vista 100% antecipado (PIX)</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="0">Em 3 vezes no cartão de crédito</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="5">Em 6 vezes no cartão de crédito</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="5">Em 8 vezes no cartão de crédito</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="5">Em 10 vezes no cartão de crédito</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">Á vista 100% antecipado (PIX)</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">Em 3 vezes no cartão</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">Em 6 vezes no cartão</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">Em 8 vezes no cartão</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">Em 10 vezes no cartão</li>
                                                 </ul>
                                             </div>
                                             <input type="hidden" id="select-pagamento" value="0" onchange="atualizarResumo()">
                                         </div>
                                     </div>
 
-                                    <div class="mb-4">
-                                        <label class="block text-xs font-bold text-slate-500 mb-1">Estado Destino (Frete %)</label>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Destino (Frete)</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-select-uf">
                                             <button type="button" id="btn-select-uf" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('select-uf')">
                                                 <span id="texto-select-uf" class="truncate pr-2">SP</span>
-                                                <svg class="w-4 h-4 text-slate-500 transition-transform duration-200 flex-shrink-0 ml-2" id="seta-select-uf" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-select-uf" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </button>
                                             <div id="lista-select-uf" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
                                                 <ul class="py-1 text-sm text-slate-700 font-bold">
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.0">SP</li>                                            
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10.0">AC</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">AL</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10.0">AM</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10.0">AP</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">BA</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">CE</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.8">DF</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="2.5">ES</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.8">GO</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">MA</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.0">MG</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.8">MS</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.8">MT</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10.0">PA</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">PB</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">PE</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">PI</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.5">PR</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.0">RJ</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">RN</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10.0">RO</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="10.0">RR</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.5">RS</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.5">SC</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="4.0">SE</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0" data-value="3.8">TO</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.0">SP</li>                                                    
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.5">PR</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.0">RJ</li> 
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.5">RS</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.5">SC</li>                                                                                                       
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">AC</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">AL</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">AM</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">AP</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">BA</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">CE</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">DF</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="2.5">ES</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">GO</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">MA</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.0">MG</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">MS</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">MT</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">PA</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">PB</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">PE</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">PI</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">RN</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">RO</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">RR</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">SE</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">TO</li>
                                                 </ul>
                                             </div>
                                             <input type="hidden" id="select-uf" value="3.0" onchange="atualizarResumo()">
                                         </div>
                                     </div>
-
-
                                 </div>
 
                                 <div class="mb-6">
-                                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                         <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded flex items-center justify-center text-xs">1</span> 
                                         Selecione a Marca
                                     </h3>
                                     <div class="relative w-full custom-dropdown" id="dropdown-marca-condensadora">
-                                        <button type="button" id="btn-marca-condensadora" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center outline-none" onclick="toggleDropdown('marca-condensadora')">
+                                        <button type="button" id="btn-marca-condensadora" class="w-full bg-white border border-slate-300 rounded-md py-3 px-4 text-sm font-bold text-slate-700 flex justify-between items-center outline-none hover:border-blue-400 transition-all" onclick="toggleDropdown('marca-condensadora')">
                                             <span id="texto-marca-condensadora" class="uppercase truncate pr-2 text-left">-- Escolha a Marca --</span>
                                             <svg class="w-4 h-4 text-slate-500" id="seta-marca-condensadora" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                         </button>
-                                        <div id="lista-marca-condensadora" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto">
+                                        <div id="lista-marca-condensadora" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-64 overflow-y-auto">
                                             <ul class="py-1 text-sm text-slate-700 font-bold uppercase">
-                                                <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="SAMSUNG">SAMSUNG</li>
-                                                <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="LG">LG</li>
-                                                <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="LG BI">LG BI</li>
-                                                <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="DAIKIN">DAIKIN</li>
-                                                <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="DAIKIN BI">DAIKIN BI R-32</li>
-                                                <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="DAIKIN TRI">DAIKIN TRI R-32</li>
-                                                 <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="MIDEA">MIDEA</li>
-                                                  <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="ELGIN">ELGIN</li>
-                                                   <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="GREE">GREE</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="FUJITSU">FUJITSU</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="SAMSUNG">SAMSUNG</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="LG">LG</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="LG BI">LG BI</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="DAIKIN">DAIKIN</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="DAIKIN BI">DAIKIN BI R-32</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="DAIKIN TRI">DAIKIN TRI R-32</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="MIDEA">MIDEA</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="ELGIN">ELGIN</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="GREE">GREE</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer" data-value="FUJITSU">FUJITSU</li>
                                             </ul>
                                         </div>
                                         <input type="hidden" id="marca-condensadora" value="">
@@ -243,15 +278,15 @@
                                 </div>
 
                                 <div id="container-tabela" class="hidden border border-slate-200 rounded-md overflow-hidden bg-slate-50">
-                                    <div class="max-h-64 overflow-y-auto custom-scrollbar">
-                                        <table class="w-full text-left text-sm border-collapse">
-                                            <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0">
+                                    <div class="max-h-64 overflow-y-auto overflow-x-auto custom-scrollbar">
+                                        <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
+                                            <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0 z-10">
                                                 <tr>
-                                                    <th class="border p-3 w-20 text-center">Qtd</th>
-                                                    <th class="border p-3 text-center">SKU</th>
-                                                    <th class="border p-3">Equipamento</th>
-                                                    <th class="border p-3 text-center">Estoque</th>
-                                                    <th class="border p-3 text-center">Preço</th>
+                                                    <th class="border p-2 sm:p-3 w-16 text-center">Qtd</th>
+                                                    <th class="border p-2 sm:p-3 text-center">SKU</th>
+                                                    <th class="border p-2 sm:p-3">Equipamento</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Estoque</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Preço</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="corpo-tabela" class="bg-white"></tbody>
@@ -260,20 +295,20 @@
                                 </div>
                             </div>
 
-                            <div id="card-evaporadoras" class="bg-white border border-slate-200 rounded-md shadow-sm p-6 opacity-50 transition-all">
-                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <div id="card-evaporadoras" class="bg-white border border-slate-200 rounded-md shadow-sm p-4 sm:p-6 opacity-50 transition-all">
+                                <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded flex items-center justify-center text-xs">2</span> Evaporadoras
                                 </h3>
                                 <div id="container-tabela-evap" class="hidden border border-slate-200 rounded-md overflow-hidden">
-                                    <div class="max-h-80 overflow-y-auto custom-scrollbar">
-                                        <table class="w-full text-left text-sm border-collapse">
-                                            <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0">
+                                    <div class="max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
+                                        <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
+                                            <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0 z-10">
                                                 <tr>
-                                                    <th class="border p-3 w-20 text-center">Qtd</th>
-                                                    <th class="border p-3 text-center">SKU</th>
-                                                    <th class="border p-3">Equipamento</th>
-                                                    <th class="border p-3 text-center">Estoque</th>
-                                                    <th class="border p-3 text-center">Preço</th>
+                                                    <th class="border p-2 sm:p-3 w-16 text-center">Qtd</th>
+                                                    <th class="border p-2 sm:p-3 text-center">SKU</th>
+                                                    <th class="border p-2 sm:p-3">Equipamento</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Estoque</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Preço</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="corpo-tabela-evap" class="bg-white"></tbody>
@@ -284,61 +319,61 @@
                         </div>
 
                         <div class="lg:col-span-1">
-                            <div class="bg-white border border-slate-200 rounded-sm shadow-md p-6 sticky top-6 border-t-4 border-t-blue-700">
+                            <div class="bg-white border border-slate-200 rounded-sm shadow-md p-4 sm:p-6 sticky top-6 border-t-4 border-t-blue-700">
                                 <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Resumo da Cotação</h3>
                                 
-                                <div id="lista-itens-resumo" class="space-y-3 mb-6 max-h-80 overflow-y-auto custom-scrollbar">
+                                <div id="lista-itens-resumo" class="space-y-3 mb-6 max-h-80 overflow-y-auto custom-scrollbar pr-1">
                                     <p class="text-xs text-slate-400 italic">Nenhum item selecionado.</p>
                                 </div>
 
                                 <div class="space-y-2 mb-6 border-t border-slate-100 pt-4">
-                                    <div class="space-y-2 mb-4 border-t border-slate-100 pt-4 text-slate-600 bg-slate-50 p-3 rounded-md border">
+                                    <div class="space-y-2 mb-4 text-slate-600 bg-slate-50 p-3 rounded-md border">
                                         <div class="flex justify-between items-center">
-                                            <span class="text-[10px] uppercase font-bold text-slate-500">Capacidade Condensadora:</span>
-                                            <span id="resumo-btu-cond" class="text-xs font-mono font-bold text-slate-800">0 BTUs</span>
+                                            <span class="text-[11px] uppercase font-bold text-slate-500">Capacidade Condensadoras:</span>
+                                            <span id="resumo-btu-cond" class="text-xs font-mono font-bold text-slate-400">0 BTUs</span>
                                         </div>
                                         <div class="flex justify-between items-center">
-                                            <span class="text-[10px] uppercase font-bold text-slate-500">Capacidade Evaporadoras:</span>
-                                            <span id="resumo-btu-evap" class="text-xs font-mono font-bold text-slate-800">0 BTUs</span>
+                                            <span class="text-[11px] uppercase font-bold text-slate-500">Capapacidade Evaporadoras:</span>
+                                            <span id="resumo-btu-evap" class="text-xs font-mono font-bold text-slate-400">0 BTUs</span>
                                         </div>
                                         <div class="flex justify-between items-center pt-1 border-t border-slate-200 mt-1">
-                                            <span class="text-[10px] uppercase font-bold text-slate-500">Simultaneidade:</span>
-                                            <span id="resumo-simultaneidade" class="text-sm font-mono font-bold text-slate-400">0,0%</span>
+                                            <span class="text-[11px] uppercase font-bold text-slate-500">Simultaneidade:</span>
+                                            <span id="resumo-simultaneidade" class="text-sm font-mono font-bold text-slate-800">0,0%</span>
                                         </div>
                                     </div>
 
                                     <div class="flex justify-between items-center text-slate-500">
-                                        <span class="text-xs uppercase">Subtotal:</span>
-                                        <span id="resumo-subtotal" class="text-sm font-normal">R$ 0,00</span>
+                                        <span class="text-xs font-bold uppercase">Subtotal:</span>
+                                        <span id="resumo-subtotal" class="text-sm font-bold">R$ 0,00</span>
                                     </div>
                                     
                                     <div class="flex justify-between items-center text-slate-500">
-                                        <span class="text-xs uppercase">Frete:</span>
-                                        <span id="resumo-frete" class="text-sm font-normal">+ R$ 0,00</span>
+                                        <span class="text-xs font-bold uppercase">Frete:</span>
+                                        <span id="resumo-frete" class="text-sm font-bold">+ R$ 0,00</span>
                                     </div>
 
                                     <div class="flex justify-between items-center font-bold text-slate-900 pt-2 border-t border-slate-200">
                                         <span class="text-sm uppercase">Total Cotação:</span>
-                                        <span id="resumo-total" class="text-2xl font-mono text-blue-700">R$ 0,00</span>
+                                        <span id="resumo-total" class="text-xl sm:text-2xl font-mono text-blue-700">R$ 0,00</span>
                                     </div>
                                 </div>
 
-                                <button id="btn-finalizar" disabled class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-md transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed uppercase text-xs tracking-widest">
+                                <button id="btn-finalizar" disabled class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 sm:py-4 rounded-md transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed uppercase text-xs tracking-widest">
                                     Gerar Orçamento
                                 </button>
 
                                 <div id="container-teste-hipotese" class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded hidden">
                                     <h3 class="text-xs font-bold text-indigo-800 mb-2"><i class="fas fa-calculator"></i> Teste de Hipótese</h3>
-                                    <div class="flex gap-2 items-end">
-                                        <div class="flex-1">
+                                    <div class="flex flex-col sm:flex-row gap-2 items-end">
+                                        <div class="flex-1 w-full sm:w-auto">
                                             <label class="text-[10px] text-indigo-600 font-bold">Valor Alvo</label>
-                                            <input type="number" id="input-evidencia" class="w-full p-1.5 text-sm border border-indigo-300 rounded outline-none focus:border-indigo-500 font-bold" placeholder="Ex: 8500.00">
+                                            <input type="number" id="input-evidencia" class="w-full p-2 sm:p-1.5 text-sm border border-indigo-300 rounded outline-none focus:border-indigo-500 font-bold" placeholder="Ex: 8500.00">
                                         </div>
-                                        <button onclick="fazerTesteHipotese()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors">
+                                        <button onclick="fazerTesteHipotese()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 sm:py-1.5 px-3 rounded text-xs transition-colors">
                                             Calcular
                                         </button>
                                     </div>
-                                    <p id="msg-hipotese" class="text-[10px] text-red-600 font-bold mt-2 hidden">⚠️ Orçamento bloqueado para emissão.</p>
+                                    <p id="msg-hipotese" class="text-[10px] text-red-600 font-bold mt-2 hidden">⚠️ Orçamento bloqueado.</p>
                                 </div>
                             </div>
                         </div>
@@ -346,23 +381,23 @@
                     </div>
                 </section>
 
-
                 <section id="secao-solicitacoes" class="hidden space-y-6">
                     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                        <table class="w-full text-left text-sm border-collapse">
-                            <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                                <tr>
-                                    <th class="p-4">Data da Solicitação</th>
-                                    <th class="p-4 text-center">Qtd Itens</th>
-                                    <th class="p-4 text-right">Valor Solicitado</th>
-                                    <th class="p-4 text-center">Desconto</th>
-                                    <th class="p-4 text-center">Status</th>
-                                    <th class="p-4 text-center">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="corpo-minhas-solicitacoes" class="divide-y divide-slate-100">
-                                </tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
+                                <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3 sm:p-4">Data</th>
+                                        <th class="p-3 sm:p-4 text-center">Itens</th>
+                                        <th class="p-3 sm:p-4 text-right">Valor</th>
+                                        <th class="p-3 sm:p-4 text-center">Desc</th>
+                                        <th class="p-3 sm:p-4 text-center">Status</th>
+                                        <th class="p-3 sm:p-4 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-minhas-solicitacoes" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -370,7 +405,7 @@
         </main>
     </div>
 
-    <div id="modal-solicitacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm">
+    <div id="modal-solicitacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
             <button onclick="fecharModalSolicitacao()" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors text-2xl font-bold leading-none outline-none">&times;</button>
             <h2 class="text-lg font-black text-slate-800 mb-1">Solicitar Desconto Especial</h2>
@@ -395,7 +430,7 @@
         </div>
     </div>
 
-    <div id="modal-motivo-reprovacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm">
+    <div id="modal-motivo-reprovacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative">
             <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 text-2xl font-bold outline-none">&times;</button>
             <h2 class="text-lg font-black text-red-600 mb-2 border-b border-slate-100 pb-2"><i class="fas fa-times-circle"></i> Solicitação Reprovada</h2>
@@ -411,7 +446,31 @@
     <script type='module' src="app.js"></script>
     
     <script>
-        // Lógica de Abas do Vendedor
+        // FUNÇÃO: Toggle Sidebar Desktop (Retrátil)
+        function toggleSidebarDesktop() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+            const icon = document.getElementById('toggle-icon');
+            
+            sidebar.classList.toggle('sidebar-collapsed');
+            main.classList.toggle('sidebar-collapsed-margin');
+            
+            if (sidebar.classList.contains('sidebar-collapsed')) {
+                icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+            } else {
+                icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+            }
+        }
+
+        // FUNÇÃO: Mobile Menu (Gaveta)
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        // Lógica de Abas
         function mudarAba(aba) {
             const secoes = ['simulador', 'solicitacoes'];
             secoes.forEach(s => {
@@ -428,9 +487,11 @@
             };
             document.getElementById('titulo-pagina').innerText = titulos[aba][0];
             document.getElementById('subtitulo-pagina').innerText = titulos[aba][1];
+            
+            if(window.innerWidth < 768) toggleMobileMenu();
         }
 
-        // Dropdowns (Código mantido igual ao seu)
+        // Dropdowns Customizados
         document.addEventListener('click', function(e) {
             document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
                 if (!dropdown.contains(e.target)) {
@@ -453,7 +514,6 @@
                     if(s) s.classList.remove('rotate-180');
                 }
             });
-
             const lista = document.getElementById('lista-' + id);
             const seta = document.getElementById('seta-' + id);
             if(lista) lista.classList.toggle('hidden');

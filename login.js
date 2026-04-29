@@ -29,6 +29,20 @@ if (loginForm) {
 
             if (error) throw error;
 
+            // --- INÍCIO DA TRAVA DE SESSÃO ÚNICA ---
+            // A. Gera um Token de Sessão Único para esta máquina/navegador
+            const tokenSessao = crypto.randomUUID();
+            
+            // B. Salva o token na memória do navegador do vendedor
+            localStorage.setItem('climario_token_sessao', tokenSessao);
+
+            // C. Grava no banco de dados (derrubando qualquer outro login anterior desta conta)
+            await supabase
+                .from('usuarios')
+                .update({ token_sessao: tokenSessao })
+                .eq('id', data.user.id);
+            // --- FIM DA TRAVA ---
+
             // 4. Verificação de Cadastro (Garante que o usuário está na tabela 'usuarios')
             const { data: perfil, error: erroPerfil } = await supabase
                 .from('usuarios')
