@@ -1017,10 +1017,9 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             alert("Por favor, preencha o motivo da solicitação.");
             return false;
         }
-        if (!inputArquivo || !inputArquivo.files || inputArquivo.files.length === 0) {
-            alert("Por favor, anexe a evidência (PDF ou Imagem).");
-            return false;
-        }
+        
+        // A trava que obrigava a ter o inputArquivo foi removida daqui!
+        
         if (btnEnviar) {
             btnEnviar.innerText = "Registrando... Aguarde";
             btnEnviar.disabled = true;
@@ -1036,10 +1035,7 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         const descontoAtual = document.getElementById('input-desconto')?.value || 0;
         
         // --- CAPTURA BLINDADA PARA DROPDOWN CUSTOMIZADO ---
-        // 1. Pega o NÚMERO (0, 5) do input oculto para gerar o código
         const valorPagamento = document.getElementById('select-pagamento')?.value || 0;
-        
-        // 2. Pega o TEXTO ("Em 10 vezes...") do span visual para salvar no banco/PDF
         const elTextoPagamento = document.getElementById('texto-select-pagamento');
         const textoPagamento = elTextoPagamento ? elTextoPagamento.innerText.trim() : 'Á vista 100% antecipado (PIX)';
 
@@ -1051,7 +1047,9 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         window.dadosParaOrcamento.filial = window.filialVendedor;
         window.dadosParaOrcamento.formaPagamento = textoPagamento;
 
-        let urlEvidencia = null;
+        let urlEvidencia = null; // Por padrão vai vazio para o sistema
+
+        // Só faz o upload se houver um arquivo selecionado
         if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
             const file = inputArquivo.files[0];
             const fileExt = file.name.split('.').pop();
@@ -1078,9 +1076,9 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             valor_alvo: parseFloat(valorAlvo),
             desconto_solicitado: parseFloat(descontoAtual),
             rt: parseFloat(rtAtual),
-            pagamento: textoPagamento, // Salva o texto no banco
+            pagamento: textoPagamento,
             motivo: statusDefinido === 'aprovado' ? 'Aprovado Automaticamente pelo Sistema' : motivo,
-            url_evidencia: urlEvidencia,
+            url_evidencia: urlEvidencia, // Aqui sobe o arquivo OU fica null
             itens: window.dadosParaOrcamento.itens,
             total_bruto: window.dadosParaOrcamento.totalBruto,
             status: statusDefinido,
@@ -1108,7 +1106,7 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         return false;
     } finally {
         if (statusDefinido === 'pendente' && btnEnviar) {
-            btnEnviar.innerText = "Enviar Solicitação";
+            btnEnviar.innerText = "Enviar para Aprovação";
             btnEnviar.disabled = false;
             btnEnviar.classList.replace('bg-slate-400', 'bg-orange-500');
         }
