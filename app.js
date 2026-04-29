@@ -62,13 +62,13 @@ async function verificarAcesso() {
         }
 
         // --- SISTEMA ANTI-COMPARTILHAMENTO DE CONTAS ---
-        const tokenLocal = localStorage.getItem('climario_token_sessao');
+        const tokenLocal = localStorage.getItem('token_sessao');
         
         // Se o token do banco for diferente do token da máquina, expulsa o usuário
         if (perfil.token_sessao && perfil.token_sessao !== tokenLocal) {
             alert("⚠️ Sua conta foi conectada em outro dispositivo. Você foi desconectado por segurança.");
             await supabase.auth.signOut();
-            localStorage.removeItem('climario_token_sessao');
+            localStorage.removeItem('token_sessao');
             window.location.replace("login.html");
             return;
         }
@@ -94,6 +94,41 @@ async function verificarAcesso() {
     }
 }
 verificarAcesso();
+
+// ==========================================
+// MONITOR DE SESSÃO EM TEMPO REAL (CÃO DE GUARDA)
+// ==========================================
+async function monitorarSessaoEmTempoReal() {
+    const tokenLocal = localStorage.getItem('climario_token_sessao');
+    if (!tokenLocal) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    try {
+        // Vai no banco silenciosamente verificar se o token mudou
+        const { data: perfil, error } = await supabase
+            .from('usuarios')
+            .select('token_sessao') 
+            .eq('id', session.user.id)
+            .single();
+
+        if (error) return;
+
+        // Se o token do banco for diferente do token desta máquina... EXPULSA!
+        if (perfil && perfil.token_sessao && perfil.token_sessao !== tokenLocal) {
+            alert("⚠️ ATENÇÃO: Um novo login foi detectado em outro IP/Dispositivo. Esta aba foi desconectada por segurança.");
+            await supabase.auth.signOut();
+            localStorage.removeItem('climario_token_sessao');
+            window.location.replace("login.html");
+        }
+    } catch (err) {
+        // Ignora erros de rede temporários para não assustar o usuário
+    }
+}
+
+// O sistema vai checar o banco de dados silenciosamente a cada 10 segundos
+setInterval(monitorarSessaoEmTempoReal, 10000);
 
 supabase.auth.onAuthStateChange((event, session) => {
     if (!session) window.location.href = "login.html";
