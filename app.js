@@ -106,33 +106,38 @@ async function monitorarSessaoEmTempoReal() {
     if (!session) return;
 
     try {
-        // Vai no banco silenciosamente verificar se o token mudou
-        const { data: perfil, error } = await supabase
-            .from('usuarios')
-            .select('token_sessao') 
-            .eq('id', session.user.id)
-            .single();
+        // Dispara duas checagens minúsculas ao mesmo tempo (Token e Versão do Catálogo)
+        const promessaPerfil = supabase.from('usuarios').select('token_sessao').eq('id', session.user.id).single();
+        const promessaConfig = supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single();
+        
+        const [resPerfil, resConfig] = await Promise.all([promessaPerfil, promessaConfig]);
 
-        if (error) return;
-
-        // Se o token do banco for diferente do token desta máquina... EXPULSA!
-        if (perfil && perfil.token_sessao && perfil.token_sessao !== tokenLocal) {
+        // 1. Verifica Segurança (Token)
+        if (resPerfil.data && resPerfil.data.token_sessao && resPerfil.data.token_sessao !== tokenLocal) {
             alert("⚠️ ATENÇÃO: Um novo login foi detectado em outro IP/Dispositivo. Esta aba foi desconectada por segurança.");
             await supabase.auth.signOut();
             localStorage.removeItem('climario_token_sessao');
             window.location.replace("login.html");
+            return;
         }
+
+        // 2. Verifica Atualização Global de Preços
+        const versaoOficial = resConfig.data ? resConfig.data.valor : null;
+        const versaoLocal = localStorage.getItem('climario_versao_catalogo');
+
+        // Se o admin mudou os preços, nós acionamos o download automático!
+        if (versaoOficial && versaoLocal && versaoOficial !== versaoLocal) {
+            console.log("⚠️ Mudança global de preços detectada! Atualizando catálogo em background...");
+            carregarProdutosSupabase(true); 
+        }
+
     } catch (err) {
-        // Ignora erros de rede temporários para não assustar o usuário
+        // Ignora erros temporários de internet
     }
 }
 
-// O sistema vai checar o banco de dados silenciosamente a cada 10 segundos
-setInterval(monitorarSessaoEmTempoReal, 10000);
-
-supabase.auth.onAuthStateChange((event, session) => {
-    if (!session) window.location.href = "login.html";
-});
+setInterval(monitorarSessaoEmTempoReal, 60000);
+window.addEventListener('focus', monitorarSessaoEmTempoReal);
 
 // Elementos
 const caixaMarca = document.getElementById('marca-condensadora');
@@ -149,31 +154,50 @@ const btnLogout = document.getElementById('btn-logout');
 
 let produtos = []
 
-async function carregarProdutosSupabase() {
+async function carregarProdutosSupabase(forcarBaixar = false) {
     try {
-        const { data, error } = await supabase
-            .from('produtos')
-            .select(`
-                    *,
-                    custos (
-                        custo,
-                        verba
-                    )
-                `);
-
-        if (error) throw error;
-
-        produtos = data;
-        console.log(`${produtos.length} produtos carregados via Supabase!`);
+        // 1. Pergunta ao banco qual a versão oficial agora (gasta apenas 50 bytes de dados)
+        const { data: config } = await supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single();
+        const versaoOficial = config ? config.valor : '1';
         
-        if (caixaMarca && caixaMarca.value) {
-            caixaMarca.dispatchEvent(new Event('change'));
+        const cache = localStorage.getItem('climario_catalogo_produtos');
+        const versaoLocal = localStorage.getItem('climario_versao_catalogo');
+
+        // 2. Compara as versões. Se a versão local for igual a oficial, usa a memória instantânea!
+        if (!forcarBaixar && cache && versaoLocal === versaoOficial) {
+            produtos = JSON.parse(cache);
+            console.log(`📦 Catálogo carregado da MEMÓRIA (Versão ${versaoLocal}).`);
+            if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
+            return;
         }
+
+        // 3. Se a versão for diferente, baixa tudo do Supabase para atualizar
+        console.log("☁️ Versão desatualizada. Baixando catálogo novo do Supabase...");
+        const { data, error } = await supabase.from('produtos').select('*, custos(custo, verba)');
+        if (error) throw error;
+        
+        produtos = data;
+        
+        // 4. Salva no celular com a nova versão carimbada
+        localStorage.setItem('climario_catalogo_produtos', JSON.stringify(produtos));
+        localStorage.setItem('climario_versao_catalogo', versaoOficial);
+        
+        if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
+
+            auditarDownload('Vendedor: Download Novo Catálogo', data);
+
+
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
     }
+
 }
 carregarProdutosSupabase();
+
+window.forcarAtualizacaoSistema = function() {
+    localStorage.removeItem('climario_versao_catalogo');
+    window.location.reload(); 
+};
 
 // ==========================================
 // FAMILIAS E REGRAS (MANTIDO)
@@ -909,20 +933,22 @@ async function carregarMinhasSolicitacoes(userId) {
     try {
         const { data, error } = await supabase
             .from('solicitacoes_orcamento')
-            .select('*')
+            // OTIMIZAÇÃO: Ignoramos o 'snapshot' e 'url_evidencia' para economizar banda!
+            .select('id, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
             .eq('vendedor_id', userId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        // FILTRO: Esconde os orçamentos que passaram direto pelo botão verde (já resolvidos)
-        window.minhasSolicitacoes = (data || []).filter(req => req.motivo !== 'Aprovado Automaticamente pelo Sistema');
-        
-        renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
+        auditarDownload('Vendedor: Histórico de Solicitações', data);
 
+
+        window.minhasSolicitacoes = data || [];
+        renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
     } catch (error) {
         console.error("Erro ao buscar as solicitações do usuário:", error);
     }
+
 }
 
 function renderizarMinhasSolicitacoes(lista) {
@@ -979,16 +1005,35 @@ window.verMotivoReprovacao = function(id) {
     document.getElementById('modal-motivo-reprovacao').classList.remove('hidden');
 };
 
-window.abrirOrcamentoAprovado = function(id) {
-    const req = window.minhasSolicitacoes.find(s => s.id === id);
-    if (!req || !req.snapshot) {
-        alert("Erro: O snapshot deste orçamento não foi encontrado no banco de dados.");
-        return;
-    }
-    sessionStorage.setItem('orcamentoDados', JSON.stringify(req.snapshot));
-    window.open('orcamento.html', '_blank');
-};
+window.abrirOrcamentoAprovado = async function(id) {
+    document.body.style.cursor = 'wait'; // Muda o mouse para "carregando"
+    
+    try {
+        // OTIMIZAÇÃO: Baixa o snapshot pesado APENAS na hora que clica
+        const { data, error } = await supabase
+            .from('solicitacoes_orcamento')
+            .select('snapshot')
+            .eq('id', id)
+            .single();
 
+        if (error || !data || !data.snapshot) {
+            alert("Erro: O PDF deste orçamento não está mais disponível no banco.");
+            return;
+        }
+
+        sessionStorage.setItem('orcamentoDados', JSON.stringify(data.snapshot));
+        window.open('orcamento.html', '_blank');
+
+        auditarDownload('Vendedor: Download Snapshot do PDF', data);
+
+    } catch (err) {
+        console.error(err);
+        alert("Falha ao abrir PDF.");
+    } finally {
+        document.body.style.cursor = 'default';
+    }
+
+};
 // ==========================================
 // GERADOR DE CÓDIGO DE ORÇAMENTO INTELIGENTE
 // ==========================================
@@ -1051,9 +1096,30 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
 
         // Só faz o upload se houver um arquivo selecionado
         if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
-            const file = inputArquivo.files[0];
-            const fileExt = file.name.split('.').pop();
+            let file = inputArquivo.files[0];
+            const fileExt = file.name.split('.').pop().toLowerCase();
             const fileName = `${Date.now()}_${session.user.id}.${fileExt}`;
+
+            // --- MÁGICA DA COMPRESSÃO DE IMAGENS ---
+            // Só comprime se for imagem (ignora se o vendedor mandou um PDF)
+            if (file.type.startsWith('image/')) {
+                console.log(`📸 Tamanho original da foto: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                
+                const options = {
+                    maxSizeMB: 0.3, // Limite máximo de 300 KB (excelente para leitura na tela)
+                    maxWidthOrHeight: 1280, // Redimensiona fotos gigantes de 4K
+                    useWebWorker: true // Faz a compressão sem travar a tela do celular
+                };
+
+                try {
+                    // O arquivo original pesado é substituído pelo arquivo leve
+                    file = await imageCompression(file, options);
+                    console.log(`📉 Tamanho após compressão: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                } catch (error) {
+                    console.warn("⚠️ Erro ao comprimir. Enviando foto original como backup:", error);
+                }
+            }
+            // ----------------------------------------------
 
             const { error: uploadError } = await supabase.storage
                 .from('evidencias')
@@ -1112,3 +1178,19 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         }
     }
 };
+
+function auditarDownload(nomeRequisicao, dataResult) {
+    if (!dataResult) return;
+    
+    // Calcula o peso exato do JSON baixado em bytes
+    const bytes = new Blob([JSON.stringify(dataResult)]).size;
+    let tamanho = '';
+    
+    if (bytes > 1024 * 1024) {
+        tamanho = (bytes / (1024 * 1024)).toFixed(2) + ' MB 🚨 (ALERTA DE PESO)';
+    } else {
+        tamanho = (bytes / 1024).toFixed(2) + ' KB 🟢';
+    }
+
+    console.log(`📊 [API Supabase] ${nomeRequisicao}: Baixou ${tamanho}`);
+}
