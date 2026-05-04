@@ -5,21 +5,19 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 window.minhasSolicitacoes = []; 
-window.filialVendedor = '1028'; // Variável global para armazenar a filial do vendedor logado
+window.filialVendedor = '1028'; 
+window.roleUsuario = ''; // Variável global para armazenar se é Admin
 
 // ==========================================
 // RASTREADOR DE LOCALIZAÇÃO E LOGS (ORÇAMENTO)
 // ==========================================
 async function registrarLogAcessoOrcamento(userId, email) {
-    // Usamos sessionStorage para gravar o log apenas UMA vez por aba aberta
     if (sessionStorage.getItem('log_orcamento_enviado')) return;
 
     try {
-        // API Gratuita para pegar IP e Localização
         const response = await fetch('https://ipapi.co/json/');
         const loc = await response.json();
 
-        // Salva na NOVA tabela exclusiva do orçamento
         await supabase.from('logs_acesso_orcamento').insert([{
             user_id: userId,
             email: email,
@@ -49,7 +47,6 @@ async function verificarAcesso() {
         document.getElementById('perfil-email').innerText = session.user.email;
         document.getElementById('perfil-iniciais').innerText = nomeUsuario.substring(0, 2).toUpperCase();
 
-        // 1. Buscamos o perfil, a filial E O TOKEN DE SESSÃO DO BANCO
         const { data: perfil, error } = await supabase
             .from('usuarios')
             .select('role, filial, token_sessao') 
@@ -62,31 +59,32 @@ async function verificarAcesso() {
         }
 
        // --- SISTEMA ANTI-COMPARTILHAMENTO DE CONTAS ---
-        const tokenLocal = localStorage.getItem('climario_token_sessao'); // <-- Nome corrigido aqui
+        const tokenLocal = localStorage.getItem('climario_token_sessao') || '';
+        const ancoraAtual = obterAncoraDispositivo();
+        const chaveEsperada = `${ancoraAtual}|${tokenLocal}`;
         
-        // Se o token do banco for diferente do token da máquina, expulsa o usuário
-        if (perfil.token_sessao && perfil.token_sessao !== tokenLocal) {
-            alert("⚠️ Sua conta foi conectada em outro dispositivo. Você foi desconectado por segurança.");
+        // Verifica se o Supabase tem uma chave que bate perfeitamente com a soma das duas metades do PC atual
+        if (!tokenLocal || (perfil.token_sessao && perfil.token_sessao !== chaveEsperada)) {
+            alert("⚠️ Acesso inválido ou conta conectada em outro dispositivo. Você foi desconectado por segurança.");
             await supabase.auth.signOut();
-            localStorage.removeItem('climario_token_sessao'); // <-- Nome corrigido aqui
+            localStorage.removeItem('climario_token_sessao'); 
             window.location.replace("login.html");
             return;
         }
 
-        // Se passou na trava, dispara o Log de Localização silenciosamente
         registrarLogAcessoOrcamento(session.user.id, session.user.email);
-        // ------------------------------------------------
+        
+        // Salvamos as credenciais globais e tratamos espaços invisíveis
+        window.filialVendedor = String(perfil?.filial || '1028').trim();
+        window.roleUsuario = String(perfil?.role || '').trim();
 
-        // Salva a filial globalmente para usar no número do orçamento
-        window.filialVendedor = String(perfil?.filial || '1028');
 
-        // REGRA 1: Teste de Hipótese (Apenas Filial 1028 ou Admin)
-        if (window.filialVendedor === '1028' || perfil?.role === 'admin') {
+        // Adiciona o teste de hipotese para as filiais selecionadas e para o admin
+        if (window.filialVendedor === '1028' || window.filialVendedor === '1015' || window.roleUsuario === 'admin') {
             const boxHipotese = document.getElementById('container-teste-hipotese');
             if (boxHipotese) boxHipotese.classList.remove('hidden');
         }
 
-        // REGRA 2: Carregar a lista de solicitações deste vendedor
         carregarMinhasSolicitacoes(session.user.id);
 
     } catch (err) {
@@ -96,44 +94,43 @@ async function verificarAcesso() {
 verificarAcesso();
 
 // ==========================================
-// MONITOR DE SESSÃO EM TEMPO REAL (CÃO DE GUARDA)
+// MONITOR DE SESSÃO EM TEMPO REAL
 // ==========================================
 async function monitorarSessaoEmTempoReal() {
-    const tokenLocal = localStorage.getItem('climario_token_sessao');
+    const tokenLocal = localStorage.getItem('climario_token_sessao') || '';
+    const ancoraAtual = obterAncoraDispositivo();
+    const chaveEsperada = `${ancoraAtual}|${tokenLocal}`;
+
     if (!tokenLocal) return;
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
     try {
-        // Dispara duas checagens minúsculas ao mesmo tempo (Token e Versão do Catálogo)
         const promessaPerfil = supabase.from('usuarios').select('token_sessao').eq('id', session.user.id).single();
         const promessaConfig = supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single();
         
         const [resPerfil, resConfig] = await Promise.all([promessaPerfil, promessaConfig]);
 
-        // 1. Verifica Segurança (Token)
-        if (resPerfil.data && resPerfil.data.token_sessao && resPerfil.data.token_sessao !== tokenLocal) {
-            alert("⚠️ ATENÇÃO: Um novo login foi detectado em outro IP/Dispositivo. Esta aba foi desconectada por segurança.");
-            await supabase.auth.signOut();
-            localStorage.removeItem('climario_token_sessao');
-            window.location.replace("login.html");
-            return;
+        if (resPerfil.data && resPerfil.data.token_sessao) {
+            if (resPerfil.data.token_sessao !== chaveEsperada) {
+                alert("⚠️ ATENÇÃO: Dispositivo não reconhecido ou novo login detectado. Esta aba foi desconectada por segurança.");
+                await supabase.auth.signOut();
+                localStorage.removeItem('climario_token_sessao');
+                window.location.replace("login.html");
+                return;
+            }
         }
 
-        // 2. Verifica Atualização Global de Preços
         const versaoOficial = resConfig.data ? resConfig.data.valor : null;
         const versaoLocal = localStorage.getItem('climario_versao_catalogo');
 
-        // Se o admin mudou os preços, nós acionamos o download automático!
         if (versaoOficial && versaoLocal && versaoOficial !== versaoLocal) {
             console.log("⚠️ Mudança global de preços detectada! Atualizando catálogo em background...");
             carregarProdutosSupabase(true); 
         }
 
-    } catch (err) {
-        // Ignora erros temporários de internet
-    }
+    } catch (err) { }
 }
 
 setInterval(monitorarSessaoEmTempoReal, 60000);
@@ -152,18 +149,16 @@ const totalExibicao = document.getElementById('resumo-total');
 const listaResumo = document.getElementById('lista-itens-resumo'); 
 const btnLogout = document.getElementById('btn-logout');
 
-let produtos = []
+let produtos = [];
 
 async function carregarProdutosSupabase(forcarBaixar = false) {
     try {
-        // 1. Pergunta ao banco qual a versão oficial agora (gasta apenas 50 bytes de dados)
         const { data: config } = await supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single();
         const versaoOficial = config ? config.valor : '1';
         
         const cache = localStorage.getItem('climario_catalogo_produtos');
         const versaoLocal = localStorage.getItem('climario_versao_catalogo');
 
-        // 2. Compara as versões. Se a versão local for igual a oficial, usa a memória instantânea!
         if (!forcarBaixar && cache && versaoLocal === versaoOficial) {
             produtos = JSON.parse(cache);
             console.log(`📦 Catálogo carregado da MEMÓRIA (Versão ${versaoLocal}).`);
@@ -171,26 +166,23 @@ async function carregarProdutosSupabase(forcarBaixar = false) {
             return;
         }
 
-        // 3. Se a versão for diferente, baixa tudo do Supabase para atualizar
-        console.log("☁️ Versão desatualizada. Baixando catálogo novo do Supabase...");
-        const { data, error } = await supabase.from('produtos').select('*, custos(custo, verba)');
+        console.log("☁️ Versão desatualizada. Baixando catálogo PÚBLICO do Supabase...");
+        
+        const { data, error } = await supabase.from('produtos').select('*');
         if (error) throw error;
         
         produtos = data;
         
-        // 4. Salva no celular com a nova versão carimbada
         localStorage.setItem('climario_catalogo_produtos', JSON.stringify(produtos));
         localStorage.setItem('climario_versao_catalogo', versaoOficial);
         
         if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
 
-            auditarDownload('Vendedor: Download Novo Catálogo', data);
-
+        auditarDownload('Vendedor: Download Novo Catálogo Público', data);
 
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
     }
-
 }
 carregarProdutosSupabase();
 
@@ -200,7 +192,7 @@ window.forcarAtualizacaoSistema = function() {
 };
 
 // ==========================================
-// FAMILIAS E REGRAS (MANTIDO)
+// FAMILIAS E REGRAS
 // ==========================================
 const familiasConfig = {
     "COND BI SAMSUNG 18K": ["29753"],
@@ -230,7 +222,6 @@ const familiasConfig = {
     "SAMSUNG CONTROLE SEM FIO": ["14412"],
     "SAMSUNG KIT WI-FI": ["21843"],
     "SAMSUNG PLACA DE INTERFACE HW": ["29767"],
-
     // LG
     "COND BI LG 18K": ["43180", "29973", "15468"],
     "COND BI LG 21K FRIO": ["48758"],
@@ -267,12 +258,10 @@ const familiasConfig = {
     "EVAP K7 1 VIA LG 12K": ["17590"],
     "EVAP K7 1 VIA LG 18K": ["23773"],
     "EVAP K7 1 VIA LG 24K": ["30327"],
-
     // LG BI
     "LG BI 16K FRIO": ["33175"],
     "LG HW 9K FRIO": ["33176"],
     "LG HW 12K FRIO": ["33177"],
-
     // DAIKIN
     "COND BI DAIKIN 18K": ["24540"],
     "COND TRI DAIKIN 18K": ["26426"],
@@ -299,17 +288,14 @@ const familiasConfig = {
     "EVAP BUILT IN DAIKIN 18K": ["5842"],
     "EVAPBUILT IN DAIKIN 21K": ["5843"],
     "DAIKIN CONTROLE SEM FIO": ["5849"],
-
     // DAIKIN BI - R32
     "COND BI DAIKIN  18K R32": ["30456"],
     "EVAP HW DAIKIN 9K R32 - BI": ["30457"],
     "EVAP HW DAIKIN 12K R32 - BI": ["30458"],
-
     // DAIKIN TRI - R32
     "COND TRI DAIKIN 18K R32 FRIO": ["33087"],
     "EVAP HW DAIKIN 9K R32 - TRI": ["33085"],
     "EVAP HW DAIKIN 12K R32 - TRI": ["33086"],
-
     // MIDEA
     "COND BI MIDEA 18K": ["35269"],
     "COND TRI MIDEA 27K": ["33117"],
@@ -329,14 +315,12 @@ const familiasConfig = {
     "GRELHA K7 1 VIA MIDEA 18K": ["35858"],
     "EVAP BUILT IN MIDEA 9K": ["22093"],
     "EVAP BUILT IN MIDEA 12K": ["22094"],
-
     // ELGIN
     "COND BI ELGIN 18K": ["41232"],
     "COND TRI ELGIN 27K": ["41235"],
     "EVAP HW ELGIN 9K": ["41230"],
     "EVAP HW ELGIN 12K": ["41231"],
     "EVAP HW ELGIN 18K": ["48623"],
-
     // GREE
     "COND BI GREE 18K": ["34545"],
     "COND TRI GREE 24K": ["34515"],
@@ -357,7 +341,6 @@ const familiasConfig = {
     "EVAP K7 1 VIA GREE 18K": ["34496"],
     "EVAP K7 1 VIA GREE 24K": ["34492"],
     "GRELHA K7 1 VIA GREE": ["34499"],
-
     //FUJITSU
     "COND BI FUJITSU 18K": ["10548"],
     "COND TRI FUJITSU 18K": ["10549"],
@@ -401,7 +384,363 @@ if (btnLogout) {
     });
 }
 
-// Renderização Tabela
+// ==========================================
+// CÁLCULO SEGURO VIA API E DEBOUNCE
+// ==========================================
+let timerCalculo = null;
+
+async function buscarPrecosBaseTabela(skusParaBuscar) {
+    if(!skusParaBuscar || skusParaBuscar.length === 0) return;
+    
+    const descontoBase = parseFloat(document.getElementById('input-desconto').value) || 0;
+    const rt = parseFloat(document.getElementById('input-rt').value) || 0;
+    const penalidadePagto = parseFloat(document.getElementById('select-pagamento').value) || 0;
+    const versaoAtual = localStorage.getItem('climario_versao_catalogo') || '1';
+
+    const pseudoCarrinho = skusParaBuscar.map(sku => ({ sku: sku, qtd: 1 }));
+
+    // 🔒 Pega o crachá do usuário logado
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    try {
+        const resposta = await fetch('/api/calcular', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}` // 🔒 Envia o crachá
+            },
+            body: JSON.stringify({ 
+                itens: pseudoCarrinho, 
+                descontoBase, 
+                rt, 
+                penalidadePagto, 
+                versaoCatalogo: versaoAtual 
+            })
+        });
+        
+        const dados = await resposta.json();
+        
+        if (dados.sucesso) {
+            skusParaBuscar.forEach(sku => {
+                const inputElement = document.querySelector(`.qtd-input[data-sku="${sku}"]`);
+                if (inputElement) {
+                    const tr = inputElement.closest('tr');
+                    const tdPreco = tr.querySelector('.preco-col');
+                    if (tdPreco && dados.precos[sku]) {
+                        tdPreco.innerText = dados.precos[sku].precoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Erro ao buscar preços base para a tabela:", e);
+    }
+}
+
+window.agendarCalculoAPI = function() {
+    clearTimeout(timerCalculo);
+    
+    const totalExibicao = document.getElementById('resumo-total');
+    if (totalExibicao) totalExibicao.classList.add('opacity-40', 'transition-opacity');
+    
+    timerCalculo = setTimeout(async () => {
+        await executarCalculoSeguro();
+    }, 250);
+};
+
+async function executarCalculoSeguro() {
+    const descontoBase = parseFloat(document.getElementById('input-desconto').value) || 0;
+    const rt = parseFloat(document.getElementById('input-rt').value) || 0;
+    const penalidadePagto = parseFloat(document.getElementById('select-pagamento').value) || 0;
+    const versaoAtual = localStorage.getItem('climario_versao_catalogo') || '1';
+
+    // limite de desconto
+    const limiteAlcada = (window.filialVendedor === "1028" || window.roleUsuario === "admin") ? 21.99 : 18.00;
+    
+    const msgHipotese = document.getElementById('msg-hipotese');
+    const textoDescontoVisual = document.getElementById('texto-input-desconto');
+    
+    // A checagem visual agora não depende mais da palavra 'Alvo'
+    if (descontoBase <= limiteAlcada) {
+        window.testeHipoteseAtivo = false;
+        if(msgHipotese) {
+            msgHipotese.classList.add('hidden');
+            msgHipotese.classList.remove('text-red-600');
+        }
+        if(textoDescontoVisual) {
+            textoDescontoVisual.style.color = ''; 
+            textoDescontoVisual.style.fontWeight = '';
+        }
+    } else {
+        window.testeHipoteseAtivo = true; 
+        if(msgHipotese) {
+            msgHipotese.innerText = `⚠️ Requer aprovação comercial.`;
+            msgHipotese.classList.remove('hidden', 'text-green-600');
+            msgHipotese.classList.add('text-red-600');
+        }
+        if(textoDescontoVisual) {
+            textoDescontoVisual.style.color = '#dc2626';
+            textoDescontoVisual.style.fontWeight = '900';
+        }
+    }
+
+    const selectUf = document.getElementById('select-uf');
+    const percentualFrete = selectUf ? parseFloat(selectUf.value) || 0 : 0;
+
+    let percentualDescontoFinal = descontoBase - rt - penalidadePagto;
+    if (percentualDescontoFinal < 0) percentualDescontoFinal = 0;
+    
+    const labelDescontoFinal = document.getElementById('label-desconto-final');
+    if (labelDescontoFinal) labelDescontoFinal.innerText = `${percentualDescontoFinal.toFixed(2)}%`;
+
+let carrinho = [];
+    let totalBtuCond = 0;
+    let totalBtuEvap = 0;
+    let itensMapeados = []; 
+
+    const inputsAtualizados = document.querySelectorAll('.qtd-input');
+    
+    inputsAtualizados.forEach(input => {
+        const quantidade = parseInt(input.value) || 0;
+        const skuBuscado = input.getAttribute('data-sku');
+        
+        // MANDA TODOS OS ITENS PRA API, MESMO COM QTD 0
+        carrinho.push({ sku: skuBuscado, qtd: quantidade });
+        
+        if (quantidade > 0) {
+            const produtoData = produtos.find(p => String(p.sku || p.SKU).trim() === String(skuBuscado).trim());
+            if (produtoData) {
+                const tipoItem = String(produtoData.tipo || produtoData.TIPO || "ITEM").toUpperCase();
+                const capacidadeBtu = parseInt(produtoData.capacidade || produtoData.CAPACIDADE) || 0;
+
+                if (tipoItem.includes('CONDENSADORA')) totalBtuCond += (quantidade * capacidadeBtu);
+                else if (tipoItem.includes('EVAPORADORA')) totalBtuEvap += (quantidade * capacidadeBtu);
+
+                itensMapeados.push({
+                    codigo: skuBuscado,
+                    descricao: produtoData.produto || produtoData.DESCRIÇÃO || "Item",
+                    modelo: produtoData["codfab"] || produtoData["codigo fabricante"] || produtoData.MODELO || "-", 
+                    qtd: quantidade,
+                    estoque: produtoData.estoque || produtoData.ESTOQUE || 0
+                });
+            }
+        }
+    });
+
+    // Se nenhuma marca foi selecionada, cancela.
+    if (carrinho.length === 0) {
+        renderizarResumoVazio();
+        return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        alert("Sua sessão expirou por inatividade. Faça login novamente.");
+        window.location.reload();
+        return;
+    }
+
+    try {
+        const resposta = await fetch('/api/calcular', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}` // 🔒 Envia o crachá
+            },
+            body: JSON.stringify({
+                itens: carrinho,
+                descontoBase: descontoBase,
+                rt: rt,
+                penalidadePagto: penalidadePagto,
+                versaoCatalogo: versaoAtual
+            })
+        });
+        
+        const dadosAPI = await resposta.json();
+        
+        if (!dadosAPI.sucesso) throw new Error(dadosAPI.erro || "Falha na API de Cálculo");
+
+        // 1. ATUALIZA TODOS OS PREÇOS DA TABELA DE FORMA INSTANTÂNEA
+        Object.keys(dadosAPI.precos).forEach(sku => {
+            const infoPreco = dadosAPI.precos[sku];
+            const inputQtd = document.querySelector(`.qtd-input[data-sku="${sku}"]`);
+            if(inputQtd) {
+                const tr = inputQtd.closest('tr');
+                if(tr) {
+                    const tdPreco = tr.querySelector('.preco-col');
+                    if(tdPreco) tdPreco.innerText = infoPreco.precoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                }
+            }
+        });
+
+        // 2. SE NÃO TIVER NENHUM ITEM COM QUANTIDADE > 0, LIMPA O RESUMO E FINALIZA AQUI
+        if (itensMapeados.length === 0) {
+            renderizarResumoVazio();
+            const totalExibicao = document.getElementById('resumo-total');
+            if (totalExibicao) totalExibicao.classList.remove('opacity-40');
+            return;
+        }
+
+        let itensHtml = "";
+        let itensParaImpressao = [];
+
+        itensMapeados.forEach(itemPub => {
+            const infoPreco = dadosAPI.precos[itemPub.codigo];
+            if (infoPreco) {
+                itemPub.valorUnitario = infoPreco.precoUnitario;
+                itemPub.subtotal = infoPreco.subtotal;
+                itensParaImpressao.push(itemPub);
+                
+                const inputQtd = document.querySelector(`.qtd-input[data-sku="${itemPub.codigo}"]`);
+                if(inputQtd) {
+                    const tr = inputQtd.closest('tr');
+                    if(tr) {
+                        const tdPreco = tr.querySelector('.preco-col');
+                        if(tdPreco) tdPreco.innerText = infoPreco.precoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    }
+                }
+
+                itensHtml += `
+                    <div class="flex justify-between items-start bg-slate-50 p-2 rounded-sm border border-slate-100 mb-1">
+                        <div class="flex flex-col flex-1 pr-2">
+                            <div class="flex justify-between items-start gap-2 mb-1">
+                                <span class="text-[12px] font-bold text-slate-900 leading-tight">${itemPub.descricao}</span>
+                                <span class="text-[11px] font-bold text-slate-500 shrink-0">SKU: ${itemPub.codigo}</span>
+                            </div>
+                            <span class="text-[11px] text-slate-500">Qtd: ${itemPub.qtd} x R$ ${infoPreco.precoUnitario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    </div>`;
+            }
+        });
+
+        if (dadosAPI.descontoProtheus !== undefined) {
+            itensHtml += `
+                <div class="mt-4 p-4 bg-indigo-20 border border-indigo-200 text-center rounded-sm shadow-sm">
+                    <span class=" text-md font-bold text-indigo-900"> Desconto Protheus: ${dadosAPI.descontoProtheus.toFixed(1)}%</span>
+                </div>
+            `;
+        }
+
+        const subtotalComDesconto = Math.round((dadosAPI.totalBruto || 0) * 100) / 100;
+        let valorFrete = subtotalComDesconto * (percentualFrete / 100);
+        valorFrete = Math.round(valorFrete * 100) / 100;
+        const totalFinalCusto = subtotalComDesconto + valorFrete;
+
+        let simultaneidade = totalBtuCond > 0 ? (totalBtuEvap / totalBtuCond) * 100 : 0;
+
+        const textoPagamento = document.getElementById('texto-select-pagamento')?.innerText || 'À vista';
+        const textoUf = document.getElementById('texto-select-uf')?.innerText || 'SP';
+        const dataHoje = new Date();
+        const dataValidade = new Date(dataHoje);
+        dataValidade.setDate(dataHoje.getDate() + 3);
+        const marcaSelecionada = document.getElementById('marca-condensadora').value || "";
+        const marcaBaseParaLogo = marcaSelecionada.split(' ')[0].toLowerCase();
+        const nomeVendedorAtual = document.getElementById('perfil-nome').innerText || "Vendedor Climario";
+
+        window.dadosParaOrcamento = {
+            itens: itensParaImpressao,
+            totalBruto: subtotalComDesconto,
+            totalGeral: totalFinalCusto,
+            valorFrete: valorFrete,
+            percentualFrete: percentualFrete,
+            percentualDesconto: percentualDescontoFinal, 
+            ufDestino: textoUf,
+            totalBtuCond: totalBtuCond,
+            totalBtuEvap: totalBtuEvap,
+            simultaneidade: simultaneidade,
+            formaPagamento: textoPagamento,
+            dataEmissao: dataHoje.toLocaleDateString('pt-BR'),
+            dataValidade: dataValidade.toLocaleDateString('pt-BR'),
+            vendedor: nomeVendedorAtual,
+            marcaNome: marcaSelecionada,
+            marcaLogo: marcaBaseParaLogo
+        };
+
+        const listaResumo = document.getElementById('lista-itens-resumo');
+        if (listaResumo) listaResumo.innerHTML = itensHtml;
+        
+        document.getElementById('resumo-subtotal').innerText = subtotalComDesconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('resumo-frete').innerText = '+ ' + valorFrete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        
+        const totalExibicao = document.getElementById('resumo-total');
+        if (totalExibicao) {
+            totalExibicao.innerText = totalFinalCusto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            totalExibicao.classList.remove('opacity-40');
+        }
+        
+        const btuCondExibicao = document.getElementById('resumo-btu-cond');
+        const btuEvapExibicao = document.getElementById('resumo-btu-evap');
+        const simultaneidadeExibicao = document.getElementById('resumo-simultaneidade');
+
+        if (btuCondExibicao) btuCondExibicao.innerText = totalBtuCond.toLocaleString('pt-BR') + ' BTU';
+        if (btuEvapExibicao) btuEvapExibicao.innerText = totalBtuEvap.toLocaleString('pt-BR') + ' BTU';
+        
+        if (simultaneidadeExibicao) {
+            simultaneidadeExibicao.innerText = simultaneidade.toFixed(1).replace('.', ',') + '%';
+            simultaneidadeExibicao.className = 'font-bold'; 
+            if (simultaneidade === 0) simultaneidadeExibicao.classList.add('text-slate-600');
+            else if (simultaneidade <= 150) simultaneidadeExibicao.classList.add('text-green-600'); 
+            else simultaneidadeExibicao.classList.add('text-red-600'); 
+        }
+
+        if (btnFinalizar) {
+            btnFinalizar.onclick = null; 
+            if (window.testeHipoteseAtivo) {
+                btnFinalizar.disabled = false;
+                btnFinalizar.innerText = "Solicitar Aprovação Especial";
+                btnFinalizar.className = "w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
+                
+                btnFinalizar.onclick = (e) => {
+                    e.preventDefault();
+                    abrirModalSolicitacao();
+                };
+            } else {
+                btnFinalizar.disabled = false;
+                btnFinalizar.innerText = "Gerar Orçamento";
+                btnFinalizar.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
+                
+                btnFinalizar.onclick = async () => {
+                    const txtAnterior = btnFinalizar.innerText;
+                    btnFinalizar.innerText = "Registrando... Aguarde";
+                    btnFinalizar.disabled = true;
+                    const sucesso = await enviarSolicitacaoSupabase('aprovado');
+                    if (sucesso) {
+                        sessionStorage.setItem('orcamentoDados', JSON.stringify(window.dadosParaOrcamento));
+                        window.open('orcamento.html', '_blank');
+                    }
+                    btnFinalizar.innerText = txtAnterior;
+                    btnFinalizar.disabled = false;
+                };
+            }
+        }
+
+    } catch (error) {
+        console.error("Erro na API Segura:", error);
+        const totalExibicao = document.getElementById('resumo-total');
+        if (totalExibicao) {
+             totalExibicao.innerText = "Erro no Cálculo";
+             totalExibicao.classList.remove('opacity-40');
+        }
+    }
+}
+
+function renderizarResumoVazio() {
+    document.getElementById('lista-itens-resumo').innerHTML = '<p class="text-xs text-slate-500 italic">Nenhum item selecionado.</p>';
+    document.getElementById('resumo-subtotal').innerText = 'R$ 0,00';
+    document.getElementById('resumo-frete').innerText = '+ R$ 0,00';
+    document.getElementById('resumo-total').innerText = 'R$ 0,00';
+    
+    if (btnFinalizar) {
+        btnFinalizar.disabled = true;
+        btnFinalizar.innerText = "Gerar Orçamento";
+        btnFinalizar.className = "w-full bg-slate-300 text-slate-500 font-bold py-3 rounded uppercase text-sm mt-4 cursor-not-allowed";
+    }
+}
+
+// ==========================================
+// RENDERIZAÇÃO DA TABELA
+// ==========================================
 window.popularTabela = function(lista, corpo, container) {
     corpo.innerHTML = "";
     if (lista.length > 0) {
@@ -427,11 +766,14 @@ window.popularTabela = function(lista, corpo, container) {
             }
         });
 
+        const skusParaAtualizarPreco = [];
+
         gruposParaRenderizar.forEach((grupo, index) => {
             const itemPrincipal = grupo.itens[0]; 
             const skuPrincipal = String(itemPrincipal.sku || itemPrincipal.SKU).trim();
+            skusParaAtualizarPreco.push(skuPrincipal);
+
             const nomeExibicaoTabela = grupo.isFamilia ? grupo.nome.toUpperCase() : (itemPrincipal.produto || itemPrincipal.DESCRIÇÃO || "Item").toUpperCase();
-            
             const idUnicoLinha = `${corpo.id}-linha-${index}`;
             let htmlSKU = "";
             
@@ -446,11 +788,6 @@ window.popularTabela = function(lista, corpo, container) {
             } else {
                 htmlSKU = `<span class="font-mono text-sm text-slate-900">${skuPrincipal}</span>`;
             }
-
-            const custo = parseFloat(itemPrincipal.custos?.custo || 0);
-            const verba = parseFloat(itemPrincipal.custos?.verba || 0);
-            const mkBase = parseFloat(itemPrincipal.markup_base || 0);
-            const precoCalculado = (custo - verba) * mkBase;
 
             const linha = `
                 <tr class="hover:bg-blue-50 transition-colors" id="${idUnicoLinha}">
@@ -469,11 +806,14 @@ window.popularTabela = function(lista, corpo, container) {
                         ${itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0}
                     </td>
                     <td class="border border-slate-200 px-4 py-2 text-center font-bold text-blue-700 preco-col">
-                        ${precoCalculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        <i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>
                     </td>
                 </tr>`;
             corpo.innerHTML += linha;
         });
+
+        buscarPrecosBaseTabela(skusParaAtualizarPreco);
+
     } else {
         container.classList.add('hidden');
     }
@@ -490,9 +830,7 @@ window.atualizarResumo = function() {
         
         let skuAtual = input.getAttribute('data-sku');
         const seletorSku = linha ? linha.querySelector('select') : null;
-        if (seletorSku && seletorSku.value) {
-            skuAtual = seletorSku.value;
-        }
+        if (seletorSku && seletorSku.value) skuAtual = seletorSku.value;
 
         if (quantidade > 0 && regrasAcessorios[skuAtual]) {
             regrasAcessorios[skuAtual].forEach(skuAcessorio => {
@@ -505,248 +843,14 @@ window.atualizarResumo = function() {
         const linha = input.closest('.row-produto') || input.closest('tr');
         let skuAtual = input.getAttribute('data-sku');
         const seletorSku = linha ? linha.querySelector('select') : null;
-        
-        if (seletorSku && seletorSku.value) {
-            skuAtual = seletorSku.value;
-        }
+        if (seletorSku && seletorSku.value) skuAtual = seletorSku.value;
 
         if (todasAsGrelhasMapeadas.includes(skuAtual)) {
             input.value = grelhasNecessarias[skuAtual] || 0;
         }
     });
 
-    const descontoBase = parseFloat(document.getElementById('input-desconto').value) || 0;
-    const rt = parseFloat(document.getElementById('input-rt').value) || 0;
-    const penalidadePagto = parseFloat(document.getElementById('select-pagamento').value) || 0;
-
-    const limiteAlcada = (window.filialVendedor === "1028") ? 21.99 : 18.00;
-    
-    if (descontoBase <= limiteAlcada) {
-        window.testeHipoteseAtivo = false; // Libera o botão verde
-        const msgHipotese = document.getElementById('msg-hipotese');
-        const textoDescontoVisual = document.getElementById('texto-input-desconto');
-        
-        // Remove a cor da fonte apenas se não for um teste de hipótese (Alvo)
-        if (textoDescontoVisual && !textoDescontoVisual.innerText.includes('Alvo')) {
-            if(msgHipotese) msgHipotese.classList.add('hidden');
-            textoDescontoVisual.style.color = ''; 
-            textoDescontoVisual.style.fontWeight = '';
-        }
-    } else {
-        window.testeHipoteseAtivo = true; // Estourou o limite, exige aprovação especial
-    }
-
-    const selectUf = document.getElementById('select-uf');
-    const percentualFrete = selectUf ? parseFloat(selectUf.value) || 0 : 0;
-
-    let percentualDescontoFinal = descontoBase - rt - penalidadePagto;
-    if (percentualDescontoFinal < 0) percentualDescontoFinal = 0;
-    
-    const labelDescontoFinal = document.getElementById('label-desconto-final');
-    if (labelDescontoFinal) labelDescontoFinal.innerText = `${percentualDescontoFinal.toFixed(2)}%`;
-
-    let totalBrutoTabela = 0;
-    let totalBtuCond = 0;
-    let totalBtuEvap = 0;
-    let custoTotalPedido = 0; // NOVO: Para descobrir o custo real de tudo
-    let itensHtml = "";
-    let itensParaImpressao = [];
-
-    const MARKUP_BASE_FIXA = 1.63920658; 
-    const inputsAtualizados = document.querySelectorAll('.qtd-input');
-    
-    inputsAtualizados.forEach(input => {
-        const quantidade = parseInt(input.value) || 0;
-        if (quantidade > 0) {
-            const skuBuscado = input.getAttribute('data-sku');
-            const produtoData = produtos.find(p => String(p.sku || p.SKU).trim() === String(skuBuscado).trim());
-
-            if (produtoData) {
-                const custo = parseFloat(produtoData.custos?.custo || 0);
-                const verba = parseFloat(produtoData.custos?.verba || 0);
-                const markupVenda = parseFloat(produtoData.markup_base) || MARKUP_BASE_FIXA;
-                
-                const variacao = 1 - (MARKUP_BASE_FIXA / markupVenda);
-                const divisor = 1 - variacao;
-
-                const descDecimal = descontoBase / 100;
-                const rtDecimal = rt / 100;
-                const pagtoDecimal = penalidadePagto / 100;
-
-                const novoMarkup = (MARKUP_BASE_FIXA * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / divisor;
-                let precoNumerico = (custo - verba) * novoMarkup;
-
-                // Soma o total de venda e o total de custo do pedido
-                totalBrutoTabela += (quantidade * precoNumerico);
-                custoTotalPedido += (quantidade * (custo - verba)); 
-                
-                const nomeItem = produtoData.produto || produtoData.DESCRIÇÃO || "Item";
-                const tipoItem = String(produtoData.tipo || produtoData.TIPO || "ITEM").toUpperCase();
-                const capacidadeBtu = parseInt(produtoData.capacidade || produtoData.CAPACIDADE) || 0;
-
-                if (tipoItem.includes('CONDENSADORA')) totalBtuCond += (quantidade * capacidadeBtu);
-                else if (tipoItem.includes('EVAPORADORA')) totalBtuEvap += (quantidade * capacidadeBtu);
-
-                const codFabrica = produtoData["codfab"] || produtoData["codigo fabricante"] || produtoData.MODELO || "-";
-
-                itensParaImpressao.push({
-                    codigo: skuBuscado,
-                    descricao: nomeItem,
-                    modelo: codFabrica, 
-                    qtd: quantidade,
-                    estoque: produtoData.estoque || produtoData.ESTOQUE || 0,
-                    valorUnitario: precoNumerico,
-                    subtotal: quantidade * precoNumerico
-                });
-
-                itensHtml += `
-                    <div class="flex justify-between items-start bg-slate-50 p-2 rounded-sm border border-slate-100 mb-1">
-                        <div class="flex flex-col flex-1 pr-2">
-                            <div class="flex justify-between items-start gap-2 mb-1">
-                                <span class="text-[12px] font-bold text-slate-900 leading-tight">${nomeItem}</span>
-                                <span class="text-[11px] font-bold text-slate-500 shrink-0">SKU: ${skuBuscado}</span>
-                            </div>
-                            <span class="text-[11px] text-slate-500">Qtd: ${quantidade} x R$ ${precoNumerico.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                        </div>
-                    </div>`;
-            }
-        }
-    });
-
-    // --- NOVO: BLOCO DO DESCONTO PROTHEUS DO PEDIDO ---
-    if (custoTotalPedido > 0) {
-        const descontoBase = parseFloat(document.getElementById('input-desconto').value) || 0;
-        const rt = parseFloat(document.getElementById('input-rt').value) || 0;
-        const penalidadePagto = parseFloat(document.getElementById('select-pagamento').value) || 0;
-        const descDecimal = descontoBase / 100;
-        const rtDecimal = rt / 100;
-        const pagtoDecimal = penalidadePagto / 100;
-        const skuBuscado = "10561";
-        const produtoData = produtos.find(p => String(p.sku || p.SKU).trim() === String(skuBuscado).trim());
-        const custo = parseFloat(produtoData.custos?.custo || 0);
-        const verba = parseFloat(produtoData.custos?.verba || 0);
-        const novoMarkup = (1.63920658 * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / 0.965;
-
-
-        // 1. Descobre o markup real de todo o pedido junto
-        // 2. Aplica a sua fórmula: (((MarkupPedido/1.699)-1)*-1)*100
-        let descProtheusPedido = (((novoMarkup / 1.699) - 1) * -1) * 100;
-        
-        // Evita que descontos muito pequenos fiquem negativos ou deem erro (ex: -0.01%)
-        if (descProtheusPedido < 0) descProtheusPedido = 0;
-
-        // 3. Adiciona o bloco bonitão no final da lista
-        itensHtml += `
-            <div class="mt-4 p-4 bg-indigo-20 border border-indigo-200 text-center rounded-sm shadow-sm">
-                <span class=" text-md font-bold text-indigo-900"> Desconto Protheus: ${descProtheusPedido.toFixed(1)}%</span>
-            </div>
-        `;
-    }
-
-    const subtotalComDesconto = totalBrutoTabela; 
-    const valorFrete = subtotalComDesconto * (percentualFrete / 100);
-    const totalFinalCusto = subtotalComDesconto + valorFrete;
-
-    let simultaneidade = totalBtuCond > 0 ? (totalBtuEvap / totalBtuCond) * 100 : 0;
-
-    const textoPagamento = document.getElementById('texto-select-pagamento')?.innerText || 'À vista';
-    const textoUf = document.getElementById('texto-select-uf')?.innerText || 'SP';
-
-    const dataHoje = new Date();
-    const dataValidade = new Date(dataHoje);
-    dataValidade.setDate(dataHoje.getDate() + 3);
-
-    const marcaSelecionada = document.getElementById('marca-condensadora').value || "";
-    const marcaBaseParaLogo = marcaSelecionada.split(' ')[0].toLowerCase();
-    const nomeVendedorAtual = document.getElementById('perfil-nome').innerText || "Vendedor Climario";
-
-    // O código inteligente será gerado e inserido dentro do enviarSolicitacaoSupabase
-    window.dadosParaOrcamento = {
-        itens: itensParaImpressao,
-        totalBruto: totalBrutoTabela,
-        totalGeral: totalFinalCusto,
-        valorFrete: valorFrete,
-        percentualFrete: percentualFrete,
-        percentualDesconto: percentualDescontoFinal, 
-        ufDestino: textoUf,
-        totalBtuCond: totalBtuCond,
-        totalBtuEvap: totalBtuEvap,
-        simultaneidade: simultaneidade,
-        formaPagamento: textoPagamento,
-        dataEmissao: dataHoje.toLocaleDateString('pt-BR'),
-        dataValidade: dataValidade.toLocaleDateString('pt-BR'),
-        vendedor: nomeVendedorAtual,
-        marcaNome: marcaSelecionada,
-        marcaLogo: marcaBaseParaLogo
-    };
-
-    const listaResumo = document.getElementById('lista-itens-resumo');
-    const subtotalExibicao = document.getElementById('resumo-subtotal');
-    const freteExibicao = document.getElementById('resumo-frete');
-    const totalExibicao = document.getElementById('resumo-total');
-    
-    const btuCondExibicao = document.getElementById('resumo-btu-cond');
-    const btuEvapExibicao = document.getElementById('resumo-btu-evap');
-    const simultaneidadeExibicao = document.getElementById('resumo-simultaneidade');
-
-    if (listaResumo) listaResumo.innerHTML = itensHtml || '<p class="text-xs text-slate-500 italic">Nenhum item selecionado.</p>';
-    if (subtotalExibicao) subtotalExibicao.innerText = subtotalComDesconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    if (freteExibicao) freteExibicao.innerText = '+ ' + valorFrete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    if (totalExibicao) totalExibicao.innerText = totalFinalCusto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    
-    if (btuCondExibicao) btuCondExibicao.innerText = totalBtuCond.toLocaleString('pt-BR') + ' BTU';
-    if (btuEvapExibicao) btuEvapExibicao.innerText = totalBtuEvap.toLocaleString('pt-BR') + ' BTU';
-    
-    if (simultaneidadeExibicao) {
-        simultaneidadeExibicao.innerText = simultaneidade.toFixed(1).replace('.', ',') + '%';
-        simultaneidadeExibicao.className = 'font-bold'; 
-        if (simultaneidade === 0) simultaneidadeExibicao.classList.add('text-slate-600');
-        else if (simultaneidade <= 150) simultaneidadeExibicao.classList.add('text-green-600'); 
-        else simultaneidadeExibicao.classList.add('text-red-600'); 
-    }
-    
-    if (btnFinalizar) {
-        btnFinalizar.onclick = null; 
-
-        if (totalBrutoTabela === 0) {
-            btnFinalizar.disabled = true;
-            btnFinalizar.innerText = "Gerar Orçamento";
-            btnFinalizar.className = "w-full bg-slate-300 text-slate-500 font-bold py-3 rounded uppercase text-sm mt-4 cursor-not-allowed";
-        } 
-        else if (window.testeHipoteseAtivo) {
-            btnFinalizar.disabled = false;
-            btnFinalizar.innerText = "Solicitar Aprovação Especial";
-            btnFinalizar.className = "w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
-            
-            btnFinalizar.onclick = (e) => {
-                e.preventDefault();
-                abrirModalSolicitacao();
-            };
-        } 
-        else {
-            btnFinalizar.disabled = false;
-            btnFinalizar.innerText = "Gerar Orçamento";
-            btnFinalizar.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
-            
-            // Alteração para Salvar no DB antes de gerar o PDF
-            btnFinalizar.onclick = async () => {
-                const txtAnterior = btnFinalizar.innerText;
-                btnFinalizar.innerText = "Registrando... Aguarde";
-                btnFinalizar.disabled = true;
-
-                // Tenta enviar para o banco. Se for true, o sistema abre o PDF
-                const sucesso = await enviarSolicitacaoSupabase('aprovado');
-                
-                if (sucesso) {
-                    sessionStorage.setItem('orcamentoDados', JSON.stringify(window.dadosParaOrcamento));
-                    window.open('orcamento.html', '_blank');
-                }
-
-                btnFinalizar.innerText = txtAnterior;
-                btnFinalizar.disabled = false;
-            };
-        }
-    }
+    agendarCalculoAPI();
 };
 
 window.atualizarLinhaDaTabela = function(selectElement, idLinha) {
@@ -758,33 +862,10 @@ window.atualizarLinhaDaTabela = function(selectElement, idLinha) {
         const inputQtd = linha.querySelector('.qtd-input');
         inputQtd.setAttribute('data-sku', skuSelecionado);
         linha.querySelector('.estoque-col').innerText = `${produtoData.estoque || produtoData.ESTOQUE || 0}`;
+        linha.querySelector('.preco-col').innerHTML = '<i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>';
         
-        const descBase = parseFloat(document.getElementById('input-desconto')?.value) || 0;
-        const rt = parseFloat(document.getElementById('input-rt')?.value) || 0;
-        const penalidadePagto = parseFloat(document.getElementById('select-pagamento')?.value) || 0;
-        const MARKUP_BASE_FIXA = 1.63920658;
-        
-        const custo = parseFloat(produtoData.custos?.custo || 0);
-        const verba = parseFloat(produtoData.custos?.verba || 0);
-        const markupVenda = parseFloat(produtoData.markup_base) || MARKUP_BASE_FIXA;
-
-        const variacao = 1 - (MARKUP_BASE_FIXA / markupVenda);
-        const divisor = 1 - variacao;
-
-        const descDecimal = descBase / 100;
-        const rtDecimal = rt / 100;
-        const pagtoDecimal = penalidadePagto / 100;
-
-        const novoMarkup = (MARKUP_BASE_FIXA * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / divisor;
-        const precoNumerico = (custo - verba) * novoMarkup;
-
-        linha.querySelector('.preco-col').innerText = precoNumerico.toLocaleString('pt-BR', { 
-            style: 'currency', 
-            currency: 'BRL',
-            minimumFractionDigits: 2 
-        });
-        
-        atualizarResumo();
+        buscarPrecosBaseTabela([skuSelecionado]); 
+        agendarCalculoAPI(); 
     }
 };
 
@@ -811,7 +892,7 @@ caixaMarca.addEventListener('change', function(){
 
     const evaporadoras = produtos.filter(function(produto){
         const tipo = String(produto.tipo || produto.TIPO || "").toUpperCase();
-        return (tipo === 'EVAPORADORA' || tipo === 'GRELHA' || tipo === 'CONTROLE' ) && produto.marca.toUpperCase() === marcaEscolhida;
+        return (tipo === 'EVAPORADORA' || tipo === 'GRELHA' || tipo === 'CONTROLE' || tipo === 'KIT WIFI' ) && produto.marca.toUpperCase() === marcaEscolhida;
     });
 
     popularTabela(condensadoras, corpoTabela, containerTabela);
@@ -819,15 +900,11 @@ caixaMarca.addEventListener('change', function(){
 });
 
 window.addEventListener('load', () => {
-    if (typeof window.atualizarResumo === 'function') {
-        window.atualizarResumo();
-    }
+    if (typeof window.atualizarResumo === 'function') window.atualizarResumo();
 });
 
 document.addEventListener('wheel', function(event) {
-    if (document.activeElement.type === 'number') {
-        document.activeElement.blur(); 
-    }
+    if (document.activeElement.type === 'number') document.activeElement.blur(); 
 });
 
 // ==========================================
@@ -844,62 +921,39 @@ window.fazerTesteHipotese = function() {
         return;
     }
 
-    const inputDesconto = document.getElementById('input-desconto');
-    inputDesconto.value = 0;
-    window.atualizarResumo(); 
-    
-    const totalSemDesconto = window.dadosParaOrcamento.totalGeral;
+    const totalAtual = window.dadosParaOrcamento ? window.dadosParaOrcamento.totalGeral : 0;
 
-    if (totalSemDesconto === 0) {
+    if (totalAtual === 0) {
         alert("Adicione itens ao orçamento primeiro.");
         return;
     }
 
-    let novoDesconto = (1 - (valorEvidencia / totalSemDesconto)) * 100;
+    const descontoAtual = parseFloat(document.getElementById('input-desconto').value) || 0;
     
-    // 1. Criamos duas versões do número:
-    let valorFormatado = novoDesconto.toFixed(2); // Para o vendedor ler (ex: 21.79)
-    let valorMatematico = novoDesconto.toFixed(6); // Para o computador calcular (ex: 21.793482)
+    if (descontoAtual >= 100) {
+        alert("Remova o desconto de 100% antes de fazer o teste de hipótese.");
+        return;
+    }
 
-    // 2. Colocamos o valor matemático super preciso no input invisível
+    // Isola e calcula o novo desconto matematicamente
+    const totalSemDesconto = totalAtual / (1 - (descontoAtual / 100));
+    let novoDesconto = (1 - (valorEvidencia / totalSemDesconto)) * 100;
+    if (novoDesconto < 0) novoDesconto = 0;
+
+    let valorFormatado = novoDesconto.toFixed(2);
+    let valorMatematico = novoDesconto.toFixed(6); 
+
+    // Alimenta o campo para o sistema consumir
+    const inputDesconto = document.getElementById('input-desconto');
     inputDesconto.value = valorMatematico; 
     
-    // --- LÓGICA DE APROVAÇÃO DO TESTE DE HIPÓTESE ---
-    // (Aproveite para garantir que está com o String() da nossa última correção)
-    const limiteAlcada = (String(window.filialVendedor) === '1028') ? 21.99 : 18.00;
-
     const textoDescontoVisual = document.getElementById('texto-input-desconto');
-    const msgHipotese = document.getElementById('msg-hipotese');
-
-    if (novoDesconto > limiteAlcada) {
-        // ESTOUROU O LIMITE: BLOQUEIA A TELA
-        window.testeHipoteseAtivo = true;
-        if (msgHipotese) {
-            msgHipotese.innerText = `⚠️ Requer aprovação comercial.`;
-            msgHipotese.classList.remove('text-green-600');
-            msgHipotese.classList.add('text-red-600');
-        }
-        if (textoDescontoVisual) {
-            textoDescontoVisual.innerText = `${valorFormatado}%`;
-            textoDescontoVisual.style.color = '#dc2626'; // Vermelho
-            textoDescontoVisual.style.fontWeight = '900';
-        }
-    } else {
-        // DENTRO DO LIMITE: LIBERA A TELA (BOTÃO VERDE)
-        window.testeHipoteseAtivo = false;
-        if (msgHipotese) {
-            msgHipotese.innerText = `✅ Orçamento Liberado`;
-            msgHipotese.classList.remove('text-red-600');
-            msgHipotese.classList.add('text-green-600');
-        }
-        if (textoDescontoVisual) {
-            textoDescontoVisual.innerText = `${valorFormatado}%`;
-            textoDescontoVisual.style.color = '#16a34a'; // Verde
-            textoDescontoVisual.style.fontWeight = '900';
-        }
+    if (textoDescontoVisual) {
+        textoDescontoVisual.innerText = `${valorFormatado}%`;
     }
-    
-    window.atualizarResumo();
+
+    // Repassa a bola para o executarCalculoSeguro (ele vai cuidar da cor vermelha ou verde)
+    window.atualizarResumo(); 
 };
 
 window.abrirModalSolicitacao = function() {
@@ -933,7 +987,6 @@ async function carregarMinhasSolicitacoes(userId) {
     try {
         const { data, error } = await supabase
             .from('solicitacoes_orcamento')
-            // OTIMIZAÇÃO: Ignoramos o 'snapshot' e 'url_evidencia' para economizar banda!
             .select('id, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
             .eq('vendedor_id', userId)
             .order('created_at', { ascending: false });
@@ -942,13 +995,11 @@ async function carregarMinhasSolicitacoes(userId) {
 
         auditarDownload('Vendedor: Histórico de Solicitações', data);
 
-
         window.minhasSolicitacoes = data || [];
         renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
     } catch (error) {
         console.error("Erro ao buscar as solicitações do usuário:", error);
     }
-
 }
 
 function renderizarMinhasSolicitacoes(lista) {
@@ -979,9 +1030,7 @@ function renderizarMinhasSolicitacoes(lista) {
         }
 
         let qtdItens = 0;
-        if(req.itens) {
-            req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
-        }
+        if(req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
 
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
@@ -1000,16 +1049,13 @@ function renderizarMinhasSolicitacoes(lista) {
 window.verMotivoReprovacao = function(id) {
     const req = window.minhasSolicitacoes.find(s => s.id === id);
     if (!req) return;
-    
     document.getElementById('texto-motivo-reprovacao').innerText = req.motivo_reprovacao || "Não foi fornecido um comentário adicional para esta reprovação.";
     document.getElementById('modal-motivo-reprovacao').classList.remove('hidden');
 };
 
 window.abrirOrcamentoAprovado = async function(id) {
-    document.body.style.cursor = 'wait'; // Muda o mouse para "carregando"
-    
+    document.body.style.cursor = 'wait'; 
     try {
-        // OTIMIZAÇÃO: Baixa o snapshot pesado APENAS na hora que clica
         const { data, error } = await supabase
             .from('solicitacoes_orcamento')
             .select('snapshot')
@@ -1025,15 +1071,14 @@ window.abrirOrcamentoAprovado = async function(id) {
         window.open('orcamento.html', '_blank');
 
         auditarDownload('Vendedor: Download Snapshot do PDF', data);
-
     } catch (err) {
         console.error(err);
         alert("Falha ao abrir PDF.");
     } finally {
         document.body.style.cursor = 'default';
     }
-
 };
+
 // ==========================================
 // GERADOR DE CÓDIGO DE ORÇAMENTO INTELIGENTE
 // ==========================================
@@ -1041,10 +1086,7 @@ function gerarNumeroOrcamento(rt, desconto, valorPagamento, filial) {
     const rtFormatado = Math.floor(parseFloat(rt) || 0).toString();
     const descBase = Math.floor(parseFloat(desconto) || 0);
     const descFormatado = descBase.toString().padStart(2, '0');
-
-    // Pega direto o valor numérico que veio do input (0 ou 5)
     const pagFormatado = Math.floor(parseFloat(valorPagamento) || 0).toString(); 
-    
     const filialFormatada = String(filial || '1028').trim();
     const numAleatorio = Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -1062,9 +1104,6 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             alert("Por favor, preencha o motivo da solicitação.");
             return false;
         }
-        
-        // A trava que obrigava a ter o inputArquivo foi removida daqui!
-        
         if (btnEnviar) {
             btnEnviar.innerText = "Registrando... Aguarde";
             btnEnviar.disabled = true;
@@ -1079,58 +1118,36 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         const rtAtual = document.getElementById('input-rt')?.value || 0;
         const descontoAtual = document.getElementById('input-desconto')?.value || 0;
         
-        // --- CAPTURA BLINDADA PARA DROPDOWN CUSTOMIZADO ---
         const valorPagamento = document.getElementById('select-pagamento')?.value || 0;
         const elTextoPagamento = document.getElementById('texto-select-pagamento');
-        const textoPagamento = elTextoPagamento ? elTextoPagamento.innerText.trim() : 'Á vista 100% antecipado (PIX)';
+        const textoPagamento = elTextoPagamento ? elTextoPagamento.innerText.trim() : 'À vista 100% antecipado (PIX)';
 
-        // Geração do código passando o NÚMERO
         const numeroOrcamentoGerado = gerarNumeroOrcamento(rtAtual, descontoAtual, valorPagamento, window.filialVendedor);
 
-        // Prepara os dados para o PDF
         window.dadosParaOrcamento.codigoOrcamento = numeroOrcamentoGerado;
         window.dadosParaOrcamento.filial = window.filialVendedor;
         window.dadosParaOrcamento.formaPagamento = textoPagamento;
 
-        let urlEvidencia = null; // Por padrão vai vazio para o sistema
+        let urlEvidencia = null;
 
-        // Só faz o upload se houver um arquivo selecionado
         if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
             let file = inputArquivo.files[0];
             const fileExt = file.name.split('.').pop().toLowerCase();
             const fileName = `${Date.now()}_${session.user.id}.${fileExt}`;
 
-            // --- MÁGICA DA COMPRESSÃO DE IMAGENS ---
-            // Só comprime se for imagem (ignora se o vendedor mandou um PDF)
             if (file.type.startsWith('image/')) {
-                console.log(`📸 Tamanho original da foto: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-                
-                const options = {
-                    maxSizeMB: 0.3, // Limite máximo de 300 KB (excelente para leitura na tela)
-                    maxWidthOrHeight: 1280, // Redimensiona fotos gigantes de 4K
-                    useWebWorker: true // Faz a compressão sem travar a tela do celular
-                };
-
+                const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1280, useWebWorker: true };
                 try {
-                    // O arquivo original pesado é substituído pelo arquivo leve
                     file = await imageCompression(file, options);
-                    console.log(`📉 Tamanho após compressão: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
                 } catch (error) {
                     console.warn("⚠️ Erro ao comprimir. Enviando foto original como backup:", error);
                 }
             }
-            // ----------------------------------------------
 
-            const { error: uploadError } = await supabase.storage
-                .from('evidencias')
-                .upload(fileName, file);
-
+            const { error: uploadError } = await supabase.storage.from('evidencias').upload(fileName, file);
             if (uploadError) throw uploadError;
 
-            const { data: publicUrlData } = supabase.storage
-                .from('evidencias')
-                .getPublicUrl(fileName);
-                
+            const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
             urlEvidencia = publicUrlData.publicUrl;
         }
 
@@ -1144,17 +1161,14 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             rt: parseFloat(rtAtual),
             pagamento: textoPagamento,
             motivo: statusDefinido === 'aprovado' ? 'Aprovado Automaticamente pelo Sistema' : motivo,
-            url_evidencia: urlEvidencia, // Aqui sobe o arquivo OU fica null
+            url_evidencia: urlEvidencia,
             itens: window.dadosParaOrcamento.itens,
             total_bruto: window.dadosParaOrcamento.totalBruto,
             status: statusDefinido,
             snapshot: window.dadosParaOrcamento 
         };
 
-        const { error: dbError } = await supabase
-            .from('solicitacoes_orcamento')
-            .insert([payload]);
-
+        const { error: dbError } = await supabase.from('solicitacoes_orcamento').insert([payload]);
         if (dbError) throw dbError;
 
         if (statusDefinido === 'pendente') {
@@ -1181,16 +1195,17 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
 
 function auditarDownload(nomeRequisicao, dataResult) {
     if (!dataResult) return;
-    
-    // Calcula o peso exato do JSON baixado em bytes
     const bytes = new Blob([JSON.stringify(dataResult)]).size;
-    let tamanho = '';
-    
-    if (bytes > 1024 * 1024) {
-        tamanho = (bytes / (1024 * 1024)).toFixed(2) + ' MB 🚨 (ALERTA DE PESO)';
-    } else {
-        tamanho = (bytes / 1024).toFixed(2) + ' KB 🟢';
-    }
-
+    let tamanho = bytes > 1024 * 1024 ? (bytes / (1024 * 1024)).toFixed(2) + ' MB 🚨 (ALERTA DE PESO)' : (bytes / 1024).toFixed(2) + ' KB 🟢';
     console.log(`📊 [API Supabase] ${nomeRequisicao}: Baixou ${tamanho}`);
+}
+
+function obterAncoraDispositivo() {
+    // Usamos um nome que parece script de rastreamento do Google para despistar
+    let anchor = localStorage.getItem('_ga_device_sync_');
+    if (!anchor) {
+        anchor = crypto.randomUUID();
+        localStorage.setItem('_ga_device_sync_', anchor);
+    }
+    return anchor;
 }

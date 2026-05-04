@@ -11,6 +11,16 @@ const loginForm = document.getElementById('login-form');
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        function obterAncoraDispositivo() {
+        // Usamos um nome que parece script de rastreamento do Google para despistar
+        let anchor = localStorage.getItem('_ga_device_sync_');
+        if (!anchor) {
+            anchor = crypto.randomUUID();
+            localStorage.setItem('_ga_device_sync_', anchor);
+        }
+        return anchor;
+    }
         
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -30,8 +40,13 @@ if (loginForm) {
             if (error) throw error;
 
            // --- INÍCIO DA TRAVA DE SESSÃO ÚNICA ---
-            const tokenSessao = crypto.randomUUID();
-            localStorage.setItem('climario_token_sessao', tokenSessao);
+            const uuidSessao = crypto.randomUUID();
+            const ancora = obterAncoraDispositivo();
+
+            localStorage.setItem('climario_token_sessao', uuidSessao);
+
+
+            const tokenSessao = `${ancora}|${uuidSessao}`;
 
             // C. Grava no banco de dados e avisa se der erro de permissão
             const { error: erroToken } = await supabase
