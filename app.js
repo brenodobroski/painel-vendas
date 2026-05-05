@@ -153,23 +153,37 @@ let produtos = [];
 
 async function carregarProdutosSupabase(forcarBaixar = false) {
     try {
+        // 1. Checa a versão atual (Isso gasta míseros 50 bytes no Supabase)
         const { data: config } = await supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single();
         const versaoOficial = config ? config.valor : '1';
         
         const cache = localStorage.getItem('climario_catalogo_produtos');
         const versaoLocal = localStorage.getItem('climario_versao_catalogo');
-
+        
         if (!forcarBaixar && cache && versaoLocal === versaoOficial) {
             produtos = JSON.parse(cache);
             console.log(`📦 Catálogo carregado da MEMÓRIA (Versão ${versaoLocal}).`);
             if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
             return;
         }
-
-        console.log("☁️ Versão desatualizada. Baixando catálogo PÚBLICO do Supabase...");
         
-        const { data, error } = await supabase.from('produtos').select('*');
-        if (error) throw error;
+        console.log("⚠️ Versão desatualizada. Baixando catálogo da Cloudflare...");
+        
+        // ------------------------------------------------------------
+        // NOVO: Baixa a vitrine pesada direto da Cloudflare, gastando ZERO do Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const resposta = await fetch(`/api/produtos?v=${versaoOficial}`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        
+        const resJson = await resposta.json();
+        
+        if (!resJson.sucesso) throw new Error("Falha ao baixar catálogo da nuvem.");
+        
+        const data = resJson.dados; // Entrega os dados para a variável que já alimentava a tela
+        // ------------------------------------------------------------
         
         produtos = data;
         
@@ -177,9 +191,8 @@ async function carregarProdutosSupabase(forcarBaixar = false) {
         localStorage.setItem('climario_versao_catalogo', versaoOficial);
         
         if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
-
-        auditarDownload('Vendedor: Download Novo Catálogo Público', data);
-
+        
+        auditarDownload('Vendedor: Download Novo Catálogo via Cloudflare', data);
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
     }
