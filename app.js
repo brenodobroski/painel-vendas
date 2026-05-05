@@ -93,48 +93,79 @@ async function verificarAcesso() {
 }
 verificarAcesso();
 
-// ==========================================
-// MONITOR DE SESSÃO EM TEMPO REAL
-// ==========================================
-async function monitorarSessaoEmTempoReal() {
-    const tokenLocal = localStorage.getItem('climario_token_sessao') || '';
-    const ancoraAtual = obterAncoraDispositivo();
-    const chaveEsperada = `${ancoraAtual}|${tokenLocal}`;
+let usandoPlanoB = false;
+let ultimaVezQueDeuFoco = 0;
 
-    if (!tokenLocal) return;
-
+// PLANO B: Só entra em ação se o Realtime falhar (vendedor 201+)
+async function checarAtualizacoesManualmente() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
     try {
-        const promessaPerfil = supabase.from('usuarios').select('token_sessao').eq('id', session.user.id).single();
-        const promessaConfig = supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single();
-        
-        const [resPerfil, resConfig] = await Promise.all([promessaPerfil, promessaConfig]);
+        const [resEstoque, resCustos, resPerfil] = await Promise.all([
+            supabase.from('configuracoes').select('valor').eq('chave', 'versao_estoque').single(),
+            supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single(),
+            supabase.from('usuarios').select('token_sessao').eq('id', session.user.id).single()
+        ]);
 
-        if (resPerfil.data && resPerfil.data.token_sessao) {
-            if (resPerfil.data.token_sessao !== chaveEsperada) {
-                alert("⚠️ ATENÇÃO: Dispositivo não reconhecido ou novo login detectado. Esta aba foi desconectada por segurança.");
-                await supabase.auth.signOut();
-                localStorage.removeItem('climario_token_sessao');
-                window.location.replace("login.html");
-                return;
-            }
+        // Valida Segurança
+        const tokenLocal = localStorage.getItem('climario_token_sessao') || '';
+        const ancoraAtual = obterAncoraDispositivo();
+        if (resPerfil.data?.token_sessao && resPerfil.data.token_sessao !== `${ancoraAtual}|${tokenLocal}`) {
+            alert("⚠️ Sessão encerrada: Login detectado em outro local.");
+            await supabase.auth.signOut();
+            window.location.replace("login.html");
+            return;
         }
 
-        const versaoOficial = resConfig.data ? resConfig.data.valor : null;
-        const versaoLocal = localStorage.getItem('climario_versao_catalogo');
+        // Valida Mudanças (A função carregarProdutosSupabase já faz o resto)
+        carregarProdutosSupabase(); 
 
-        if (versaoOficial && versaoLocal && versaoOficial !== versaoLocal) {
-            console.log("⚠️ Mudança global de preços detectada! Atualizando catálogo em background...");
-            carregarProdutosSupabase(true); 
-        }
-
-    } catch (err) { }
+    } catch (err) { console.error("Erro no monitoramento manual:", err); }
 }
 
-setInterval(monitorarSessaoEmTempoReal, 60000);
-window.addEventListener('focus', monitorarSessaoEmTempoReal);
+// PLANO A: Tenta o Realtime (Até 200 conexões)
+async function iniciarSistemaHibrido() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const canalGlobal = supabase.channel('fluxo-vendas')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'configuracoes', filter: 'chave=eq.versao_estoque' }, () => {
+            console.log("⚡ Realtime: Estoque atualizado!");
+            carregarProdutosSupabase(true);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'configuracoes', filter: 'chave=eq.versao_catalogo' }, () => {
+            console.log("⚡ Realtime: Preços atualizados!");
+            carregarProdutosSupabase(true);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${session.user.id}` }, (payload) => {
+            const tokenLocal = localStorage.getItem('climario_token_sessao') || '';
+            const ancoraAtual = obterAncoraDispositivo();
+            if (payload.new.token_sessao !== `${ancoraAtual}|${tokenLocal}`) {
+                window.location.replace("login.html");
+            }
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log("🟢 Conectado via Realtime.");
+            } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+                if (!usandoPlanoB) {
+                    usandoPlanoB = true;
+                    console.warn("🟡 Limite atingido. Ativando Polling.");
+                    setInterval(checarAtualizacoesManualmente, 60000);
+                    window.addEventListener('focus', () => {
+                        if (Date.now() - ultimaVezQueDeuFoco > 30000) {
+                            ultimaVezQueDeuFoco = Date.now();
+                            checarAtualizacoesManualmente();
+                        }
+                    });
+                }
+            }
+        });
+}
+
+// Inicia o motor assim que carregar
+iniciarSistemaHibrido();
 
 // Elementos
 const caixaMarca = document.getElementById('marca-condensadora');
@@ -153,46 +184,53 @@ let produtos = [];
 
 async function carregarProdutosSupabase(forcarBaixar = false) {
     try {
-        // 1. Checa a versão atual (Isso gasta míseros 50 bytes no Supabase)
-        const { data: config } = await supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single();
-        const versaoOficial = config ? config.valor : '1';
+        // 1. Puxa as duas versões do banco para saber o que mudou
+        const [resEstoque, resCustos] = await Promise.all([
+            supabase.from('configuracoes').select('valor').eq('chave', 'versao_estoque').single(),
+            supabase.from('configuracoes').select('valor').eq('chave', 'versao_catalogo').single()
+        ]);
+
+        const vEstoqueNuvem = resEstoque.data?.valor || '1';
+        const vCustosNuvem = resCustos.data?.valor || '1';
         
+        // Criamos uma "Versão Combinada" para a Cloudflare saber que algo mudou (estoque ou preço)
+        const vCombinada = `${vEstoqueNuvem}_${vCustosNuvem}`;
+
         const cache = localStorage.getItem('climario_catalogo_produtos');
-        const versaoLocal = localStorage.getItem('climario_versao_catalogo');
-        
-        if (!forcarBaixar && cache && versaoLocal === versaoOficial) {
+        const vEstoqueLocal = localStorage.getItem('climario_versao_estoque');
+        const vCustosLocal = localStorage.getItem('climario_versao_catalogo');
+
+        // Se nada mudou e já temos cache, não gasta internet
+        if (!forcarBaixar && cache && vEstoqueLocal === vEstoqueNuvem && vCustosLocal === vCustosNuvem) {
             produtos = JSON.parse(cache);
-            console.log(`📦 Catálogo carregado da MEMÓRIA (Versão ${versaoLocal}).`);
+            console.log(`📦 Estoque e Preços carregados do Cache.`);
             if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
             return;
         }
-        
-        console.log("⚠️ Versão desatualizada. Baixando catálogo da Cloudflare...");
-        
-        // ------------------------------------------------------------
-        // NOVO: Baixa a vitrine pesada direto da Cloudflare, gastando ZERO do Supabase
+
+        console.log("🔄 Atualização detectada. Baixando novos dados da Cloudflare...");
+
         const { data: { session } } = await supabase.auth.getSession();
         
-        const resposta = await fetch(`/api/produtos?v=${versaoOficial}`, {
+        // Chamamos a Cloudflare enviando a versão combinada para quebrar o cache dela também
+        const resposta = await fetch(`/api/produtos?v=${vCombinada}`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
-        
+
         const resJson = await resposta.json();
-        
-        if (!resJson.sucesso) throw new Error("Falha ao baixar catálogo da nuvem.");
-        
-        const data = resJson.dados; // Entrega os dados para a variável que já alimentava a tela
-        // ------------------------------------------------------------
-        
-        produtos = data;
-        
+        if (!resJson.sucesso) throw new Error("Falha ao baixar catálogo.");
+
+        produtos = resJson.dados;
+
+        // Salva tudo localmente para a próxima vez
         localStorage.setItem('climario_catalogo_produtos', JSON.stringify(produtos));
-        localStorage.setItem('climario_versao_catalogo', versaoOficial);
-        
+        localStorage.setItem('climario_versao_estoque', vEstoqueNuvem);
+        localStorage.setItem('climario_versao_catalogo', vCustosNuvem);
+
         if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
-        
-        auditarDownload('Vendedor: Download Novo Catálogo via Cloudflare', data);
+        console.log("✅ Sistema atualizado com sucesso!");
+
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
     }
