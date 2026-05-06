@@ -670,7 +670,7 @@ let carrinho = [];
         if (dadosAPI.descontoProtheus !== undefined) {
            itensHtml += `
                 <div class="mt-2 text-right">
-                    <span class="text-[10px] font-medium text-slate-400 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded shadow-sm inline-block">
+                    <span class="text-[10px] font-medium text-slate-800 border border-slate-600 bg-slate-90 px-2 py-0.5 rounded shadow-sm inline-block">
                         Protheus: ${dadosAPI.descontoProtheus.toFixed(1)}%
                     </span>
                 </div>
