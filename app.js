@@ -13,9 +13,9 @@ window.roleUsuario = ''; // Variável global para armazenar se é Admin
 // ==========================================
 async function registrarLogAcessoOrcamento(userId, email) {
     if (sessionStorage.getItem('log_orcamento_enviado')) return;
-
     try {
-        const response = await fetch('https://ipapi.co/json/');
+        // A MÁGICA: Chamamos a NOSSA API em vez de um site de terceiros
+        const response = await fetch('/api/geo');
         const loc = await response.json();
 
         await supabase.from('logs_acesso_orcamento').insert([{
@@ -25,7 +25,6 @@ async function registrarLogAcessoOrcamento(userId, email) {
             cidade: loc.city || 'Desconhecida',
             estado: loc.region || 'Desconhecido'
         }]);
-
         sessionStorage.setItem('log_orcamento_enviado', 'true');
     } catch (erro) {
         console.error("Erro ao registrar log de localização:", erro);
@@ -670,7 +669,7 @@ let carrinho = [];
         if (dadosAPI.descontoProtheus !== undefined) {
            itensHtml += `
                 <div class="mt-2 text-right">
-                    <span class="text-[10px] font-medium text-slate-800 border border-slate-500 bg-slate-70 px-2 py-0.5 rounded shadow-sm inline-block">
+                    <span class="text-[11px] font-medium text-slate-800 border border-slate-500 bg-slate-70 px-2 py-0.5 rounded shadow-sm inline-block">
                         Protheus: ${dadosAPI.descontoProtheus.toFixed(1)}%
                     </span>
                 </div>
