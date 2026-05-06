@@ -1041,33 +1041,39 @@ let limiteAtualMinhasSolicitacoes = 15;
 async function carregarMinhasSolicitacoes(userId) {
     if(!userId) return;
     try {
-        const { data, error } = await supabase
+        // 1. Monta a base da consulta (agora pedimos o vendedor_email também)
+        let query = supabase
             .from('solicitacoes_orcamento')
-            .select('id, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
-            .eq('vendedor_id', userId)
+            .select('id, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens, vendedor_email')
             .order('created_at', { ascending: false })
             .limit(limiteAtualMinhasSolicitacoes);
 
+        // 2. A MÁGICA DO GESTOR: Filtra por filial ou por vendedor
+        if (window.roleUsuario === 'gestor') {
+            query = query.eq('filial', window.filialVendedor);
+        } else {
+            query = query.eq('vendedor_id', userId);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
-        
-        auditarDownload('Vendedor: Histórico de Solicitações', data);
+                 
+        auditarDownload('Vendedor/Gestor: Histórico de Solicitações', data);
         window.minhasSolicitacoes = data || [];
-        
+                 
         renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
 
         // Controla a exibição do botão "Carregar Mais"
         const btnMais = document.getElementById('btn-carregar-mais-solicitacoes');
         if (btnMais) {
-            // Se o banco devolveu menos itens do que o nosso limite, significa que acabaram os orçamentos
             if (data.length < limiteAtualMinhasSolicitacoes) {
                 btnMais.classList.add('hidden');
             } else {
                 btnMais.classList.remove('hidden');
             }
         }
-
     } catch (error) {
-        console.error("Erro ao buscar as solicitações do usuário:", error);
+        console.error("Erro ao buscar as solicitações:", error);
     }
 }
 
@@ -1106,6 +1112,12 @@ function renderizarMinhasSolicitacoes(lista) {
     lista.forEach(req => {
         const dataFormatada = new Date(req.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
         
+        let infoGestor = '';
+        if (window.roleUsuario === 'gestor') {
+            const nomeVendedor = req.vendedor_email ? req.vendedor_email.split('@')[0] : 'Desconhecido';
+            infoGestor = `<div class="text-[10px] text-blue-600 font-black mt-1 uppercase truncate w-24 sm:w-auto" title="${req.vendedor_email}">${nomeVendedor}</div>`;
+        }
+
         let statusHtml = '';
         let acoesHtml = '';
 
@@ -1126,7 +1138,10 @@ function renderizarMinhasSolicitacoes(lista) {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
         tr.innerHTML = `
-            <td class="p-4 text-xs font-mono text-slate-500">${dataFormatada}</td>
+            <td class="p-4 text-xs font-mono text-slate-500">
+                ${dataFormatada}
+                ${infoGestor}
+            </td>
             <td class="p-4 text-center font-bold text-slate-700">${qtdItens} un</td>
             <td class="p-4 text-right font-black text-indigo-700">R$ ${parseFloat(req.valor_alvo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
             <td class="p-4 text-center font-bold text-orange-600">${parseFloat(req.desconto_solicitado).toFixed(2)}%</td>
