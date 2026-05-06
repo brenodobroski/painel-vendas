@@ -148,7 +148,7 @@ async function iniciarSistemaHibrido() {
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
                 console.log("🟢 Conectado via Realtime.");
-            } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+            } else if (status === 'CHANNEL_ERROR') {
                 if (!usandoPlanoB) {
                     usandoPlanoB = true;
                     console.warn("🟡 Limite atingido. Ativando Polling.");
@@ -160,6 +160,8 @@ async function iniciarSistemaHibrido() {
                         }
                     });
                 }
+            } else if (status === 'CLOSED' || status === 'TIMED_OUT') {
+                console.log("💤 Realtime em pausa pelo navegador. Aguardando reconexão...");
             }
         });
 }
@@ -1035,7 +1037,7 @@ window.mostrarNomeArquivo = function(input) {
 // ABA: MINHAS SOLICITAÇÕES
 // ==========================================
 // ==========================================
-let limiteAtualMinhasSolicitacoes = 2;
+let limiteAtualMinhasSolicitacoes = 20;
 
 async function carregarMinhasSolicitacoes(userId) {
     if(!userId) return;
@@ -1079,7 +1081,7 @@ window.carregarMaisMinhasSolicitacoes = async function() {
     }
     
     // Aumenta o limite em mais 20 e busca novamente
-    limiteAtualMinhasSolicitacoes += 2;
+    limiteAtualMinhasSolicitacoes += 20;
     
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
