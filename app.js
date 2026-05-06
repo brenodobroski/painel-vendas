@@ -670,7 +670,7 @@ let carrinho = [];
         if (dadosAPI.descontoProtheus !== undefined) {
            itensHtml += `
                 <div class="mt-2 text-right">
-                    <span class="text-[10px] font-medium text-slate-800 border border-slate-600 bg-slate-90 px-2 py-0.5 rounded shadow-sm inline-block">
+                    <span class="text-[10px] font-medium text-slate-800 border border-slate-500 bg-slate-70 px-2 py-0.5 rounded shadow-sm inline-block">
                         Protheus: ${dadosAPI.descontoProtheus.toFixed(1)}%
                     </span>
                 </div>
@@ -1037,7 +1037,7 @@ window.mostrarNomeArquivo = function(input) {
 // ABA: MINHAS SOLICITAÇÕES
 // ==========================================
 // ==========================================
-let limiteAtualMinhasSolicitacoes = 20;
+let limiteAtualMinhasSolicitacoes = 15;
 
 async function carregarMinhasSolicitacoes(userId) {
     if(!userId) return;
@@ -1080,8 +1080,8 @@ window.carregarMaisMinhasSolicitacoes = async function() {
         btn.disabled = true;
     }
     
-    // Aumenta o limite em mais 20 e busca novamente
-    limiteAtualMinhasSolicitacoes += 20;
+    // Aumenta o limite em mais 15 e busca novamente
+    limiteAtualMinhasSolicitacoes += 15;
     
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
