@@ -666,9 +666,11 @@ let carrinho = [];
         });
 
         if (dadosAPI.descontoProtheus !== undefined) {
-            itensHtml += `
-                <div class="mt-4 p-4 bg-indigo-20 border border-indigo-200 text-center rounded-sm shadow-sm">
-                    <span class=" text-md font-bold text-indigo-900"> Desconto Protheus: ${dadosAPI.descontoProtheus.toFixed(1)}%</span>
+           itensHtml += `
+                <div class="mt-2 text-right">
+                    <span class="text-[10px] font-medium text-slate-400 border border-slate-200 bg-slate-50 px-2 py-0.5 rounded shadow-sm inline-block">
+                        Protheus: ${dadosAPI.descontoProtheus.toFixed(1)}%
+                    </span>
                 </div>
             `;
         }
@@ -1032,26 +1034,63 @@ window.mostrarNomeArquivo = function(input) {
 // ==========================================
 // ABA: MINHAS SOLICITAÇÕES
 // ==========================================
+// ==========================================
+let limiteAtualMinhasSolicitacoes = 2;
+
 async function carregarMinhasSolicitacoes(userId) {
     if(!userId) return;
-
     try {
         const { data, error } = await supabase
             .from('solicitacoes_orcamento')
             .select('id, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
             .eq('vendedor_id', userId)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(limiteAtualMinhasSolicitacoes);
 
         if (error) throw error;
-
+        
         auditarDownload('Vendedor: Histórico de Solicitações', data);
-
         window.minhasSolicitacoes = data || [];
+        
         renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
+
+        // Controla a exibição do botão "Carregar Mais"
+        const btnMais = document.getElementById('btn-carregar-mais-solicitacoes');
+        if (btnMais) {
+            // Se o banco devolveu menos itens do que o nosso limite, significa que acabaram os orçamentos
+            if (data.length < limiteAtualMinhasSolicitacoes) {
+                btnMais.classList.add('hidden');
+            } else {
+                btnMais.classList.remove('hidden');
+            }
+        }
+
     } catch (error) {
         console.error("Erro ao buscar as solicitações do usuário:", error);
     }
 }
+
+// Nova função acionada pelo botão do HTML
+window.carregarMaisMinhasSolicitacoes = async function() {
+    const btn = document.getElementById('btn-carregar-mais-solicitacoes');
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+        btn.disabled = true;
+    }
+    
+    // Aumenta o limite em mais 20 e busca novamente
+    limiteAtualMinhasSolicitacoes += 2;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        await carregarMinhasSolicitacoes(session.user.id);
+    }
+    
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-chevron-down"></i> Carregar Mais Antigos';
+        btn.disabled = false;
+    }
+};
 
 function renderizarMinhasSolicitacoes(lista) {
     const corpo = document.getElementById('corpo-minhas-solicitacoes');
