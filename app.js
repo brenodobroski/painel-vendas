@@ -1194,12 +1194,16 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
     const inputArquivo = document.getElementById('input-arquivo-solicitacao');
     const valorAlvo = document.getElementById('input-evidencia')?.value || window.dadosParaOrcamento.totalBruto;
     
-    let urlEvidencia = null;
+    try {
+        // 1. PRIMEIRO puxamos a sessão para garantir que temos o ID do Vendedor
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Sessão expirada. Faça login novamente.");
 
+        // 2. Lógica de Upload Múltiplo (agora com a session já definida)
+        let urlEvidencia = null;
         if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
             const urlsGeradas = [];
             
-            // Loop para enviar múltiplos arquivos um por um
             for (let i = 0; i < inputArquivo.files.length; i++) {
                 let file = inputArquivo.files[i];
                 const fileExt = file.name.split('.').pop().toLowerCase();
@@ -1224,11 +1228,8 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             // Junta todas as URLs separadas por vírgula para salvar no banco
             urlEvidencia = urlsGeradas.join(',');
         }
-    
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("Sessão expirada. Faça login novamente.");
 
+        // 3. Montagem do Orçamento e Envio para o Banco de Dados
         const rtAtual = document.getElementById('input-rt')?.value || 0;
         const descontoAtual = document.getElementById('input-desconto')?.value || 0;
         
@@ -1242,29 +1243,6 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         window.dadosParaOrcamento.filial = window.filialVendedor;
         window.dadosParaOrcamento.formaPagamento = textoPagamento;
 
-        let urlEvidencia = null;
-
-        if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
-            let file = inputArquivo.files[0];
-            const fileExt = file.name.split('.').pop().toLowerCase();
-            const fileName = `${Date.now()}_${session.user.id}.${fileExt}`;
-
-            if (file.type.startsWith('image/')) {
-                const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1280, useWebWorker: true };
-                try {
-                    file = await imageCompression(file, options);
-                } catch (error) {
-                    console.warn("⚠️ Erro ao comprimir. Enviando foto original como backup:", error);
-                }
-            }
-
-            const { error: uploadError } = await supabase.storage.from('evidencias').upload(fileName, file);
-            if (uploadError) throw uploadError;
-
-            const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
-            urlEvidencia = publicUrlData.publicUrl;
-        }
-
         const payload = {
             codigo_orcamento: numeroOrcamentoGerado, 
             vendedor_id: session.user.id,
@@ -1275,7 +1253,7 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             rt: parseFloat(rtAtual),
             pagamento: textoPagamento,
             motivo: statusDefinido === 'aprovado' ? 'Aprovado Automaticamente pelo Sistema' : motivo,
-            url_evidencia: urlEvidencia,
+            url_evidencia: urlEvidencia, // Recebe a string unida com vírgulas
             itens: window.dadosParaOrcamento.itens,
             total_bruto: window.dadosParaOrcamento.totalBruto,
             status: statusDefinido,
