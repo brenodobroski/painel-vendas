@@ -427,7 +427,7 @@
                     <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition-colors cursor-pointer" onclick="document.getElementById('input-arquivo-solicitacao').click()">
                         <i class="fas fa-cloud-upload-alt text-2xl text-slate-400 mb-2"></i>
                         <p id="nome-arquivo-selecionado" class="text-xs text-slate-500 font-bold">Clique para anexar arquivo</p>
-                        <input type="file" id="input-arquivo-solicitacao" class="hidden" accept=".pdf, image/*" onchange="mostrarNomeArquivo(this)">
+                        <input type="file" id="input-arquivo-solicitacao" class="hidden" accept=".pdf, image/*" multiple onchange="mostrarNomeArquivo(this)">
                     </div>
                 </div>
                 <button id="btn-enviar-solicitacao" onclick="enviarSolicitacaoSupabase()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded uppercase text-sm mt-2">

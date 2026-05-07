@@ -144,6 +144,25 @@ async function iniciarSistemaHibrido() {
                 window.location.replace("login.html");
             }
         })
+
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitacoes_orcamento' }, (payload) => {
+            const orcamentoAtualizado = payload.new;
+            
+            // 1. Procura na memória RAM se esse orçamento pertence à lista que está na tela
+            const index = window.minhasSolicitacoes.findIndex(req => req.id === orcamentoAtualizado.id);
+            
+            if (index !== -1) {
+                // 2. Atualiza apenas os campos que você alterou no Admin
+                window.minhasSolicitacoes[index].status = orcamentoAtualizado.status;
+                window.minhasSolicitacoes[index].motivo_reprovacao = orcamentoAtualizado.motivo_reprovacao;
+                
+                // 3. Re-desenha a tabela instantaneamente (Muda a cor visualmente)
+                if (typeof renderizarMinhasSolicitacoes === 'function') {
+                    renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
+                }
+            }
+        })
+
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
                 console.log("🟢 Conectado via Realtime.");
@@ -1024,10 +1043,14 @@ window.fecharModalSolicitacao = function() {
 window.mostrarNomeArquivo = function(input) {
     const nomeVisual = document.getElementById('nome-arquivo-selecionado');
     if (input.files && input.files.length > 0) {
-        nomeVisual.innerText = input.files[0].name;
+        if (input.files.length === 1) {
+            nomeVisual.innerText = input.files[0].name;
+        } else {
+            nomeVisual.innerText = `${input.files.length} arquivos selecionados`;
+        }
         nomeVisual.classList.replace('text-slate-500', 'text-orange-600');
     } else {
-        nomeVisual.innerText = 'Clique para selecionar o arquivo';
+        nomeVisual.innerText = 'Clique para anexar arquivo(s)';
         nomeVisual.classList.replace('text-orange-600', 'text-slate-500');
     }
 };
@@ -1205,22 +1228,42 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
     const inputArquivo = document.getElementById('input-arquivo-solicitacao');
     const valorAlvo = document.getElementById('input-evidencia')?.value || window.dadosParaOrcamento.totalBruto;
     
-    if (statusDefinido === 'pendente') {
-        if (!motivo) {
-            alert("Por favor, preencha o motivo da solicitação.");
-            return false;
-        }
-        if (btnEnviar) {
-            btnEnviar.innerText = "Registrando... Aguarde";
-            btnEnviar.disabled = true;
-            btnEnviar.classList.replace('bg-orange-500', 'bg-slate-400');
-        }
-    }
-    
     try {
+        // 1. PRIMEIRO puxamos a sessão para garantir que temos o ID do Vendedor
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("Sessão expirada. Faça login novamente.");
 
+        // 2. Lógica de Upload Múltiplo (agora com a session já definida)
+        let urlEvidencia = null;
+        if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
+            const urlsGeradas = [];
+            
+            for (let i = 0; i < inputArquivo.files.length; i++) {
+                let file = inputArquivo.files[i];
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                const fileName = `${Date.now()}_${i}_${session.user.id}.${fileExt}`;
+
+                if (file.type.startsWith('image/')) {
+                    const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1280, useWebWorker: true };
+                    try {
+                        file = await imageCompression(file, options);
+                    } catch (error) {
+                        console.warn(`⚠️ Erro ao comprimir o arquivo ${i}. Enviando original.`, error);
+                    }
+                }
+
+                const { error: uploadError } = await supabase.storage.from('evidencias').upload(fileName, file);
+                if (uploadError) throw uploadError;
+
+                const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
+                urlsGeradas.push(publicUrlData.publicUrl);
+            }
+            
+            // Junta todas as URLs separadas por vírgula para salvar no banco
+            urlEvidencia = urlsGeradas.join(',');
+        }
+
+        // 3. Montagem do Orçamento e Envio para o Banco de Dados
         const rtAtual = document.getElementById('input-rt')?.value || 0;
         const descontoAtual = document.getElementById('input-desconto')?.value || 0;
         
@@ -1234,29 +1277,6 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         window.dadosParaOrcamento.filial = window.filialVendedor;
         window.dadosParaOrcamento.formaPagamento = textoPagamento;
 
-        let urlEvidencia = null;
-
-        if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
-            let file = inputArquivo.files[0];
-            const fileExt = file.name.split('.').pop().toLowerCase();
-            const fileName = `${Date.now()}_${session.user.id}.${fileExt}`;
-
-            if (file.type.startsWith('image/')) {
-                const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1280, useWebWorker: true };
-                try {
-                    file = await imageCompression(file, options);
-                } catch (error) {
-                    console.warn("⚠️ Erro ao comprimir. Enviando foto original como backup:", error);
-                }
-            }
-
-            const { error: uploadError } = await supabase.storage.from('evidencias').upload(fileName, file);
-            if (uploadError) throw uploadError;
-
-            const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
-            urlEvidencia = publicUrlData.publicUrl;
-        }
-
         const payload = {
             codigo_orcamento: numeroOrcamentoGerado, 
             vendedor_id: session.user.id,
@@ -1267,7 +1287,7 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             rt: parseFloat(rtAtual),
             pagamento: textoPagamento,
             motivo: statusDefinido === 'aprovado' ? 'Aprovado Automaticamente pelo Sistema' : motivo,
-            url_evidencia: urlEvidencia,
+            url_evidencia: urlEvidencia, // Recebe a string unida com vírgulas
             itens: window.dadosParaOrcamento.itens,
             total_bruto: window.dadosParaOrcamento.totalBruto,
             status: statusDefinido,
