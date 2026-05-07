@@ -1024,10 +1024,14 @@ window.fecharModalSolicitacao = function() {
 window.mostrarNomeArquivo = function(input) {
     const nomeVisual = document.getElementById('nome-arquivo-selecionado');
     if (input.files && input.files.length > 0) {
-        nomeVisual.innerText = input.files[0].name;
+        if (input.files.length === 1) {
+            nomeVisual.innerText = input.files[0].name;
+        } else {
+            nomeVisual.innerText = `${input.files.length} arquivos selecionados`;
+        }
         nomeVisual.classList.replace('text-slate-500', 'text-orange-600');
     } else {
-        nomeVisual.innerText = 'Clique para selecionar o arquivo';
+        nomeVisual.innerText = 'Clique para anexar arquivo(s)';
         nomeVisual.classList.replace('text-orange-600', 'text-slate-500');
     }
 };
@@ -1190,17 +1194,36 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
     const inputArquivo = document.getElementById('input-arquivo-solicitacao');
     const valorAlvo = document.getElementById('input-evidencia')?.value || window.dadosParaOrcamento.totalBruto;
     
-    if (statusDefinido === 'pendente') {
-        if (!motivo) {
-            alert("Por favor, preencha o motivo da solicitação.");
-            return false;
+    let urlEvidencia = null;
+
+        if (statusDefinido === 'pendente' && inputArquivo && inputArquivo.files.length > 0) {
+            const urlsGeradas = [];
+            
+            // Loop para enviar múltiplos arquivos um por um
+            for (let i = 0; i < inputArquivo.files.length; i++) {
+                let file = inputArquivo.files[i];
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                const fileName = `${Date.now()}_${i}_${session.user.id}.${fileExt}`;
+
+                if (file.type.startsWith('image/')) {
+                    const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1280, useWebWorker: true };
+                    try {
+                        file = await imageCompression(file, options);
+                    } catch (error) {
+                        console.warn(`⚠️ Erro ao comprimir o arquivo ${i}. Enviando original.`, error);
+                    }
+                }
+
+                const { error: uploadError } = await supabase.storage.from('evidencias').upload(fileName, file);
+                if (uploadError) throw uploadError;
+
+                const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
+                urlsGeradas.push(publicUrlData.publicUrl);
+            }
+            
+            // Junta todas as URLs separadas por vírgula para salvar no banco
+            urlEvidencia = urlsGeradas.join(',');
         }
-        if (btnEnviar) {
-            btnEnviar.innerText = "Registrando... Aguarde";
-            btnEnviar.disabled = true;
-            btnEnviar.classList.replace('bg-orange-500', 'bg-slate-400');
-        }
-    }
     
     try {
         const { data: { session } } = await supabase.auth.getSession();
