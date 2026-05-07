@@ -144,6 +144,25 @@ async function iniciarSistemaHibrido() {
                 window.location.replace("login.html");
             }
         })
+
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitacoes_orcamento' }, (payload) => {
+            const orcamentoAtualizado = payload.new;
+            
+            // 1. Procura na memória RAM se esse orçamento pertence à lista que está na tela
+            const index = window.minhasSolicitacoes.findIndex(req => req.id === orcamentoAtualizado.id);
+            
+            if (index !== -1) {
+                // 2. Atualiza apenas os campos que você alterou no Admin
+                window.minhasSolicitacoes[index].status = orcamentoAtualizado.status;
+                window.minhasSolicitacoes[index].motivo_reprovacao = orcamentoAtualizado.motivo_reprovacao;
+                
+                // 3. Re-desenha a tabela instantaneamente (Muda a cor visualmente)
+                if (typeof renderizarMinhasSolicitacoes === 'function') {
+                    renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
+                }
+            }
+        })
+
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
                 console.log("🟢 Conectado via Realtime.");
