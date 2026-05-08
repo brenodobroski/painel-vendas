@@ -761,7 +761,7 @@ let carrinho = [];
             btnFinalizar.onclick = null; 
             if (window.testeHipoteseAtivo) {
                 btnFinalizar.disabled = false;
-                btnFinalizar.innerText = "Solicitar Aprovação Especial";
+                btnFinalizar.innerText = "Solicitar Aprovação";
                 btnFinalizar.className = "w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
                 
                 btnFinalizar.onclick = (e) => {
