@@ -79,7 +79,7 @@ async function verificarAcesso() {
 
 
         // Adiciona o teste de hipotese para as filiais selecionadas e para o admin
-        if (window.filialVendedor === '1028' || window.filialVendedor === '1015' || window.roleUsuario === 'admin') {
+        if (window.filialVendedor === '1028' || window.filialVendedor === '1015' || window.filialVendedor === '1043' || window.roleUsuario === 'admin') {
             const boxHipotese = document.getElementById('container-teste-hipotese');
             if (boxHipotese) boxHipotese.classList.remove('hidden');
         }
