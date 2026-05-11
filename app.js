@@ -166,11 +166,28 @@ async function iniciarSistemaHibrido() {
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
                 console.log("🟢 Conectado via Realtime.");
+                
+                // MÁGICA 1: A internet piscou e voltou? Desliga o Polling na hora!
+                if (window.timerPollingVendedor) {
+                    clearInterval(window.timerPollingVendedor);
+                    window.timerPollingVendedor = null;
+                    usandoPlanoB = false;
+                }
+                
             } else if (status === 'CHANNEL_ERROR') {
                 if (!usandoPlanoB) {
                     usandoPlanoB = true;
-                    console.warn("🟡 Limite atingido. Ativando Polling.");
-                    setInterval(checarAtualizacoesManualmente, 60000);
+                    console.warn("🟡 Limite atingido. Ativando Polling Inteligente.");
+                    
+                    window.timerPollingVendedor = setInterval(() => {
+                        // MÁGICA 2: Só gasta banda se a pessoa estiver de fato olhando para a aba
+                        if (document.visibilityState === 'visible') {
+                            checarAtualizacoesManualmente();
+                        } else {
+                            console.log("💤 Aba oculta.");
+                        }
+                    }, 60000);
+
                     window.addEventListener('focus', () => {
                         if (Date.now() - ultimaVezQueDeuFoco > 30000) {
                             ultimaVezQueDeuFoco = Date.now();
@@ -1291,7 +1308,8 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             itens: window.dadosParaOrcamento.itens,
             total_bruto: window.dadosParaOrcamento.totalBruto,
             status: statusDefinido,
-            snapshot: window.dadosParaOrcamento 
+            snapshot: window.dadosParaOrcamento,
+            created_at: new Date().toLocaleString('sv-SE').replace(' ', 'T')
         };
 
         const { error: dbError } = await supabase.from('solicitacoes_orcamento').insert([payload]);
@@ -1335,3 +1353,35 @@ function obterAncoraDispositivo() {
     }
     return anchor;
 }
+
+// ==========================================
+// AUTO-LOGOUT DE INATIVIDADE
+// ==========================================
+let minutosInativo = 0;
+const TEMPO_LIMITE_MINUTOS = 60; // Desloga após 1 hora sem mexer no PC
+
+// Qualquer ação do usuário zera o relógio
+function resetarTempoInativo() {
+    minutosInativo = 0;
+}
+
+// Sensores de presença na tela
+window.addEventListener('mousemove', resetarTempoInativo);
+window.addEventListener('keydown', resetarTempoInativo);
+window.addEventListener('click', resetarTempoInativo);
+window.addEventListener('scroll', resetarTempoInativo);
+
+// O relógio que conta os minutos
+setInterval(async () => {
+    minutosInativo++;
+    
+    if (minutosInativo >= TEMPO_LIMITE_MINUTOS) {
+        console.warn("⏳ Vendedor ausente. Encerrando sessão...");
+        
+        // Destrói as conexões e joga pro login
+        if (window.timerPollingVendedor) clearInterval(window.timerPollingVendedor);
+        await supabase.auth.signOut();
+        localStorage.removeItem('climario_token_sessao');
+        window.location.replace("login.html");
+    }
+}, 60000); // Roda a checagem a cada 1 minuto
