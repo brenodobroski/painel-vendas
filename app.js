@@ -145,7 +145,7 @@ async function iniciarSistemaHibrido() {
             }
         })
 
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitacoes_orcamento' }, (payload) => {
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitacoes_orcamento', filter: `vendedor_id=eq.${session.user.id}` }, (payload) => {
             const orcamentoAtualizado = payload.new;
             
             // 1. Procura na memória RAM se esse orçamento pertence à lista que está na tela
