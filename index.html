@@ -187,26 +187,6 @@
                                     </div>
 
                                     <div>
-                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Pagamento</label>
-                                        <div class="relative w-full custom-dropdown" id="dropdown-select-pagamento">
-                                            <button type="button" id="btn-select-pagamento" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('select-pagamento')">
-                                                <span id="texto-select-pagamento" class="truncate pr-2 text-left text-xs">Á vista 100% antecipado (PIX)</span>
-                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-select-pagamento" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                            </button>
-                                            <div id="lista-select-pagamento" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
-                                                <ul class="py-1 text-sm text-slate-700 font-bold">
-                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">Á vista 100% antecipado (PIX)</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">Em 3 vezes no cartão</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">Em 6 vezes no cartão</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">Em 8 vezes no cartão</li>
-                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">Em 10 vezes no cartão</li>
-                                                </ul>
-                                            </div>
-                                            <input type="hidden" id="select-pagamento" value="0" onchange="atualizarResumo()">
-                                        </div>
-                                    </div>
-
-                                    <div>
                                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Destino (Frete)</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-select-uf">
                                             <button type="button" id="btn-select-uf" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('select-uf')">
@@ -286,7 +266,8 @@
                                                     <th class="border p-2 sm:p-3 text-center">SKU</th>
                                                     <th class="border p-2 sm:p-3">Equipamento</th>
                                                     <th class="border p-2 sm:p-3 text-center">Estoque</th>
-                                                    <th class="border p-2 sm:p-3 text-center">Preço</th>
+                                                    <th class="border p-2 sm:p-3 text-center">À Vista</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Parcelado</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="corpo-tabela" class="bg-white"></tbody>
@@ -342,16 +323,20 @@
                                         </div>
                                     </div>
 
-                                    <div class="flex justify-between items-center text-slate-500">
+                                   <div class="flex justify-between items-center text-slate-500">
                                         <span class="text-xs font-bold uppercase">Subtotal:</span>
-                                        <span id="resumo-subtotal" class="text-sm font-bold">R$ 0,00</span>
+                                        <div class="text-right">
+                                            <div id="resumo-subtotal-avista" class="text-sm font-bold text-slate-700">R$ 0,00</div>
+                                            <div id="resumo-subtotal-parcelado" class="text-xs font-bold text-slate-400">R$ 0,00 (10x)</div>
+                                        </div>
                                     </div>
-                                    
-                                    <div class="flex justify-between items-center text-slate-500">
+
+                                    <div class="flex justify-between items-center text-slate-500 mt-2 border-b border-slate-100 pb-3">
                                         <span class="text-xs font-bold uppercase">Frete:</span>
                                         <span id="resumo-frete" class="text-sm font-bold">+ R$ 0,00</span>
                                     </div>
 
+<<<<<<< Updated upstream
                                     <div class="flex justify-between items-center font-bold text-slate-900 pt-2 border-t border-slate-200">
                                         <span class="text-sm uppercase">Total Cotação:</span>
                                         <span id="resumo-total" class="text-xl sm:text-2xl font-mono text-blue-700">R$ 0,00</span>
@@ -368,13 +353,38 @@
                                         <div class="flex-1 w-full sm:w-auto">
                                             <label class="text-[10px] text-indigo-600 font-bold">Valor Alvo</label>
                                             <input type="number" id="input-evidencia" class="w-full p-2 sm:p-1.5 text-sm border border-indigo-300 rounded outline-none focus:border-indigo-500 font-bold" placeholder="Ex: 8500.00">
+=======
+                                    <div class="flex justify-between items-end font-bold text-slate-900 pt-3 border-t border-slate-200 mt-2">
+                                        <span class="text-sm uppercase pb-1">Total:</span>
+                                        <div class="text-right">
+                                            <div id="resumo-total-avista" class="text-xl sm:text-2xl font-mono text-blue-700">R$ 0,00</div>
+                                            <div id="resumo-total-parcelado" class="text-sm font-mono text-slate-500 mt-1">R$ 0,00 em 10x</div>
+>>>>>>> Stashed changes
                                         </div>
-                                        <button onclick="fazerTesteHipotese()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 sm:py-1.5 px-3 rounded text-xs transition-colors">
-                                            Calcular
-                                        </button>
                                     </div>
-                                    <p id="msg-hipotese" class="text-[10px] text-red-600 font-bold mt-2 hidden">⚠️ Orçamento bloqueado.</p>
-                                </div>
+                                    </div> <button id="btn-finalizar" disabled class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 sm:py-4 rounded-md transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed uppercase text-xs tracking-widest">
+                                        Gerar Orçamento
+                                    </button>
+
+                                    <div id="container-teste-hipotese" class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded hidden">
+                                        <h3 class="text-xs font-bold text-indigo-800 mb-2"><i class="fas fa-calculator"></i> Negociação</h3>
+                                        <div class="flex flex-col sm:flex-row gap-2 items-end">
+                                            <div class="flex-1 w-full sm:w-auto">
+                                                <label class="text-[10px] text-indigo-600 font-bold">Valor Alvo</label>
+                                                <div class="flex">
+                                                    <select id="tipo-alvo-hipotese" class="p-2 sm:p-1.5 text-xs border border-indigo-300 border-r-0 rounded-l outline-none focus:border-indigo-500 font-bold bg-white text-indigo-700 cursor-pointer">
+                                                        <option value="avista">À Vista</option>
+                                                        <option value="parcelado">Até 10x</option>
+                                                    </select>
+                                                    <input type="number" id="input-evidencia" class="w-full p-2 sm:p-1.5 text-sm border border-indigo-300 rounded-r outline-none focus:border-indigo-500 font-bold" placeholder="Ex: 8500.00">
+                                                </div>
+                                            </div>
+                                            <button onclick="fazerTesteHipotese()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 sm:py-1.5 px-3 rounded text-xs transition-colors">
+                                                Calcular
+                                            </button>
+                                        </div>
+                                        <p id="msg-hipotese" class="text-[10px] text-red-600 font-bold mt-2 hidden">⚠️ Orçamento bloqueado.</p>
+                                    </div>
                             </div>
                         </div>
 

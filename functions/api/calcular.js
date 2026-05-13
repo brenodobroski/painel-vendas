@@ -2,13 +2,13 @@ export async function onRequestPost(context) {
     const { request, env } = context;
          
     try {
-        // 🚨 1. TRAVA DE SEGURANÇA: Exige o Crachá (Token JWT)
+        //  1. TRAVA DE SEGURANÇA: Exige o Token JWT
         const authHeader = request.headers.get('Authorization');
         if (!authHeader) {
             return new Response(JSON.stringify({ sucesso: false, erro: "Acesso Negado: Token ausente." }), { status: 401 });
         }
 
-        // 🚨 2. VERIFICAÇÃO NO SUPABASE: O crachá é verdadeiro ou falso?
+        //  2. VERIFICAÇÃO NO SUPABASE: 
         const SUPABASE_URL = 'https://ijkzolhxuuqmkuztdliv.supabase.co';
         const SUPABASE_KEY = env.SUPABASE_CHAVE;
 
@@ -25,15 +25,15 @@ export async function onRequestPost(context) {
 
         // --- SE PASSOU PELO SEGURANÇA, CONTINUA O CÁLCULO NORMALMENTE ---
         const body = await request.json();
-        const { itens, descontoBase, rt, penalidadePagto, versaoCatalogo } = body;
+        const { itens, descontoBase, rt, versaoCatalogo } = body;
         
         // A chave única do cofre baseada na versão atual do catálogo
         const CACHE_KEY = `CUSTOS_VERSAO_${versaoCatalogo || '1'}`;
 
-        // 1. O CLOUDFLARE TENTA ABRIR O COFRE LOCAL (O Vendedor 2 ao 450 caem aqui)
+        // 1. O CLOUDFLARE TENTA ABRIR O COFRE LOCAL
         let catalogoCustos = await env.CLIMARIO_CUSTOS.get(CACHE_KEY, "json");
 
-        // 2. O COFRE ESTÁ VAZIO? O primeiro vendedor do dia (ou após uma atualização) caiu aqui!
+        // 2. O CLOUDFLARE ESTÁ VAZIO
         if (!catalogoCustos) {
             
             // Credenciais do Supabase
@@ -51,17 +51,17 @@ export async function onRequestPost(context) {
 
             if (!respostaSupabase.ok) throw new Error("Falha ao puxar custos do Supabase.");
 
-            // ⬇️ A variável é criada AQUI primeiro, ANTES de ser verificada!
+            //  A variável é criada AQUI primeiro, ANTES de ser verificada!
             const dadosBrutos = await respostaSupabase.json();
 
-            // 🚨 TRAVA DE SEGURANÇA 1: Agora sim ele pode ler a variável "dadosBrutos"
+            //  TRAVA DE SEGURANÇA 1
             if (!Array.isArray(dadosBrutos) || dadosBrutos.length === 0) {
                 throw new Error("Supabase retornou um catálogo vazio. Salvamento no cache abortado por segurança.");
             }
 
             // Transforma a lista do banco num "Dicionário" fácil e super rápido de pesquisar
             catalogoCustos = {};
-            let contagemItensValidos = 0; // ⬇️ Inicializa o contador
+            let contagemItensValidos = 0; // Inicializa o contador
 
             dadosBrutos.forEach(produto => {
                 if (produto.sku) { // Garante que o item tem SKU antes de salvar
@@ -85,17 +85,17 @@ export async function onRequestPost(context) {
         }
 
         // ==============================================================
-        // 3. DAQUI PARA BAIXO É SÓ MATEMÁTICA USANDO A MEMÓRIA!
-        // Nenhuma requisição a mais vai para o Supabase.
+        // 3. CALCULO PREÇO
         // ==============================================================
         let resultados = {};
         let custoTotalPedido = 0;
-        let totalBrutoTabela = 0;
+        let totalBrutoTabelaAVista = 0;
+        let totalBrutoTabelaParcelado = 0;
 
         const MARKUP_BASE_FIXA = parseFloat(env.MARKUP_BASE_FIXA);
         const descDecimal = (parseFloat(descontoBase) || 0) / 100;
         const rtDecimal = (parseFloat(rt) || 0) / 100;
-        const pagtoDecimal = (parseFloat(penalidadePagto) || 0) / 100;
+        const pagtoDecimal = 0.05
 
         const novoMarkupProtheus = (MARKUP_BASE_FIXA * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / 0.965;
         let descProtheusPedido = (((novoMarkupProtheus / 1.699) - 1) * -1) * 100;
@@ -112,20 +112,28 @@ export async function onRequestPost(context) {
                 const markupVenda = parseFloat(dadosSecretos.markup_base) || MARKUP_BASE_FIXA;
                 const variacao = 1 - (MARKUP_BASE_FIXA / markupVenda);
                 const divisor = 1 - variacao;
-                const novoMarkup = (MARKUP_BASE_FIXA * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / divisor;
+
+                const fatorComercialAVista = ((1 - descDecimal) * (1 + (rtDecimal * 1.4)));
+                const fatorComercialParcelado = ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal));
+
+                const novoMarkupAVista = (MARKUP_BASE_FIXA * fatorComercialAVista) / divisor;
+                const novoMarkupParcelado = (MARKUP_BASE_FIXA * fatorComercialParcelado) / divisor;
                 
-                let precoCalculado = (custo - verba) * novoMarkup;
-                precoCalculado = Math.round(precoCalculado * 100) / 100;
+                let precoAVista = Math.round((custo - verba) * novoMarkupAVista * 100) / 100;
+                let precoParcelado = Math.round((custo - verba) * novoMarkupParcelado * 100) / 100;
 
                 resultados[itemPedido.sku] = {
-                    precoUnitario: precoCalculado,
-                    subtotal: precoCalculado * (itemPedido.qtd || 0)
+                    precoUnitarioAVista: precoAVista,
+                    precoUnitarioParcelado: precoParcelado,
+                    subtotalAVista: precoAVista * (itemPedido.qtd || 0),
+                    subtotalParcelado: precoParcelado * (itemPedido.qtd || 0)
                 };
 
                 // MAS SÓ SOMA NO TOTAL DO ORÇAMENTO SE A QUANTIDADE FOR MAIOR QUE ZERO
-                if (itemPedido.qtd > 0) {
+               if (itemPedido.qtd > 0) {
                     custoTotalPedido += (itemPedido.qtd * (custo - verba));
-                    totalBrutoTabela += (itemPedido.qtd * precoCalculado);
+                    totalBrutoTabelaAVista += (itemPedido.qtd * precoAVista);
+                    totalBrutoTabelaParcelado += (itemPedido.qtd * precoParcelado);
                 }
             }
         });
@@ -134,7 +142,8 @@ export async function onRequestPost(context) {
         return new Response(JSON.stringify({
             sucesso: true,
             precos: resultados,
-            totalBruto: totalBrutoTabela,
+            totalBrutoAVista: totalBrutoTabelaAVista,
+            totalBrutoParcelado: totalBrutoTabelaParcelado,
             descontoProtheus: descProtheusPedido
         }), {
             headers: { 'Content-Type': 'application/json' }
