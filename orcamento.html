@@ -69,10 +69,6 @@
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vendedor</p>
                         <p class="text-sm font-bold text-slate-800" id="texto-vendedor"></p>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Forma de Pagamento</p>
-                        <p class="text-sm font-bold text-slate-800" id="texto-pagamento"></p>
-                    </div>
                 </div>
 
                 <table class="table-print text-sm mb-6">
@@ -83,8 +79,8 @@
                             <th class="w-[15%]">CÓD. FABRICANTE</th>
                             <th class="w-[5%]">QTD</th>
                             <th class="w-[10%]">DISPONIBILIDADE</th>
-                            <th class="w-[15%] text-right">UNIT.</th>
-                            <th class="w-[15%] text-right">SUBTOTAL</th>
+                            <th class="w-[15%]">UNITÁRIO</th>
+                            <th class="w-[15%]">SUBTOTAL</th>
                         </tr>
                     </thead>
                     <tbody id="tabela-corpo" class="text-slate-900">
@@ -110,7 +106,7 @@
                         </tr>
                         <tr class="font-extrabold bg-blue-600 text-white">
                             <td colspan="7" class="py-4 px-6 border-none">
-                                <div class="flex justify-between items-center w-full">
+                                <div class="flex justify-between items-center w-full pl-10 pr-5">
                                     <div class="flex flex-col items-start">
                                         <span class="text-blue-200 text-[11px] uppercase tracking-widest mb-1">Total à Vista</span>
                                         <span class="text-2xl" id="celula-total-avista"></span>
@@ -169,14 +165,14 @@
                 corpoTabela.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="text-center font-bold text-[12px] text-slate-800">${item.codigo}</td>
-                        <td class="font-bold text-slate-800 text-[11px]">${item.descricao}</td>
-                        <td class="text-center text-slate-800 font-bold text-[11px]">${item.modelo}</td>
+                        <td class="font-bold text-slate-800 text-[12px]">${item.descricao}</td>
+                        <td class="text-center text-slate-800 font-bold text-[12px]">${item.modelo}</td>
                         <td class="text-center font-bold text-slate-800">${item.qtd}</td>
-                        <td class="text-center font-bold text-[10px] uppercase ${statusCor}">${statusTexto}</td>
-                        <td class="text-right font-bold text-slate-800 text-[11px]">
+                        <td class="text-center font-bold text-[12px] uppercase ${statusCor}">${statusTexto}</td>
+                        <td class="text-center font-bold text-slate-800 text-[12px]">
                             <div class="text-blue-700">${formataMoeda(item.valorUnitarioParcelado)}</div>
                         </td>
-                        <td class="text-right font-bold text-[11px]">
+                        <td class="text-center font-bold text-[12px]">
                             <div class="text-blue-700">${formataMoeda(item.subtotalParcelado)}</div>
                         </td>
                     </tr>
