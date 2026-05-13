@@ -728,18 +728,23 @@ async function executarCalculoSeguro() {
             marcaLogo: marcaBaseParaLogo
         };
 
-        const listaResumo = document.getElementById('lista-itens-resumo');
+       const listaResumo = document.getElementById('lista-itens-resumo');
         if (listaResumo) listaResumo.innerHTML = itensHtml;
         
-       document.getElementById('resumo-subtotal-avista').innerText = subtotalAVista.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        document.getElementById('resumo-subtotal-parcelado').innerText = subtotalParcelado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + ' (10x)';
-        document.getElementById('resumo-frete').innerText = '+ ' + valorFrete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const elFrete = document.getElementById('resumo-frete');
+        if (elFrete) elFrete.innerText = '+ ' + valorFrete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         
         const totalExibicao = document.getElementById('resumo-total-avista');
         if (totalExibicao) {
             totalExibicao.innerText = totalFinalAVista.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('resumo-total-parcelado').innerText = totalFinalParcelado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('resumo-total-avista').parentElement.parentElement.classList.remove('opacity-40');
+            
+            const totalParceladoExib = document.getElementById('resumo-total-parcelado');
+            if (totalParceladoExib) totalParceladoExib.innerText = totalFinalParcelado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            // Remove a opacidade com segurança
+            if (totalExibicao.parentElement && totalExibicao.parentElement.parentElement) {
+                totalExibicao.parentElement.parentElement.classList.remove('opacity-40');
+            }
         }
         
         const btuCondExibicao = document.getElementById('resumo-btu-cond');
