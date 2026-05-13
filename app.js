@@ -1285,12 +1285,8 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
             itens: window.dadosParaOrcamento.itens,
             total_bruto: window.dadosParaOrcamento.totalBrutoAVista, // Banco de dados guarda o bruto à vista
             status: statusDefinido,
-<<<<<<< Updated upstream
-            snapshot: window.dadosParaOrcamento 
-=======
             snapshot: window.dadosParaOrcamento,
             created_at: new Date().toISOString() // Hora perfeita
->>>>>>> Stashed changes
         };
 
         const { error: dbError } = await supabase.from('solicitacoes_orcamento').insert([payload]);
