@@ -748,7 +748,7 @@ async function executarCalculoSeguro() {
         const totalExibicao = document.getElementById('resumo-total-avista');
         if (totalExibicao) {
             totalExibicao.innerText = totalFinalAVista.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('resumo-total-parcelado').innerText = totalFinalParcelado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + ' em até 10x';
+            document.getElementById('resumo-total-parcelado').innerText = totalFinalParcelado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             document.getElementById('resumo-total-avista').parentElement.parentElement.classList.remove('opacity-40');
         }
         
