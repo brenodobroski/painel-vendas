@@ -201,6 +201,7 @@ const listaResumo = document.getElementById('lista-itens-resumo');
 const btnLogout = document.getElementById('btn-logout');
 
 let produtos = [];
+let primeiraCargaFeita = false;
 
 async function carregarProdutosSupabase(forcarBaixar = false) {
     try {
@@ -224,7 +225,12 @@ async function carregarProdutosSupabase(forcarBaixar = false) {
         if (!forcarBaixar && cache && vEstoqueLocal === vEstoqueNuvem && vCustosLocal === vCustosNuvem) {
             produtos = JSON.parse(cache);
             console.log(`📦 Estoque e Preços carregados do Cache.`);
-            if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
+            
+            // 🔥 SÓ ATUALIZA A TELA SE FOR A PRIMEIRA VEZ QUE ABRE O SISTEMA
+            if (!primeiraCargaFeita) {
+                primeiraCargaFeita = true;
+                if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
+            }
             return;
         }
 
@@ -248,6 +254,7 @@ async function carregarProdutosSupabase(forcarBaixar = false) {
         localStorage.setItem('climario_versao_estoque', vEstoqueNuvem);
         localStorage.setItem('climario_versao_catalogo', vCustosNuvem);
 
+        primeiraCargaFeita = true;
         if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
         console.log("✅ Sistema atualizado com sucesso!");
 
