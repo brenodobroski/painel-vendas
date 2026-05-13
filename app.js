@@ -691,16 +691,6 @@ async function executarCalculoSeguro() {
         const subtotalAVista = Math.round((dadosAPI.totalBrutoAVista || 0) * 100) / 100;
         const subtotalParcelado = Math.round((dadosAPI.totalBrutoParcelado || 0) * 100) / 100;
 
-        if (dadosAPI.descontoProtheus !== undefined) {
-           itensHtml += `
-                <div class="mt-2 text-right">
-                    <span class="text-[11px] font-medium text-slate-800 border border-slate-500 bg-slate-70 px-2 py-0.5 rounded shadow-sm inline-block">
-                        Protheus: ${dadosAPI.descontoProtheus.toFixed(1)}%
-                    </span>
-                </div>
-            `;
-        }
-
         const subtotalComDesconto = Math.round((dadosAPI.totalBruto || 0) * 100) / 100;
         let valorFrete = subtotalParcelado * (percentualFrete / 100);
         valorFrete = Math.round(valorFrete * 100) / 100;
