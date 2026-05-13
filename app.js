@@ -731,7 +731,6 @@ async function executarCalculoSeguro() {
             totalBtuCond: totalBtuCond,
             totalBtuEvap: totalBtuEvap,
             simultaneidade: simultaneidade,
-            formaPagamento: textoPagamento,
             dataEmissao: dataHoje.toLocaleDateString('pt-BR'),
             dataValidade: dataValidade.toLocaleDateString('pt-BR'),
             vendedor: nomeVendedorAtual,
@@ -801,20 +800,23 @@ async function executarCalculoSeguro() {
 
     } catch (error) {
         console.error("Erro na API Segura:", error);
-        const totalExibicao = document.getElementById('resumo-total');
+        const totalExibicao = document.getElementById('resumo-total-avista');
         if (totalExibicao) {
              totalExibicao.innerText = "Erro no Cálculo";
-             totalExibicao.classList.remove('opacity-40');
         }
     }
 }
 
 function renderizarResumoVazio() {
     document.getElementById('lista-itens-resumo').innerHTML = '<p class="text-xs text-slate-500 italic">Nenhum item selecionado.</p>';
-    document.getElementById('resumo-subtotal').innerText = 'R$ 0,00';
-    document.getElementById('resumo-frete').innerText = '+ R$ 0,00';
-    document.getElementById('resumo-total').innerText = 'R$ 0,00';
     
+    if(document.getElementById('resumo-subtotal-avista')) document.getElementById('resumo-subtotal-avista').innerText = 'R$ 0,00';
+    if(document.getElementById('resumo-subtotal-parcelado')) document.getElementById('resumo-subtotal-parcelado').innerText = 'R$ 0,00 (10x)';
+    if(document.getElementById('resumo-frete')) document.getElementById('resumo-frete').innerText = '+ R$ 0,00';
+    if(document.getElementById('resumo-total-avista')) document.getElementById('resumo-total-avista').innerText = 'R$ 0,00';
+    if(document.getElementById('resumo-total-parcelado')) document.getElementById('resumo-total-parcelado').innerText = 'R$ 0,00';
+    
+    const btnFinalizar = document.getElementById('btn-finalizar');
     if (btnFinalizar) {
         btnFinalizar.disabled = true;
         btnFinalizar.innerText = "Gerar Orçamento";
@@ -889,10 +891,10 @@ window.popularTabela = function(lista, corpo, container) {
                     <td class="border border-slate-200 px-4 py-2 text-center estoque-col text-sm font-bold">
                         ${itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0}
                     </td>
-                    <td class="border border-slate-200 px-3 py-2 text-right font-bold text-blue-700 preco-avista-col">
+                    <td class="border border-slate-200 px-3 py-2 text-center font-bold text-blue-700 preco-avista-col">
                         <i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>
                     </td>
-                    <td class="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600 preco-parcelado-col">
+                    <td class="border border-slate-200 px-3 py-2 text-center font-bold text-slate-600 preco-parcelado-col">
                         <i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>
                     </td>
                 </tr>`;
