@@ -153,9 +153,6 @@
                 logoMarcaEl.classList.remove('hidden');
             }
 
-            // Esconde a forma de pagamento, já que agora mostramos as duas
-            document.getElementById('texto-pagamento').parentElement.classList.add('hidden');
-
             const corpoTabela = document.getElementById('tabela-corpo');
             dados.itens.forEach(item => {
                 const emEstoque = parseInt(item.estoque) > 0;
