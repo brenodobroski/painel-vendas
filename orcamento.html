@@ -109,8 +109,18 @@
                             <td colspan="1" class="text-right py-3 px-4 text-orange-600" id="celula-frete"></td>
                         </tr>
                         <tr class="font-extrabold bg-blue-600 text-white">
-                            <td colspan="6" class="text-right py-4 px-4 uppercase tracking-wider">Valor Total</td>
-                            <td colspan="1" class="text-right py-4 px-4 text-xl" id="celula-total"></td>
+                            <td colspan="7" class="py-4 px-6 border-none">
+                                <div class="flex justify-between items-center w-full">
+                                    <div class="flex flex-col items-start">
+                                        <span class="text-blue-200 text-[11px] uppercase tracking-widest mb-1">Total à Vista</span>
+                                        <span class="text-2xl" id="celula-total-avista"></span>
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-blue-200 text-[11px] uppercase tracking-widest mb-1">Total Parcelado (Até 10x)</span>
+                                        <span class="text-2xl" id="celula-total-parcelado"></span>
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
@@ -164,12 +174,10 @@
                         <td class="text-center font-bold text-slate-800">${item.qtd}</td>
                         <td class="text-center font-bold text-[10px] uppercase ${statusCor}">${statusTexto}</td>
                         <td class="text-right font-bold text-slate-800 text-[11px]">
-                            <div class="text-blue-700">${formataMoeda(item.valorUnitarioAVista)}</div>
-                            <div class="text-slate-500 text-[10px] font-medium">${formataMoeda(item.valorUnitarioParcelado)}</div>
+                            <div class="text-blue-700">${formataMoeda(item.valorUnitarioParcelado)}</div>
                         </td>
                         <td class="text-right font-bold text-[11px]">
-                            <div class="text-blue-700">${formataMoeda(item.subtotalAVista)}</div>
-                            <div class="text-slate-500 text-[10px] font-medium">${formataMoeda(item.subtotalParcelado)}</div>
+                            <div class="text-blue-700">${formataMoeda(item.subtotalParcelado)}</div>
                         </td>
                     </tr>
                 `;
@@ -191,11 +199,9 @@
             document.getElementById('span-percentual-frete').innerText = dados.percentualFrete;
             document.getElementById('celula-frete').innerText = formataMoeda(dados.valorFrete);
             
-            // O Total duplo
-            document.getElementById('celula-total').innerHTML = `
-                <div class="text-white text-xl">${formataMoeda(dados.totalGeralAVista)} <span class="text-[11px] font-normal tracking-normal text-blue-200">À Vista</span></div>
-                <div class="text-blue-100 text-sm mt-1">${formataMoeda(dados.totalGeralParcelado)} <span class="text-[10px] font-normal tracking-normal">em 10x</span></div>
-            `;
+           // O Total duplo esquerdo/direito
+            document.getElementById('celula-total-avista').innerText = formataMoeda(dados.totalGeralAVista);
+            document.getElementById('celula-total-parcelado').innerText = formataMoeda(dados.totalGeralParcelado);
 
             setTimeout(ajustarEscalaPDF, 50);
         });
