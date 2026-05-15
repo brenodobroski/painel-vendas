@@ -1156,19 +1156,29 @@ function renderizarMinhasSolicitacoes(lista) {
         
         let statusHtml = '';
         let acoesHtml = '';
+        let botaoPrincipal = '';
 
         if (req.status === 'aprovado') {
             statusHtml = `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Aprovado</span>`;
-            acoesHtml = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
+            botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
         } else if (req.status === 'reprovado') {
             statusHtml = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Reprovado</span>`;
-            acoesHtml = `<button onclick="verMotivoReprovacao('${req.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm"><i class="fas fa-search mr-1"></i> Ver Motivo</button>`;
+            botaoPrincipal = `<button onclick="verMotivoReprovacao('${req.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-search mr-1"></i> Ver Motivo</button>`;
         } else {
             statusHtml = `<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Pendente</span>`;
-            acoesHtml = `<span class="text-xs text-slate-400 italic">Aguardando...</span>`;
+            botaoPrincipal = `<span class="text-xs text-slate-400 italic whitespace-nowrap">Aguardando...</span>`;
         }
 
-        acoesHtml += `<button onclick="prepararRefazerPedido('${req.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm ml-2 mt-1 sm:mt-0"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
+        const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
+
+        // Envolve tudo em um Flexbox para alinhar perfeitamente no centro e coloca o pipe (|)
+        acoesHtml = `
+            <div class="flex items-center justify-center gap-3">
+                ${botaoPrincipal}
+                <span class="text-slate-300 font-light">|</span>
+                ${botaoRefazer}
+            </div>
+        `;
 
         let qtdItens = 0;
         if(req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
