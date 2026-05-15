@@ -1173,7 +1173,7 @@ function renderizarMinhasSolicitacoes(lista) {
 
         // Envolve tudo em um Flexbox para alinhar perfeitamente no centro e coloca o pipe (|)
         acoesHtml = `
-            <div class="flex items-center justify-center gap-3">
+            <div class="flex items-center justify-end gap-3">
                 ${botaoPrincipal}
                 <span class="text-slate-300 font-light">|</span>
                 ${botaoRefazer}
@@ -1191,7 +1191,7 @@ function renderizarMinhasSolicitacoes(lista) {
             <td class="p-4 text-right font-black text-indigo-700">R$ ${parseFloat(req.valor_alvo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
             <td class="p-4 text-center font-bold text-orange-600">${parseFloat(req.desconto_solicitado).toFixed(2)}%</td>
             <td class="p-4 text-center">${statusHtml}</td>
-            <td class="p-4 text-center">${acoesHtml}</td>
+            <td class="p-4 text-right">${acoesHtml}</td>
         `;
         corpo.appendChild(tr);
     });
