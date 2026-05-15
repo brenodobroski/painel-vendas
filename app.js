@@ -1039,7 +1039,7 @@ window.fazerTesteHipotese = function() {
     if (novoDesconto < 0) novoDesconto = 0;
 
     let valorFormatado = novoDesconto.toFixed(2);
-    let valorMatematico = novoDesconto.toFixed(6); 
+    let valorMatematico = novoDesconto.toFixed(2); 
 
     // Alimenta o campo para o sistema consumir
     const inputDesconto = document.getElementById('input-desconto');
