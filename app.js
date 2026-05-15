@@ -258,6 +258,10 @@ async function carregarProdutosSupabase(forcarBaixar = false) {
         if (caixaMarca && caixaMarca.value) caixaMarca.dispatchEvent(new Event('change'));
         console.log("✅ Sistema atualizado com sucesso!");
 
+        if (typeof window.checarEPreencherRefazer === 'function') {
+            window.checarEPreencherRefazer();
+        }
+
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
     }
@@ -1164,6 +1168,8 @@ function renderizarMinhasSolicitacoes(lista) {
             acoesHtml = `<span class="text-xs text-slate-400 italic">Aguardando...</span>`;
         }
 
+        acoesHtml += `<button onclick="prepararRefazerPedido('${req.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm ml-2 mt-1 sm:mt-0"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
+
         let qtdItens = 0;
         if(req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
 
@@ -1334,3 +1340,104 @@ function obterAncoraDispositivo() {
     }
     return anchor;
 }
+
+
+// ==========================================
+// REFAZER PEDIDO INTELIGENTE
+// ==========================================
+window.prepararRefazerPedido = function(idSolicitacao) {
+    // 1. Pega os dados originais da solicitação
+    const solicitacao = window.minhasSolicitacoes.find(s => s.id === idSolicitacao);
+    if (!solicitacao || !solicitacao.snapshot) {
+        alert("Dados originais do orçamento não encontrados.");
+        return;
+    }
+
+    // 2. Salva na memória 
+    sessionStorage.setItem('dadosParaRefazer', JSON.stringify(solicitacao.snapshot));
+
+    // 3. Muda a aba para o simulador visualmente
+    if (typeof mudarAba === 'function') {
+        mudarAba('simulador');
+    }
+
+    // 4. Injeta os dados na tela
+    window.checarEPreencherRefazer();
+};
+
+window.checarEPreencherRefazer = function() {
+    const rawData = sessionStorage.getItem('dadosParaRefazer');
+    if (!rawData) return;
+
+    const dados = JSON.parse(rawData);
+
+    // 1. Preenche o Desconto (Visual e Input Oculto)
+    if (dados.percentualDesconto !== undefined) {
+        const inputDesconto = document.getElementById('input-desconto');
+        const textoDesconto = document.getElementById('texto-input-desconto');
+        if (inputDesconto) inputDesconto.value = dados.percentualDesconto;
+        if (textoDesconto) textoDesconto.innerText = `${dados.percentualDesconto}%`;
+    }
+
+    // 2. Preenche o RT (Visual e Input Oculto)
+    if (dados.rt !== undefined) {
+        const inputRt = document.getElementById('input-rt');
+        const textoRt = document.getElementById('texto-input-rt');
+        if (inputRt) inputRt.value = dados.rt;
+        if (textoRt) textoRt.innerText = `${dados.rt}%`;
+    }
+
+    // 3. Preenche o Frete (Visual e Input Oculto) se existir
+    if (dados.percentualFrete !== undefined && dados.ufDestino) {
+        const inputFrete = document.getElementById('select-uf');
+        const textoFrete = document.getElementById('texto-select-uf');
+        if (inputFrete) inputFrete.value = dados.percentualFrete;
+        if (textoFrete) textoFrete.innerText = dados.ufDestino;
+    }
+
+    // 4. Seleciona a Marca para renderizar os produtos
+    if (dados.marcaNome) {
+        const inputMarca = document.getElementById('marca-condensadora');
+        const textoMarca = document.getElementById('texto-marca-condensadora');
+        
+        if (inputMarca && textoMarca) {
+            inputMarca.value = dados.marcaNome;
+            textoMarca.innerText = dados.marcaNome;
+            
+            // Dispara o evento change para o Javascript montar as tabelas
+            inputMarca.dispatchEvent(new Event('change'));
+
+            // Aguarda um instante para a tabela ser montada no HTML antes de preencher as quantidades
+            setTimeout(() => {
+                dados.itens.forEach(item => {
+                    let input = document.querySelector(`.qtd-input[data-sku="${item.codigo}"]`);
+                    
+                    // Se não achou de primeira, o item pode fazer parte de um dropdown de "Família"
+                    if (!input) {
+                        const selectFamilias = document.querySelectorAll('.select-tabela-estiloso');
+                        selectFamilias.forEach(selectBox => {
+                            const opcoes = Array.from(selectBox.options).map(opt => opt.value);
+                            if (opcoes.includes(item.codigo)) {
+                                selectBox.value = item.codigo; // Troca a família
+                                window.atualizarLinhaDaTabela(selectBox, selectBox.closest('tr').id);
+                                input = document.querySelector(`.qtd-input[data-sku="${item.codigo}"]`);
+                            }
+                        });
+                    }
+
+                    // Se achou o input de quantidade, preenche!
+                    if (input) {
+                        input.value = item.qtd;
+                    }
+                });
+
+                // Tira do storage para não ficar refazendo para sempre
+                sessionStorage.removeItem('dadosParaRefazer');
+
+                // Força o cálculo final
+                window.atualizarResumo();
+                
+            }, 300); // 300ms é suficiente para o navegador desenhar a tabela
+        }
+    }
+};
