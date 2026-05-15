@@ -1345,24 +1345,39 @@ function obterAncoraDispositivo() {
 // ==========================================
 // REFAZER PEDIDO INTELIGENTE
 // ==========================================
-window.prepararRefazerPedido = function(idSolicitacao) {
-    // 1. Pega os dados originais da solicitação
-    const solicitacao = window.minhasSolicitacoes.find(s => s.id === idSolicitacao);
-    if (!solicitacao || !solicitacao.snapshot) {
-        alert("Dados originais do orçamento não encontrados.");
-        return;
+window.prepararRefazerPedido = async function(idSolicitacao) {
+    document.body.style.cursor = 'wait'; // Coloca o mouse carregando
+    
+    try {
+        // 1. Busca o snapshot completo diretamente do banco de dados
+        const { data, error } = await supabase
+            .from('solicitacoes_orcamento')
+            .select('snapshot')
+            .eq('id', idSolicitacao)
+            .single();
+
+        if (error || !data || !data.snapshot) {
+            alert("Dados originais do orçamento não encontrados no banco de dados.");
+            return;
+        }
+
+        // 2. Salva na memória o que veio do banco
+        sessionStorage.setItem('dadosParaRefazer', JSON.stringify(data.snapshot));
+
+        // 3. Muda a aba para o simulador visualmente
+        if (typeof mudarAba === 'function') {
+            mudarAba('simulador');
+        }
+
+        // 4. Injeta os dados na tela
+        window.checarEPreencherRefazer();
+
+    } catch (err) {
+        console.error("Erro ao buscar dados para refazer:", err);
+        alert("Falha de conexão ao buscar os dados do orçamento.");
+    } finally {
+        document.body.style.cursor = 'default'; // Volta o mouse ao normal
     }
-
-    // 2. Salva na memória 
-    sessionStorage.setItem('dadosParaRefazer', JSON.stringify(solicitacao.snapshot));
-
-    // 3. Muda a aba para o simulador visualmente
-    if (typeof mudarAba === 'function') {
-        mudarAba('simulador');
-    }
-
-    // 4. Injeta os dados na tela
-    window.checarEPreencherRefazer();
 };
 
 window.checarEPreencherRefazer = function() {
