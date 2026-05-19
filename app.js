@@ -709,6 +709,33 @@ async function executarCalculoSeguro() {
         const totalFinalAVista = subtotalAVista + valorFrete;
         const totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
 
+        if (window.testeHipoteseAtivo) {
+            const inputEvidencia = document.getElementById('input-evidencia');
+            const tipoAlvo = document.getElementById('tipo-alvo-hipotese')?.value;
+            const valorEvidenciaBruto = parseFloat(inputEvidencia?.value);
+            
+            if (valorEvidenciaBruto > 0) {
+                if (tipoAlvo === 'avista') {
+                    // Calcula a diferença entre o sistema e o que o vendedor pediu
+                    const diff = Math.abs(totalFinalAVista - valorEvidenciaBruto);
+                    
+                    // Se a diferença for de apenas alguns centavos (até 5 centavos), força o valor exato!
+                    if (diff > 0 && diff <= 0.05) {
+                        totalFinalAVista = valorEvidenciaBruto;
+                        // Recalcula o parcelado já com o valor exato ajustado
+                        totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
+                    }
+                } else if (tipoAlvo === 'parcelado') {
+                    const diff = Math.abs(totalFinalParcelado - valorEvidenciaBruto);
+                    
+                    if (diff > 0 && diff <= 0.05) {
+                        totalFinalParcelado = valorEvidenciaBruto;
+                        totalFinalAVista = Math.round((totalFinalParcelado / 1.05) * 100) / 100;
+                    }
+                }
+            }
+        }
+
         let simultaneidade = totalBtuCond > 0 ? (totalBtuEvap / totalBtuCond) * 100 : 0;
 
         const textoUf = document.getElementById('texto-select-uf')?.innerText || 'SP';
