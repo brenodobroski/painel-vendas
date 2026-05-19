@@ -1038,8 +1038,8 @@ window.fazerTesteHipotese = function() {
     let novoDesconto = (1 - (valorEvidencia / totalSemDesconto)) * 100;
     if (novoDesconto < 0) novoDesconto = 0;
 
-    let valorFormatado = novoDesconto.toFixed(2);
-    let valorMatematico = novoDesconto.toFixed(2); 
+    let valorFormatado = novoDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    let valorMatematico = novoDesconto.toFixed(4); 
 
     // Alimenta o campo para o sistema consumir
     const inputDesconto = document.getElementById('input-desconto');
