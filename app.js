@@ -1091,7 +1091,7 @@ async function carregarMinhasSolicitacoes(userId) {
     try {
         const { data, error } = await supabase
             .from('solicitacoes_orcamento')
-            .select('id, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
+            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
             .eq('vendedor_id', userId)
             .order('created_at', { ascending: false })
             .limit(limiteAtualMinhasSolicitacoes);
@@ -1141,13 +1141,33 @@ window.carregarMaisMinhasSolicitacoes = async function() {
     }
 };
 
+window.filtrarMinhasSolicitacoes = function() {
+    const termo = document.getElementById('input-busca-orcamento').value.trim().toLowerCase();
+    
+    // Se apagou a busca, mostra tudo de novo
+    if (termo === '') {
+        renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
+        return;
+    }
+    
+    // Filtra procurando quem tem o código que foi digitado
+    const listaFiltrada = window.minhasSolicitacoes.filter(req => {
+        const codigo = req.codigo_orcamento ? String(req.codigo_orcamento).toLowerCase() : '';
+        return codigo.includes(termo);
+    });
+    
+    // Redesenha a tabela só com os encontrados
+    renderizarMinhasSolicitacoes(listaFiltrada);
+};
+
 function renderizarMinhasSolicitacoes(lista) {
     const corpo = document.getElementById('corpo-minhas-solicitacoes');
     if (!corpo) return;
     corpo.innerHTML = '';
 
+    // Ajustado o colspan de 6 para 7 por causa da nova coluna
     if (lista.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Nenhuma solicitação manual pendente ou respondida.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">Nenhuma solicitação encontrada.</td></tr>`;
         return;
     }
 
@@ -1171,7 +1191,6 @@ function renderizarMinhasSolicitacoes(lista) {
 
         const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
 
-        // Envolve tudo em um Flexbox para alinhar perfeitamente no centro e coloca o pipe (|)
         acoesHtml = `
             <div class="flex items-center justify-end gap-3">
                 ${botaoPrincipal}
@@ -1183,10 +1202,14 @@ function renderizarMinhasSolicitacoes(lista) {
         let qtdItens = 0;
         if(req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
 
+        // Formata o número do orçamento (Coloca um "-" caso seja um pedido muito antigo e não tenha código)
+        const codigoExibicao = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
+
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
         tr.innerHTML = `
             <td class="p-4 text-xs font-mono text-slate-500">${dataFormatada}</td>
+            <td class="p-4 text-center font-bold text-slate-700 font-mono text-xs">${codigoExibicao}</td>
             <td class="p-4 text-center font-bold text-slate-700">${qtdItens} un</td>
             <td class="p-4 text-right font-black text-indigo-700">R$ ${parseFloat(req.valor_alvo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
             <td class="p-4 text-center font-bold text-orange-600">${parseFloat(req.desconto_solicitado).toFixed(2)}%</td>
