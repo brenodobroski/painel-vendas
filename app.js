@@ -707,7 +707,7 @@ async function executarCalculoSeguro() {
         valorFrete = Math.round(valorFrete * 100) / 100;
        
         const totalFinalAVista = subtotalAVista + valorFrete;
-        const totalFinalParcelado = subtotalParcelado + valorFrete;
+        const totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
 
         let simultaneidade = totalBtuCond > 0 ? (totalBtuEvap / totalBtuCond) * 100 : 0;
 
@@ -1424,7 +1424,10 @@ window.checarEPreencherRefazer = function() {
         const inputDesconto = document.getElementById('input-desconto');
         const textoDesconto = document.getElementById('texto-input-desconto');
         if (inputDesconto) inputDesconto.value = dados.percentualDesconto;
-        if (textoDesconto) textoDesconto.innerText = `${dados.percentualDesconto}%`;
+        if (textoDesconto) {
+            const descFormatado = parseFloat(dados.percentualDesconto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            textoDesconto.innerText = `${descFormatado}%`;
+        }
     }
 
     // 2. Preenche o RT (Visual e Input Oculto)
@@ -1432,7 +1435,10 @@ window.checarEPreencherRefazer = function() {
         const inputRt = document.getElementById('input-rt');
         const textoRt = document.getElementById('texto-input-rt');
         if (inputRt) inputRt.value = dados.rt;
-        if (textoRt) textoRt.innerText = `${dados.rt}%`;
+        if (textoRt) {
+            const rtFormatado = parseFloat(dados.rt).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            textoRt.innerText = `${rtFormatado}%`;
+        }
     }
 
     // 3. Preenche o Frete (Visual e Input Oculto) se existir
