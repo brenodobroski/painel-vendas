@@ -723,8 +723,8 @@ async function executarCalculoSeguro() {
         let valorFrete = subtotalParcelado * (percentualFrete / 100);
         valorFrete = Math.round(valorFrete * 100) / 100;
        
-        const totalFinalAVista = subtotalAVista + valorFrete;
-        const totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
+        let totalFinalAVista = subtotalAVista + valorFrete;
+        let totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
 
         if (window.testeHipoteseAtivo) {
             const inputEvidencia = document.getElementById('input-evidencia');
