@@ -69,22 +69,18 @@
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vendedor</p>
                         <p class="text-sm font-bold text-slate-800" id="texto-vendedor"></p>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Forma de Pagamento</p>
-                        <p class="text-sm font-bold text-slate-800" id="texto-pagamento"></p>
-                    </div>
                 </div>
 
                 <table class="table-print text-sm mb-6">
                     <thead>
                         <tr>
                             <th class="w-[10%]">SKU</th>
-                            <th class="w-[35%] text-left">DESCRIÇÃO DO EQUIPAMENTO</th>
+                            <th class="w-[30%] text-left">DESCRIÇÃO DO EQUIPAMENTO</th>
                             <th class="w-[15%]">CÓD. FABRICANTE</th>
                             <th class="w-[5%]">QTD</th>
-                            <th class="w-[15%]">DISPONIBILIDADE</th>
-                            <th class="w-[10%]">UNITÁRIO</th>
-                            <th class="w-[10%]">SUBTOTAL</th>
+                            <th class="w-[10%]">DISPONIBILIDADE</th>
+                            <th class="w-[15%]">UNITÁRIO</th>
+                            <th class="w-[15%]">SUBTOTAL</th>
                         </tr>
                     </thead>
                     <tbody id="tabela-corpo" class="text-slate-900">
@@ -109,8 +105,18 @@
                             <td colspan="1" class="text-right py-3 px-4 text-orange-600" id="celula-frete"></td>
                         </tr>
                         <tr class="font-extrabold bg-blue-600 text-white">
-                            <td colspan="6" class="text-right py-4 px-4 uppercase tracking-wider">Valor Total</td>
-                            <td colspan="1" class="text-right py-4 px-4 text-xl" id="celula-total"></td>
+                            <td colspan="7" class="py-4 px-6 border-none">
+                                <div class="flex justify-between items-center w-full pl-10 pr-5">
+                                    <div class="flex flex-col items-start">
+                                        <span class="text-blue-200 text-[11px] uppercase tracking-widest mb-1">Desconto à Vista</span>
+                                        <span class="text-2xl" id="celula-total-avista"></span>
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-blue-200 text-[11px] uppercase tracking-widest mb-1">Valor Parcelado (Até 10x)</span>
+                                        <span class="text-2xl" id="celula-total-parcelado"></span>
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
@@ -134,15 +140,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             const dadosStr = sessionStorage.getItem('orcamentoDados');
             if (!dadosStr) return;
-            const pesoKB = (new Blob([dadosStr]).size / 1024).toFixed(2);
-            console.log(`📊 Peso dos dados deste orçamento na memória: ${pesoKB} KB`);
-            
             const dados = JSON.parse(dadosStr);
             
             codigoOrctoParaDownload = dados.codigoOrcamento || Date.now();
             document.getElementById('texto-codigo-orcamento').innerText = dados.codigoOrcamento || "----";
             document.getElementById('texto-filial').innerText = dados.filial ? `0${dados.filial}` : "Não Informada";
-            
             document.getElementById('texto-marca-header').innerText = dados.marcaNome;
             
             const logoMarcaEl = document.getElementById('logo-marca');
@@ -160,12 +162,16 @@
                 corpoTabela.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="text-center font-bold text-[12px] text-slate-800">${item.codigo}</td>
-                        <td class="font-bold text-slate-800">${item.descricao}</td>
+                        <td class="font-bold text-slate-800 text-[12px]">${item.descricao}</td>
                         <td class="text-center text-slate-800 font-bold text-[12px]">${item.modelo}</td>
                         <td class="text-center font-bold text-slate-800">${item.qtd}</td>
-                        <td class="text-center font-bold text-[11px] uppercase ${statusCor}">${statusTexto}</td>
-                        <td class="text-center font-bold text-slate-800">${formataMoeda(item.valorUnitario)}</td>
-                        <td class="text-center font-bold text-blue-700">${formataMoeda(item.subtotal)}</td>
+                        <td class="text-center font-bold text-[10px] uppercase ${statusCor}">${statusTexto}</td>
+                        <td class="text-center font-bold text-slate-800 text-[13px]">
+                            <div class="text-blue-700">${formataMoeda(item.valorUnitarioParcelado)}</div>
+                        </td>
+                        <td class="text-center font-bold text-[13px]">
+                            <div class="text-blue-700">${formataMoeda(item.subtotalParcelado)}</div>
+                        </td>
                     </tr>
                 `;
             });
@@ -173,7 +179,6 @@
             document.getElementById('texto-data-emissao').innerText = dados.dataEmissao;
             document.getElementById('texto-data-validade').innerText = dados.dataValidade;
             document.getElementById('texto-vendedor').innerText = dados.vendedor;
-            document.getElementById('texto-pagamento').innerText = dados.formaPagamento;
 
             document.getElementById('celula-btu-evap').innerText = (dados.totalBtuEvap / 1000).toFixed(0);
             document.getElementById('celula-btu-cond').innerText = (dados.totalBtuCond / 1000).toFixed(0);
@@ -186,9 +191,11 @@
             document.getElementById('span-uf').innerText = dados.ufDestino;
             document.getElementById('span-percentual-frete').innerText = dados.percentualFrete;
             document.getElementById('celula-frete').innerText = formataMoeda(dados.valorFrete);
-            document.getElementById('celula-total').innerText = formataMoeda(dados.totalGeral);
+            
+           // O Total duplo esquerdo/direito
+            document.getElementById('celula-total-avista').innerText = formataMoeda(dados.totalGeralAVista);
+            document.getElementById('celula-total-parcelado').innerText = formataMoeda(dados.totalGeralParcelado);
 
-            // Redimensiona imediatamente após carregar os dados
             setTimeout(ajustarEscalaPDF, 50);
         });
 
