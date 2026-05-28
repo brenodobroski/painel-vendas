@@ -350,6 +350,7 @@ const familiasConfig = {
     "EVAP K7 4 VIAS LG  12K": ["17465"],
     "EVAP K7 4 VIAS LG 18K": ["49980"],
     "EVAP K7 4 VIAS LG 24K": ["49981", "43244"],
+    "EVAP K7 360 LG 36K": ["50925"],
     "GRELHA K7 4 VIAS LG 9 A 12K": ["30405"],
     "GRELHA K7 4 VIAS LG 18 A 24K": ["42443"],
     "EVAP K7 1 VIA LG 7K": ["48445"],
