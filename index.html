@@ -113,9 +113,17 @@
                         <h2 id="titulo-pagina" class="text-xl sm:text-2xl font-bold text-slate-900">Configurador Multi-Split</h2>
                         <p id="subtitulo-pagina" class="text-slate-500 text-xs font-medium mt-1">Configure os parâmetros e selecione os itens abaixo.</p>
                     </div>
-                    <button onclick="window.location.reload()" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-all flex items-center justify-center">
-                        <i class="fas fa-sync-alt mr-2"></i> Atualizar
-                    </button>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <!-- NOVO BOTÃO DE MURAL DE AVISOS (Sininho) -->
+                        <button id="btn-reabrir-avisos" onclick="forcarExibicaoAvisos()" class="hidden w-full sm:w-auto bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-all flex items-center justify-center relative">
+                            <i class="fas fa-bell mr-2"></i> Avisos
+                            <span id="badge-avisos" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md hidden">0</span>
+                        </button>
+                        
+                        <button onclick="window.location.reload()" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-all flex items-center justify-center">
+                            <i class="fas fa-sync-alt mr-2"></i> Atualizar
+                        </button>
+                    </div>
                 </div>
 
                 <div id="box-aviso-sistema" class="hidden bg-amber-50 border border-amber-200 rounded-md shadow-sm mb-6 mt-4 overflow-hidden">
@@ -415,6 +423,16 @@
                     </div>
                 </section>
 
+                  <section id="secao-catalogos" class="hidden">
+                    <div id="loading-catalogos" class="text-center py-20 hidden">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                        <p class="text-slate-500 font-bold">Buscando catálogos...</p>
+                    </div>
+                    
+                    <div id="grid-catalogos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                        </div>
+                </section>
+
             </div>
         </main>
     </div>
@@ -456,6 +474,37 @@
         </div>
     </div>
 
+    <div id="modal-aviso-global" class="fixed inset-0 z-[999] bg-slate-900/80 backdrop-blur-sm hidden flex justify-center items-center p-2 sm:p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full md:w-auto max-w-5xl overflow-hidden transform transition-all scale-95 opacity-0 flex flex-col md:flex-row max-h-[90vh]" id="modal-aviso-content">
+            <div id="aviso-imagem-container" class="hidden w-full md:w-auto relative bg-slate-50 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 flex-shrink-0">
+                <img id="aviso-imagem" src="" alt="Aviso" class="w-full md:w-auto h-auto max-h-[45vh] md:max-h-[85vh] object-contain">
+                <button id="aviso-btn-download" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-blue-600/95 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition shadow-xl z-10 backdrop-blur-sm border border-blue-400/50 whitespace-nowrap">
+                    <i class="fas fa-download"></i> Baixar Imagem
+                </button>
+            </div>
+            <div id="aviso-texto-container" class="w-full flex-1 md:min-w-[400px] md:max-w-[450px] p-6 sm:p-8 bg-white overflow-y-auto custom-scrollbar flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 id="aviso-titulo" class="text-2xl font-black text-slate-800 leading-tight">Aviso</h3>
+                        <button onclick="window.fecharModalVisualmente()" class="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition ml-4 flex-shrink-0">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="aviso-mensagem" class="text-slate-600 text-sm sm:text-base leading-relaxed mb-6 whitespace-pre-wrap"></div>
+                </div>
+                <div class="mt-auto pt-6 border-t border-slate-100">
+                    <label class="flex items-center gap-3 mb-5 cursor-pointer select-none group">
+                        <input type="checkbox" id="checkbox-nao-mostrar-hoje" class="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer transition">
+                        <span class="text-sm font-bold text-slate-500 group-hover:text-slate-700 transition">Não mostrar este aviso novamente hoje</span>
+                    </label>
+                    <button id="btn-acao-aviso" onclick="window.processarFechamentoAviso()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg uppercase text-sm tracking-widest transition-colors shadow-lg active:scale-[0.98]">
+                        Próximo Aviso ➔
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -487,24 +536,32 @@
         }
 
         // Lógica de Abas
-        function mudarAba(aba) {
-            const secoes = ['simulador', 'solicitacoes'];
+         function mudarAba(aba) {
+            const secoes = ['simulador', 'solicitacoes', 'catalogos'];
             secoes.forEach(s => {
                 document.getElementById('secao-' + s).classList.add('hidden');
-                document.getElementById('btn-aba-' + s).classList.remove('bg-blue-900/40', 'text-blue-400');
+                const btn = document.getElementById('btn-aba-' + s);
+                if(btn) btn.classList.remove('bg-blue-900/40', 'text-blue-400');
             });
 
             document.getElementById('secao-' + aba).classList.remove('hidden');
-            document.getElementById('btn-aba-' + aba).classList.add('bg-blue-900/40', 'text-blue-400');
+            const btnAtivo = document.getElementById('btn-aba-' + aba);
+            if(btnAtivo) btnAtivo.classList.add('bg-blue-900/40', 'text-blue-400');
 
             const titulos = {
                 'simulador': ['Configurador Multi-Split', 'Configure os parâmetros e selecione os itens abaixo.'],
-                'solicitacoes': ['Minhas Solicitações', 'Acompanhe o status de aprovação dos orçamentos enviados.']
+                'solicitacoes': ['Minhas Solicitações', 'Acompanhe o status de aprovação dos orçamentos enviados.'],
+                'catalogos': ['Catálogos das Marcas', 'Consulte os materiais técnicos e comerciais em PDF.']
             };
+            
             document.getElementById('titulo-pagina').innerText = titulos[aba][0];
             document.getElementById('subtitulo-pagina').innerText = titulos[aba][1];
-            
+
             if(window.innerWidth < 768) toggleMobileMenu();
+
+            if (aba === 'catalogos' && typeof window.carregarCatalogosDoBanco === 'function') {
+                window.carregarCatalogosDoBanco();
+            }
         }
 
         // Dropdowns Customizados
