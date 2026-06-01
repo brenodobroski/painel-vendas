@@ -1047,7 +1047,7 @@ caixaMarca.addEventListener('change', function(){
 });
 
 window.addEventListener('load', () => {
-    carregarAvisoVendedores(); // Dispara a busca do aviso
+    verificarAvisoGlobal(); // Dispara a busca do aviso
     if (typeof window.atualizarResumo === 'function') window.atualizarResumo();
 });
 
@@ -1545,31 +1545,6 @@ window.checarEPreencherRefazer = function() {
         }
     }
 };
-
-async function carregarAvisoVendedores() {
-    try {
-        const { data, error } = await supabase
-            .from('configuracoes')
-            .select('valor')
-            .eq('chave', 'aviso_vendedores')
-            .single();
-        
-        // Se der erro de "não encontrado", ignora silenciosamente
-        if (error && error.code !== 'PGRST116') throw error;
-
-        const boxAviso = document.getElementById('box-aviso-sistema');
-        const textoAviso = document.getElementById('texto-aviso-sistema');
-
-        if (data && data.valor && data.valor.trim() !== "") {
-            if (textoAviso) textoAviso.innerHTML = data.valor; // O innerHTML lê imagens perfeitamente
-            if (boxAviso) boxAviso.classList.remove('hidden');
-        } else {
-            if (boxAviso) boxAviso.classList.add('hidden');
-        }
-    } catch (err) {
-        console.error("Erro ao carregar aviso:", err);
-    }
-}
 
 // ==========================================
 // ABA DE CATÁLOGOS (GOOGLE DRIVE)
