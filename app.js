@@ -727,7 +727,7 @@ async function executarCalculoSeguro() {
         let totalFinalAVista = subtotalAVista + valorFrete;
         let totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
 
-        iif (window.testeHipoteseAtivo) {
+        if (window.testeHipoteseAtivo) {
             const inputEvidencia = document.getElementById('input-evidencia');
             const tipoAlvo = document.getElementById('tipo-alvo-hipotese')?.value;
             const valorEvidenciaBruto = parseFloat(inputEvidencia?.value);
