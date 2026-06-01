@@ -727,7 +727,7 @@ async function executarCalculoSeguro() {
         let totalFinalAVista = subtotalAVista + valorFrete;
         let totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
 
-        if (window.testeHipoteseAtivo) {
+        iif (window.testeHipoteseAtivo) {
             const inputEvidencia = document.getElementById('input-evidencia');
             const tipoAlvo = document.getElementById('tipo-alvo-hipotese')?.value;
             const valorEvidenciaBruto = parseFloat(inputEvidencia?.value);
@@ -737,8 +737,8 @@ async function executarCalculoSeguro() {
                     // Calcula a diferença entre o sistema e o que o vendedor pediu
                     const diff = Math.abs(totalFinalAVista - valorEvidenciaBruto);
                     
-                    // Se a diferença for de apenas alguns centavos (até 5 centavos), força o valor exato!
-                    if (diff > 0 && diff <= 0.05) {
+                    // CORREÇÃO: Aumentamos a tolerância para até R$ 5,00 para absorver os arredondamentos dos novos markups
+                    if (diff > 0 && diff <= 5.00) {
                         totalFinalAVista = valorEvidenciaBruto;
                         // Recalcula o parcelado já com o valor exato ajustado
                         totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
@@ -746,7 +746,8 @@ async function executarCalculoSeguro() {
                 } else if (tipoAlvo === 'parcelado') {
                     const diff = Math.abs(totalFinalParcelado - valorEvidenciaBruto);
                     
-                    if (diff > 0 && diff <= 0.05) {
+                    // CORREÇÃO: Aumentamos a tolerância para até R$ 5,00 para absorver os arredondamentos dos novos markups
+                    if (diff > 0 && diff <= 5.00) {
                         totalFinalParcelado = valorEvidenciaBruto;
                         totalFinalAVista = Math.round((totalFinalParcelado / 1.05) * 100) / 100;
                     }
@@ -1440,10 +1441,10 @@ window.prepararRefazerPedido = async function(idSolicitacao) {
     document.body.style.cursor = 'wait'; // Coloca o mouse carregando
     
     try {
-        // 1. Busca o snapshot completo diretamente do banco de dados
+        // 1. Busca o snapshot e os valores REAIS exatos direto do banco
         const { data, error } = await supabase
             .from('solicitacoes_orcamento')
-            .select('snapshot')
+            .select('snapshot, valor_alvo, desconto_solicitado')
             .eq('id', idSolicitacao)
             .single();
 
@@ -1452,15 +1453,19 @@ window.prepararRefazerPedido = async function(idSolicitacao) {
             return;
         }
 
-        // 2. Salva na memória o que veio do banco
+        // 2. Injeta o valor exato que estava no banco dentro do snapshot para o Refazer usar
+        data.snapshot.valor_alvo_original = data.valor_alvo;
+        data.snapshot.desconto_solicitado_original = data.desconto_solicitado;
+
+        // 3. Salva na memória o que veio do banco
         sessionStorage.setItem('dadosParaRefazer', JSON.stringify(data.snapshot));
 
-        // 3. Muda a aba para o simulador visualmente
+        // 4. Muda a aba para o simulador visualmente
         if (typeof mudarAba === 'function') {
             mudarAba('simulador');
         }
 
-        // 4. Injeta os dados na tela
+        // 5. Injeta os dados na tela
         window.checarEPreencherRefazer();
 
     } catch (err) {
@@ -1477,18 +1482,22 @@ window.checarEPreencherRefazer = function() {
 
     const dados = JSON.parse(rawData);
 
-    // 1. Preenche o Desconto (Visual e Input Oculto)
-    if (dados.percentualDesconto !== undefined) {
-        const inputDesconto = document.getElementById('input-desconto');
-        const textoDesconto = document.getElementById('texto-input-desconto');
-        if (inputDesconto) inputDesconto.value = dados.percentualDesconto;
-        if (textoDesconto) {
-            const descFormatado = parseFloat(dados.percentualDesconto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            textoDesconto.innerText = `${descFormatado}%`;
-        }
+    // 1. Preenche o Desconto Exato (Recupera do Banco em vez de tentar calcular)
+    let descontoBaseRestaurar = dados.desconto_solicitado_original;
+    if (descontoBaseRestaurar === undefined) {
+        // Fallback caso tente refazer um orçamento muito antigo
+        descontoBaseRestaurar = parseFloat(dados.percentualDesconto || 0) + parseFloat(dados.rt || 0);
     }
 
-    // 2. Preenche o RT (Visual e Input Oculto)
+    const inputDesconto = document.getElementById('input-desconto');
+    const textoDesconto = document.getElementById('texto-input-desconto');
+    if (inputDesconto) inputDesconto.value = parseFloat(descontoBaseRestaurar).toFixed(4);
+    if (textoDesconto) {
+        const descFormatado = parseFloat(descontoBaseRestaurar).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        textoDesconto.innerText = `${descFormatado}%`;
+    }
+
+    // 2. Preenche o RT
     if (dados.rt !== undefined) {
         const inputRt = document.getElementById('input-rt');
         const textoRt = document.getElementById('texto-input-rt');
@@ -1499,7 +1508,7 @@ window.checarEPreencherRefazer = function() {
         }
     }
 
-    // 3. Preenche o Frete (Visual e Input Oculto) se existir
+    // 3. Preenche o Frete
     if (dados.percentualFrete !== undefined && dados.ufDestino) {
         const inputFrete = document.getElementById('select-uf');
         const textoFrete = document.getElementById('texto-select-uf');
@@ -1507,7 +1516,17 @@ window.checarEPreencherRefazer = function() {
         if (textoFrete) textoFrete.innerText = dados.ufDestino;
     }
 
-    // 4. Seleciona a Marca para renderizar os produtos
+    // 4. Preenche a Evidência (Valor Alvo) para o sistema poder cravar os centavos com exatidão
+    const inputEvidencia = document.getElementById('input-evidencia');
+    const tipoAlvo = document.getElementById('tipo-alvo-hipotese');
+    if (inputEvidencia) {
+         inputEvidencia.value = dados.valor_alvo_original || dados.totalGeralAVista;
+    }
+    if (tipoAlvo) {
+         tipoAlvo.value = 'avista'; // Assume a vista como base do recálculo
+    }
+
+    // 5. Seleciona a Marca para renderizar os produtos
     if (dados.marcaNome) {
         const inputMarca = document.getElementById('marca-condensadora');
         const textoMarca = document.getElementById('texto-marca-condensadora');
@@ -1516,40 +1535,41 @@ window.checarEPreencherRefazer = function() {
             inputMarca.value = dados.marcaNome;
             textoMarca.innerText = dados.marcaNome;
             
-            // Dispara o evento change para o Javascript montar as tabelas
+            // Dispara o evento change para o Javascript montar a tabela
             inputMarca.dispatchEvent(new Event('change'));
 
-            // Aguarda um instante para a tabela ser montada no HTML antes de preencher as quantidades
+            // Aguarda um instante para a tabela aparecer antes de preencher as quantidades
             setTimeout(() => {
                 dados.itens.forEach(item => {
                     let input = document.querySelector(`.qtd-input[data-sku="${item.codigo}"]`);
                     
-                    // Se não achou de primeira, o item pode fazer parte de um dropdown de "Família"
+                    // Se não achou de primeira, o item pode ser de um menu dropdown (Famílias Samsung/LG)
                     if (!input) {
                         const selectFamilias = document.querySelectorAll('.select-tabela-estiloso');
                         selectFamilias.forEach(selectBox => {
                             const opcoes = Array.from(selectBox.options).map(opt => opt.value);
                             if (opcoes.includes(item.codigo)) {
-                                selectBox.value = item.codigo; // Troca a família
+                                selectBox.value = item.codigo; // Muda para a máquina correta
                                 window.atualizarLinhaDaTabela(selectBox, selectBox.closest('tr').id);
                                 input = document.querySelector(`.qtd-input[data-sku="${item.codigo}"]`);
                             }
                         });
                     }
 
-                    // Se achou o input de quantidade, preenche!
+                    // Se achou, preenche a quantidade
                     if (input) {
                         input.value = item.qtd;
                     }
                 });
 
-                // Tira do storage para não ficar refazendo para sempre
+                // Limpa a memória
                 sessionStorage.removeItem('dadosParaRefazer');
 
-                // Força o cálculo final
+                // A MÁGICA FINAL: Força o sistema a fazer a conta toda de novo!
+                // É ele que vai olhar para o desconto preenchido e colocar a tarja vermelha de Aprovação Especial se precisar
                 window.atualizarResumo();
                 
-            }, 300); // 300ms é suficiente para o navegador desenhar a tabela
+            }, 300);
         }
     }
 };
