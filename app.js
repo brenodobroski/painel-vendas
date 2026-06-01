@@ -1046,7 +1046,7 @@ caixaMarca.addEventListener('change', function(){
 });
 
 window.addEventListener('load', () => {
-    carregarAvisosECatalogos(); // Puxa os avisos e links de catálogos
+    carregarAvisoVendedores(); // Dispara a busca do aviso
     if (typeof window.atualizarResumo === 'function') window.atualizarResumo();
 });
 
@@ -1545,53 +1545,27 @@ window.checarEPreencherRefazer = function() {
     }
 };
 
-// ==========================================
-// AVISOS GERAIS E CATÁLOGOS DA FÁBRICA
-// ==========================================
-async function carregarAvisosECatalogos() {
+async function carregarAvisoVendedores() {
     try {
         const { data, error } = await supabase
             .from('configuracoes')
-            .select('chave, valor')
-            .in('chave', ['aviso_vendedores', 'link_catalogo_1', 'titulo_catalogo_1', 'link_catalogo_2', 'titulo_catalogo_2']);
+            .select('valor')
+            .eq('chave', 'aviso_vendedores')
+            .single();
         
-        if (error) throw error;
-        if (!data) return;
+        // Se der erro de "não encontrado", ignora silenciosamente
+        if (error && error.code !== 'PGRST116') throw error;
 
-        // 1. Injeta o Aviso no Topo da Tela
-        const avisoData = data.find(c => c.chave === 'aviso_vendedores');
-        const boxAviso = document.getElementById('box-aviso-sistema'); // Confirme se o ID no HTML é este ou altere aqui
+        const boxAviso = document.getElementById('box-aviso-sistema');
         const textoAviso = document.getElementById('texto-aviso-sistema');
 
-        if (avisoData && avisoData.valor && avisoData.valor.trim() !== "") {
-            if (textoAviso) textoAviso.innerHTML = avisoData.valor;
+        if (data && data.valor && data.valor.trim() !== "") {
+            if (textoAviso) textoAviso.innerHTML = data.valor; // O innerHTML lê imagens perfeitamente
             if (boxAviso) boxAviso.classList.remove('hidden');
         } else {
             if (boxAviso) boxAviso.classList.add('hidden');
         }
-
-        // 2. Injeta os Links dos Catálogos nos Botões
-        const link1 = data.find(c => c.chave === 'link_catalogo_1')?.valor;
-        const titulo1 = data.find(c => c.chave === 'titulo_catalogo_1')?.valor || "Catálogo 1";
-        const btnCat1 = document.getElementById('btn-catalogo-1');
-        
-        if (btnCat1 && link1) {
-            btnCat1.onclick = () => window.open(link1, '_blank');
-            btnCat1.innerText = titulo1;
-            btnCat1.classList.remove('hidden');
-        }
-
-        const link2 = data.find(c => c.chave === 'link_catalogo_2')?.valor;
-        const titulo2 = data.find(c => c.chave === 'titulo_catalogo_2')?.valor || "Catálogo 2";
-        const btnCat2 = document.getElementById('btn-catalogo-2');
-        
-        if (btnCat2 && link2) {
-            btnCat2.onclick = () => window.open(link2, '_blank');
-            btnCat2.innerText = titulo2;
-            btnCat2.classList.remove('hidden');
-        }
-
     } catch (err) {
-        console.error("Erro ao carregar avisos e catálogos:", err);
+        console.error("Erro ao carregar aviso:", err);
     }
 }
