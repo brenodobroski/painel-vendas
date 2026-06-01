@@ -774,6 +774,8 @@ async function executarCalculoSeguro() {
             valorFrete: valorFrete,
             percentualFrete: percentualFrete,
             percentualDesconto: percentualDescontoFinal, 
+            descontoBaseOriginal: descontoBase, // <-- Salva o desconto base real
+            rt: rt, // <-- CORREÇÃO: Salva a RT para os próximos refazeres não se perderem!
             ufDestino: textoUf,
             totalBtuCond: totalBtuCond,
             totalBtuEvap: totalBtuEvap,
@@ -1438,41 +1440,33 @@ function obterAncoraDispositivo() {
 // REFAZER PEDIDO INTELIGENTE
 // ==========================================
 window.prepararRefazerPedido = async function(idSolicitacao) {
-    document.body.style.cursor = 'wait'; // Coloca o mouse carregando
-    
+    document.body.style.cursor = 'wait';
     try {
-        // 1. Busca o snapshot e os valores REAIS exatos direto do banco
+        // CORREÇÃO: Puxa o 'rt' diretamente do banco de dados também!
         const { data, error } = await supabase
             .from('solicitacoes_orcamento')
-            .select('snapshot, valor_alvo, desconto_solicitado')
+            .select('snapshot, valor_alvo, desconto_solicitado, rt')
             .eq('id', idSolicitacao)
             .single();
 
         if (error || !data || !data.snapshot) {
-            alert("Dados originais do orçamento não encontrados no banco de dados.");
+            alert("Dados originais do orçamento não encontrados.");
             return;
         }
 
-        // 2. Injeta o valor exato que estava no banco dentro do snapshot para o Refazer usar
         data.snapshot.valor_alvo_original = data.valor_alvo;
         data.snapshot.desconto_solicitado_original = data.desconto_solicitado;
+        data.snapshot.rt_original = data.rt; // Injeta a RT do banco no snapshot
 
-        // 3. Salva na memória o que veio do banco
         sessionStorage.setItem('dadosParaRefazer', JSON.stringify(data.snapshot));
 
-        // 4. Muda a aba para o simulador visualmente
-        if (typeof mudarAba === 'function') {
-            mudarAba('simulador');
-        }
-
-        // 5. Injeta os dados na tela
+        if (typeof mudarAba === 'function') mudarAba('simulador');
         window.checarEPreencherRefazer();
 
     } catch (err) {
-        console.error("Erro ao buscar dados para refazer:", err);
-        alert("Falha de conexão ao buscar os dados do orçamento.");
+        console.error(err);
     } finally {
-        document.body.style.cursor = 'default'; // Volta o mouse ao normal
+        document.body.style.cursor = 'default';
     }
 };
 
@@ -1482,33 +1476,25 @@ window.checarEPreencherRefazer = function() {
 
     const dados = JSON.parse(rawData);
 
-    // 1. Preenche o Desconto Exato (Recupera do Banco em vez de tentar calcular)
+    // Preenche Desconto
     let descontoBaseRestaurar = dados.desconto_solicitado_original;
-    if (descontoBaseRestaurar === undefined) {
-        // Fallback caso tente refazer um orçamento muito antigo
-        descontoBaseRestaurar = parseFloat(dados.percentualDesconto || 0) + parseFloat(dados.rt || 0);
-    }
+    if (descontoBaseRestaurar === undefined) descontoBaseRestaurar = parseFloat(dados.percentualDesconto || 0) + parseFloat(dados.rt || 0);
 
     const inputDesconto = document.getElementById('input-desconto');
     const textoDesconto = document.getElementById('texto-input-desconto');
     if (inputDesconto) inputDesconto.value = parseFloat(descontoBaseRestaurar).toFixed(4);
-    if (textoDesconto) {
-        const descFormatado = parseFloat(descontoBaseRestaurar).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        textoDesconto.innerText = `${descFormatado}%`;
-    }
+    if (textoDesconto) textoDesconto.innerText = `${parseFloat(descontoBaseRestaurar).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
-    // 2. Preenche o RT
-    if (dados.rt !== undefined) {
+    // CORREÇÃO: Preenche a RT
+    let rtRestaurar = dados.rt_original !== undefined ? dados.rt_original : dados.rt;
+    if (rtRestaurar !== undefined) {
         const inputRt = document.getElementById('input-rt');
         const textoRt = document.getElementById('texto-input-rt');
-        if (inputRt) inputRt.value = dados.rt;
-        if (textoRt) {
-            const rtFormatado = parseFloat(dados.rt).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-            textoRt.innerText = `${rtFormatado}%`;
-        }
+        if (inputRt) inputRt.value = rtRestaurar;
+        if (textoRt) textoRt.innerText = `${parseFloat(rtRestaurar).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
     }
 
-    // 3. Preenche o Frete
+    // Frete
     if (dados.percentualFrete !== undefined && dados.ufDestino) {
         const inputFrete = document.getElementById('select-uf');
         const textoFrete = document.getElementById('texto-select-uf');
@@ -1516,59 +1502,39 @@ window.checarEPreencherRefazer = function() {
         if (textoFrete) textoFrete.innerText = dados.ufDestino;
     }
 
-    // 4. Preenche a Evidência (Valor Alvo) para o sistema poder cravar os centavos com exatidão
+    // Evidência
     const inputEvidencia = document.getElementById('input-evidencia');
     const tipoAlvo = document.getElementById('tipo-alvo-hipotese');
-    if (inputEvidencia) {
-         inputEvidencia.value = dados.valor_alvo_original || dados.totalGeralAVista;
-    }
-    if (tipoAlvo) {
-         tipoAlvo.value = 'avista'; // Assume a vista como base do recálculo
-    }
+    if (inputEvidencia) inputEvidencia.value = dados.valor_alvo_original || dados.totalGeralAVista;
+    if (tipoAlvo) tipoAlvo.value = 'avista';
 
-    // 5. Seleciona a Marca para renderizar os produtos
+    // Marca e Itens
     if (dados.marcaNome) {
         const inputMarca = document.getElementById('marca-condensadora');
         const textoMarca = document.getElementById('texto-marca-condensadora');
-        
         if (inputMarca && textoMarca) {
             inputMarca.value = dados.marcaNome;
             textoMarca.innerText = dados.marcaNome;
-            
-            // Dispara o evento change para o Javascript montar a tabela
             inputMarca.dispatchEvent(new Event('change'));
 
-            // Aguarda um instante para a tabela aparecer antes de preencher as quantidades
             setTimeout(() => {
                 dados.itens.forEach(item => {
                     let input = document.querySelector(`.qtd-input[data-sku="${item.codigo}"]`);
-                    
-                    // Se não achou de primeira, o item pode ser de um menu dropdown (Famílias Samsung/LG)
                     if (!input) {
                         const selectFamilias = document.querySelectorAll('.select-tabela-estiloso');
                         selectFamilias.forEach(selectBox => {
                             const opcoes = Array.from(selectBox.options).map(opt => opt.value);
                             if (opcoes.includes(item.codigo)) {
-                                selectBox.value = item.codigo; // Muda para a máquina correta
+                                selectBox.value = item.codigo;
                                 window.atualizarLinhaDaTabela(selectBox, selectBox.closest('tr').id);
                                 input = document.querySelector(`.qtd-input[data-sku="${item.codigo}"]`);
                             }
                         });
                     }
-
-                    // Se achou, preenche a quantidade
-                    if (input) {
-                        input.value = item.qtd;
-                    }
+                    if (input) input.value = item.qtd;
                 });
-
-                // Limpa a memória
                 sessionStorage.removeItem('dadosParaRefazer');
-
-                // A MÁGICA FINAL: Força o sistema a fazer a conta toda de novo!
-                // É ele que vai olhar para o desconto preenchido e colocar a tarja vermelha de Aprovação Especial se precisar
                 window.atualizarResumo();
-                
             }, 300);
         }
     }
