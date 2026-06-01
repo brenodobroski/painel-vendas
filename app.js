@@ -85,6 +85,7 @@ async function verificarAcesso() {
         }
 
         carregarMinhasSolicitacoes(session.user.id);
+        verificarAvisoGlobal();
 
     } catch (err) {
         console.error("Erro inesperado durante a verificação de acesso:", err);
@@ -1569,3 +1570,214 @@ async function carregarAvisoVendedores() {
         console.error("Erro ao carregar aviso:", err);
     }
 }
+
+// ==========================================
+// ABA DE CATÁLOGOS (GOOGLE DRIVE)
+// ==========================================
+window.carregarCatalogosDoBanco = async function() {
+    const container = document.getElementById('grid-catalogos');
+    const loading = document.getElementById('loading-catalogos');
+    
+    container.innerHTML = '';
+    loading.classList.remove('hidden');
+
+    try {
+        const { data: catalogos, error } = await supabase
+            .from('catalogos_marcas')
+            .select('*')
+            .eq('ativo', true)
+            .order('marca', { ascending: true }) 
+            .order('titulo', { ascending: true });
+
+        loading.classList.add('hidden');
+
+        if (error) throw error;
+
+        if (!catalogos || catalogos.length === 0) {
+            container.innerHTML = `
+                <div class="col-span-full flex flex-col justify-center items-center py-20 bg-white rounded-xl shadow-sm border border-slate-200">
+                    <i class="fas fa-folder-open text-5xl text-slate-300 mb-4"></i>
+                    <p class="text-slate-500 font-bold">Nenhum catálogo disponível no momento.</p>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        
+        catalogos.forEach(cat => {
+            const nomeBaseMarca = cat.marca.split(' ')[0].toLowerCase();
+            const caminhoLogo = `./img/${nomeBaseMarca}.png`;
+
+            html += `
+                <a href="${cat.url_pdf}" target="_blank" rel="noopener noreferrer" 
+                   class="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-400 transition-all p-5 flex flex-col group h-full">
+                    <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                        <img src="${caminhoLogo}" alt="${cat.marca}" onerror="this.src='./img/logo-site.jpg'" class="h-6 object-contain max-w-[100px]">
+                        <i class="fas fa-external-link-alt text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+                    </div>
+                    <div class="flex-1">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">${cat.marca}</span>
+                        <h3 class="font-bold text-slate-800 text-sm mt-1 leading-tight group-hover:text-blue-700 transition-colors">${cat.titulo}</h3>
+                    </div>
+                    <div class="mt-5 pt-3 flex items-center justify-between text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-pdf text-red-400 mr-2 text-lg"></i>
+                            <span>Visualizar PDF</span>
+                        </div>
+                        <i class="fas fa-arrow-right opacity-0 group-hover:opacity-100 transform -translate-x-2 group-hover:translate-x-0 transition-all"></i>
+                    </div>
+                </a>
+            `;
+        });
+
+        container.innerHTML = html;
+
+    } catch (err) {
+        loading.classList.add('hidden');
+        console.error("Erro ao carregar catálogos:", err);
+        container.innerHTML = `<div class="col-span-full p-4 bg-red-50 text-red-700 rounded-lg text-center font-bold">Erro ao buscar catálogos. Tente novamente.</div>`;
+    }
+};
+
+// ==========================================
+// SISTEMA DE FILA DE AVISOS E SININHO
+// ==========================================
+window.avisosAtivosGlobais = [];
+window.filaDeAvisos = [];
+window.avisoAtual = null;
+
+async function verificarAvisoGlobal() {
+    try {
+        const { data: avisos, error } = await supabase
+            .from('avisos')
+            .select('id, titulo, mensagem, url_imagem, versao')
+            .eq('ativo', true)
+            .order('created_at', { ascending: false });
+
+        if (error || !avisos || avisos.length === 0) return;
+
+        window.avisosAtivosGlobais = avisos;
+
+        const btnSininho = document.getElementById('btn-reabrir-avisos');
+        const badge = document.getElementById('badge-avisos');
+        if (btnSininho) btnSininho.classList.remove('hidden');
+        if (badge) {
+            badge.innerText = avisos.length;
+            badge.classList.remove('hidden');
+        }
+
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        window.filaDeAvisos = avisos.filter(aviso => {
+            const dataOculta = localStorage.getItem(`climario_aviso_id_${aviso.id}_data`);
+            return dataOculta !== hoje; 
+        });
+
+        if (window.filaDeAvisos.length > 0) {
+            mostrarProximoAvisoDaFila();
+        }
+    } catch (err) {
+        console.error("Erro ao processar avisos:", err);
+    }
+}
+
+window.forcarExibicaoAvisos = function() {
+    if (!window.avisosAtivosGlobais || window.avisosAtivosGlobais.length === 0) return;
+    window.filaDeAvisos = [...window.avisosAtivosGlobais];
+    mostrarProximoAvisoDaFila();
+};
+
+window.mostrarProximoAvisoDaFila = function() {
+    if (window.filaDeAvisos.length === 0) {
+        window.fecharModalVisualmente();
+        return;
+    }
+
+    window.avisoAtual = window.filaDeAvisos.shift(); 
+    
+    const checkbox = document.getElementById('checkbox-nao-mostrar-hoje');
+    if (checkbox) checkbox.checked = false;
+
+    const content = document.getElementById('modal-aviso-content');
+    content.classList.add('opacity-50', 'scale-95');
+    
+    setTimeout(() => {
+        document.getElementById('aviso-titulo').innerText = window.avisoAtual.titulo || 'Aviso Importante';
+        document.getElementById('aviso-mensagem').innerText = window.avisoAtual.mensagem || '';
+
+        const btnAcao = document.getElementById('btn-acao-aviso');
+        btnAcao.innerHTML = window.filaDeAvisos.length > 0 ? "Próximo Aviso &nbsp; ➔" : "Ciente, Fechar <i class='fas fa-check ml-2'></i>";
+
+        const imagemEl = document.getElementById('aviso-imagem');
+        const containerImagem = document.getElementById('aviso-imagem-container');
+        const containerTexto = document.getElementById('aviso-texto-container');
+        const btnDownload = document.getElementById('aviso-btn-download');
+
+        if (window.avisoAtual.url_imagem && window.avisoAtual.url_imagem.trim() !== '' && window.avisoAtual.url_imagem !== 'null') {
+            imagemEl.src = window.avisoAtual.url_imagem;
+            if(btnDownload) btnDownload.onclick = () => window.forcarDownloadImagem(window.avisoAtual.url_imagem);
+            
+            containerImagem.classList.remove('hidden');
+            containerTexto.className = "w-full flex-1 md:min-w-[400px] md:max-w-[450px] p-6 sm:p-8 bg-white overflow-y-auto custom-scrollbar flex flex-col justify-between";
+        } else {
+            containerImagem.classList.add('hidden');
+            containerTexto.className = "w-full flex-1 md:max-w-2xl p-6 sm:p-8 bg-white overflow-y-auto custom-scrollbar flex flex-col justify-between";
+        }
+
+        content.classList.remove('opacity-50', 'scale-95');
+    }, 150);
+
+    const modal = document.getElementById('modal-aviso-global');
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 50);
+    }
+};
+
+window.processarFechamentoAviso = function() {
+    const checkbox = document.getElementById('checkbox-nao-mostrar-hoje');
+    if (checkbox && checkbox.checked && window.avisoAtual) {
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        localStorage.setItem(`climario_aviso_id_${window.avisoAtual.id}_data`, hoje);
+    }
+    mostrarProximoAvisoDaFila();
+};
+
+window.fecharModalVisualmente = function() {
+    const modal = document.getElementById('modal-aviso-global');
+    const modalContent = document.getElementById('modal-aviso-content');
+    if (modal && modalContent) {
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => { modal.classList.add('hidden'); }, 200);
+    }
+};
+
+window.forcarDownloadImagem = async function(url) {
+    const btn = document.getElementById('aviso-btn-download');
+    const conteudoOriginal = btn.innerHTML;
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Baixando...';
+        btn.disabled = true;
+
+        const resposta = await fetch(url);
+        const blob = await resposta.blob();
+        const urlObjeto = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = urlObjeto;
+        link.download = `Aviso_Promocao_Climario_${new Date().getTime()}.jpg`; 
+        document.body.appendChild(link);
+        link.click();
+        
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(urlObjeto);
+    } catch (error) {
+        window.open(url, '_blank');
+    } finally {
+        btn.innerHTML = conteudoOriginal;
+        btn.disabled = false;
+    }
+};
