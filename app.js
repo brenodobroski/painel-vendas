@@ -1274,15 +1274,28 @@ function renderizarMinhasSolicitacoes(lista) {
         if(req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
 
         // Formata o número do orçamento (Coloca um "-" caso seja um pedido muito antigo e não tenha código)
-        const codigoExibicao = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
+       const codigoExibicao = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
+
+        // 1. Puxa os dois valores do snapshot (Cofre) ou calcula caso seja um pedido muito antigo
+        let valorAVista = req.snapshot?.totalGeralAVista || req.valor_alvo || 0;
+        let valorParcelado = req.snapshot?.totalGeralParcelado || (valorAVista * 1.05);
+
+        // 2. Formata para Moeda (R$)
+        const strAVista = parseFloat(valorAVista).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const strParcelado = parseFloat(valorParcelado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
+        
+        // 3. Monta a linha com o visual duplo igual ao Admin
         tr.innerHTML = `
             <td class="p-4 text-xs font-mono text-slate-500">${dataFormatada}</td>
             <td class="p-4 text-center font-bold text-slate-700 font-mono text-xs">${codigoExibicao}</td>
             <td class="p-4 text-center font-bold text-slate-700">${qtdItens} un</td>
-            <td class="p-4 text-right font-black text-indigo-700">R$ ${parseFloat(req.valor_alvo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+            <td class="p-4 text-right">
+                <div class="font-black text-indigo-700">${strAVista} <span class="text-[9px] font-bold text-slate-400 uppercase">À Vista</span></div>
+                <div class="font-black text-slate-600 mt-1">${strParcelado} <span class="text-[9px] font-bold text-slate-400 uppercase">10x</span></div>
+            </td>
             <td class="p-4 text-center font-bold text-orange-600">${parseFloat(req.desconto_solicitado).toFixed(2)}%</td>
             <td class="p-4 text-center">${statusHtml}</td>
             <td class="p-4 text-right">${acoesHtml}</td>
