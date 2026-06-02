@@ -775,8 +775,13 @@ async function executarCalculoSeguro() {
             valorFrete: valorFrete,
             percentualFrete: percentualFrete,
             percentualDesconto: percentualDescontoFinal, 
-            descontoBaseOriginal: descontoBase, // <-- Salva o desconto base real
-            rt: rt, // <-- CORREÇÃO: Salva a RT para os próximos refazeres não se perderem!
+            
+            // 🚨 NOVO: Salvando os descontos exatos do Protheus vindos da API
+            descontoProtheusAVista: dadosAPI.descontoProtheusAVista,
+            descontoProtheusParcelado: dadosAPI.descontoProtheusParcelado,
+            
+            descontoBaseOriginal: descontoBase, 
+            rt: rt, 
             ufDestino: textoUf,
             totalBtuCond: totalBtuCond,
             totalBtuEvap: totalBtuEvap,

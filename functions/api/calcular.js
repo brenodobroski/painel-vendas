@@ -52,7 +52,7 @@ export async function onRequestPost(context) {
             if (!respostaSupabase.ok) throw new Error("Falha ao puxar custos do Supabase.");
 
             //  A variável é criada AQUI primeiro, ANTES de ser verificada!
-            const dadosBrutos = await respostaSupabase.json();
+            const dadosBrutos = await respostaSupabase.json();  
 
             //  TRAVA DE SEGURANÇA 1
             if (!Array.isArray(dadosBrutos) || dadosBrutos.length === 0) {
@@ -97,9 +97,17 @@ export async function onRequestPost(context) {
         const rtDecimal = (parseFloat(rt) || 0) / 100;
         const pagtoDecimal = 0.05
 
-        const novoMarkupProtheus = (MARKUP_BASE_FIXA * ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal))) / 0.965;
-        let descProtheusPedido = (((novoMarkupProtheus / 1.699) - 1) * -1) * 100;
-        if (descProtheusPedido < 0) descProtheusPedido = 0;
+        const descBaseNum = parseFloat(descontoBase) || 0;
+        const rtNum = parseFloat(rt) || 0;
+
+        // Regra 1: À Vista (Tira apenas a RT)
+        let descProtheusAVista = descBaseNum - rtNum;
+        if (descProtheusAVista < 0) descProtheusAVista = 0;
+
+        // Regra 2: Parcelado 10x (Tira a RT e os 5% do parcelamento)
+        let descProtheusParcelado = descBaseNum - rtNum - 5.00;
+        if (descProtheusParcelado < 0) descProtheusParcelado = 0;
+
 
         // Faz o loop calculando os SKUs que o vendedor pediu
         itens.forEach(itemPedido => {
@@ -110,14 +118,14 @@ export async function onRequestPost(context) {
                 const custo = parseFloat(dadosSecretos.custo || 0);
                 const verba = parseFloat(dadosSecretos.verba || 0);
                 const markupVenda = parseFloat(dadosSecretos.markup_base) || MARKUP_BASE_FIXA;
-                const variacao = 1 - (MARKUP_BASE_FIXA / markupVenda);
-                const divisor = 1 - variacao;
 
-                const fatorComercialAVista = ((1 - descDecimal) * (1 + (rtDecimal * 1.4)));
-                const fatorComercialParcelado = ((1 - descDecimal) * (1 + (rtDecimal * 1.4)) * (1 + pagtoDecimal));
 
-                const novoMarkupAVista = (MARKUP_BASE_FIXA * fatorComercialAVista) / divisor;
-                const novoMarkupParcelado = (MARKUP_BASE_FIXA * fatorComercialParcelado) / divisor;
+                const fatorComercialAVista = (1 - descDecimal) * (1 + (rtDecimal * 1.4));
+                
+                const fatorComercialParcelado = fatorComercialAVista * (1 + pagtoDecimal);
+
+                const novoMarkupAVista = markupVenda * fatorComercialAVista;
+                const novoMarkupParcelado = markupVenda * fatorComercialParcelado;
                 
                 let precoAVista = Math.round((custo - verba) * novoMarkupAVista * 100) / 100;
                 let precoParcelado = Math.round((custo - verba) * novoMarkupParcelado * 100) / 100;
@@ -144,7 +152,8 @@ export async function onRequestPost(context) {
             precos: resultados,
             totalBrutoAVista: totalBrutoTabelaAVista,
             totalBrutoParcelado: totalBrutoTabelaParcelado,
-            descontoProtheus: descProtheusPedido
+            descontoProtheusAVista: descProtheusAVista,         // <-- Desconto À Vista limpo
+            descontoProtheusParcelado: descProtheusParcelado    // <-- Desconto Parcelado limpo
         }), {
             headers: { 'Content-Type': 'application/json' }
         });
