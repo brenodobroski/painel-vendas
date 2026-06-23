@@ -294,174 +294,35 @@ window.forcarAtualizacaoSistema = function() {
 // ==========================================
 // FAMILIAS E REGRAS
 // ==========================================
-const familiasConfig = {
-    "COND BI SAMSUNG 18K": ["29753"],
-    "COND TRI SAMSUNG 24K": ["29754"],
-    "COND QUADRI SAMSUNG 28K": ["29755"],
-    "COND PENTA SAMSUNG 34K": ["42326", "29764"], 
-    "COND PENTA SAMSUNG 48K": ["42325", "29765"],
-    "EVAP HW SAMSUNG 7K": ["33872", "29756"], 
-    "EVAP HW  SAMSUNG 9K": ["34076", "29752"], 
-    "EVAP HW SAMSUNG 12K": ["33806", "34445"], 
-    "EVAP HW SAMSUNG 18K": ["34078"],
-    "EVAP HW SAMSUNG 24K": ["34077", "29760"], 
-    "EVAP HW SAMSUNG BLACK 9K": ["44612"],
-    "EVAP HW SAMSUNG BLACK 12K": ["44613"],
-    "EVAP HW SAMSUNG BLACK 18K": ["44614"],
-    "EVAP HW SAMSUNG BLACK 24K": ["44615"],
-    "EVAP K7 4 VIAS SAMSUNG  9K": ["41851"],
-    "EVAP K7 4 VIAS SAMSUNG 12K": ["41797"],
-    "EVAP K7 4 VIAS SAMSUNG 18K": ["41796"],
-    "GRELHA K7 4 VIAS SAMSUNG": ["17105"],
-    "EVAP K7 1 VIA SAMSUNG 9K": ["44610", "29761", "47977"],
-    "EVAP K7 1 VIA SAMSUNG 12K": ["43406","44611", "29762"],
-    "EVAP K7 1 VIA SAMSUNG 18K": ["47978", "29763", "42647"],
-    "EVAP K7 1 VIA SAMSUNG 24K": ["43408", "42328"],
-    "SAMSUNG GRELHA K7 1 VIA 9 A 12K": ["14407"], 
-    "SAMSUNG GRELHA K7 1 VIA 18 A 24K": ["16506"],
-    "SAMSUNG CONTROLE SEM FIO": ["14412"],
-    "SAMSUNG KIT WI-FI": ["21843"],
-    "SAMSUNG PLACA DE INTERFACE HW": ["29767"],
-    // LG
-    "COND BI LG 18K": ["43180", "29973", "15468"],
-    "COND BI LG 21K FRIO": ["48758"],
-    "COND TRI LG 21K": ["43182", "30310"],
-    "COND TRI LG 24K": ["43632", "24415"],
-    "COND TRI LG 24K FRIO": ["48761"],
-    "COND QUADRI LG 30K": ["43631", "15467"],
-    "COND QUADRI LG 30K FRIO": ["48762"],
-    "COND QUADRI LG 36K FRIO": ["48764"],
-    "COND PENTA LG 36K": ["43679", "15472"],
-    "COND PENTA LG 48K": ["43680", "23774"],
-    "COND PENTA LG 48K FRIO": ["48765"],
-    "COND PENTA LG 54K FRIO": ["48763"],
-    "EVAP HW LG 7K": ["43638", "32215"],
-    "EVAP HW LG 9K": ["43224", "15466","12497"],
-    "EVAP HW LG 12K": ["43681", "32246"],
-    "EVAP HW LG 18K": ["43226", "32260"],
-    "EVAP HW LG 24K": ["43227", "32267"],
-    "EVAP HW ARTCOOL LG 7K": ["32251"],
-    "EVAP HW ARTCOOL LG 9K": ["32214","14512"],
-    "EVAP HW ARTCOOL LG 12K": ["32208"],
-    "EVAP HW ARTCOOL LG 18K": ["34399"],
-    "EVAP HW ARTCOOL LG 24K": ["35667"],
-    "EVAP PAINEL GALLERY LG  9K": ["20789"],
-    "EVAP PAINEL GALLERY LG  12K": ["20788"],
-    "EVAP K7 4 VIAS LG  9K": ["18517"],
-    "EVAP K7 4 VIAS LG  12K": ["17465"],
-    "EVAP K7 4 VIAS LG 18K": ["49980"],
-    "EVAP K7 4 VIAS LG 24K": ["49981", "43244"],
-    "EVAP K7 360 LG 36K": ["50925"],
-    "GRELHA K7 4 VIAS LG 9 A 12K": ["30405"],
-    "GRELHA K7 4 VIAS LG 18 A 24K": ["42443"],
-    "EVAP K7 1 VIA LG 7K": ["48445"],
-    "EVAP K7 1 VIA LG 9K": ["17591"],
-    "EVAP K7 1 VIA LG 12K": ["17590"],
-    "EVAP K7 1 VIA LG 18K": ["23773"],
-    "EVAP K7 1 VIA LG 24K": ["30327"],
-    // LG BI
-    "LG BI 16K FRIO": ["33175"],
-    "LG HW 9K FRIO": ["33176"],
-    "LG HW 12K FRIO": ["33177"],
-    // DAIKIN
-    "COND BI DAIKIN 18K": ["24540"],
-    "COND TRI DAIKIN 18K": ["26426"],
-    "COND TRI DAIKIN 24K": ["24542"],
-    "COND QUADRI DAIKIN 28K": ["24544"],
-    "COND QUADRI DAIKIN 34K": ["24546"],
-    "COND PENTA DAIKIN 38K": ["5836"],
-    "EVAP HW DAIKIN 9K": ["30312"],
-    "EVAP HW DAIKIN 12K": ["26429"],
-    "EVAP HW DAIKIN 18K": ["23647"],
-    "EVAP HW DAIKIN 20K": ["33390"],
-    "EVAP HW DAIKIN 24K": ["27177"],
-    "EVAP K7 4 VIAS DAIKIN 9K": ["5844"],
-    "EVAP K7 4 VIAS DAIKIN 12K": ["5845"],
-    "EVAP K7 4 VIAS DAIKIN 17K": ["5846"],
-    "EVAP K7 4 VIAS DAIKIN 20K": ["5847"],
-    "GRELHA K7 4 VIA DAIKIN ": ["7443"],
-    "EVAP K7 1 VIA DAIKIN 9K": ["10178"],
-    "EVAP K7 1 VIA DAIKIN 12K": ["10179"],
-    "EVAP K7 1 VIA DAIKIN 18K": ["10180"],
-    "GRELHA K7 1 VIA DAIKIN ": ["10181"],
-    "EVAP BUILT IN DAIKIN 9K": ["5840"],
-    "EVAP BUILT IN DAIKIN 12K": ["5841"],
-    "EVAP BUILT IN DAIKIN 18K": ["5842"],
-    "EVAPBUILT IN DAIKIN 21K": ["5843"],
-    "DAIKIN CONTROLE SEM FIO": ["5849"],
-    // DAIKIN BI - R32
-    "COND BI DAIKIN  18K R32": ["30456"],
-    "EVAP HW DAIKIN 9K R32 - BI": ["30457"],
-    "EVAP HW DAIKIN 12K R32 - BI": ["30458"],
-    // DAIKIN TRI - R32
-    "COND TRI DAIKIN 18K R32 FRIO": ["33087"],
-    "EVAP HW DAIKIN 9K R32 - TRI": ["33085"],
-    "EVAP HW DAIKIN 12K R32 - TRI": ["33086"],
-    // MIDEA
-    "COND BI MIDEA 18K": ["35269"],
-    "COND TRI MIDEA 27K": ["33117"],
-    "COND QUADRI MIDEA 36K": ["33118"],
-    "COND PENTA MIDEA 42K": ["32510"],
-    "EVAP HW MIDEA 9K": ["48165", "33250"],
-    "EVAP HW MIDEA 12K": ["33251", "48171"],
-    "EVAP HW  MIDEA 18K": ["48721", "35699"],
-    "EVAP HW MIDEA 24K": ["35700", "48173"],
-    "EVAP HW MIDEA BLACK 9K": ["33988"],
-    "EVAP HW MIDEA BLACK 12K": ["33984"],
-    "EVAP HW MIDEA BLACK 18K": ["33985"],
-    "EVAP HW MIDEA BLACK 24K": ["33986"],
-    "EVAP K7 1 VIA MIDEA 12K": ["35850"],
-    "EVAP K7 1 VIA MIDEA 18K": ["35852"],
-    "GRELHA K7 1 VIA MIDEA 12K": ["35857"],
-    "GRELHA K7 1 VIA MIDEA 18K": ["35858"],
-    "EVAP BUILT IN MIDEA 9K": ["22093"],
-    "EVAP BUILT IN MIDEA 12K": ["22094"],
-    // ELGIN
-    "COND BI ELGIN 18K": ["41232"],
-    "COND TRI ELGIN 27K": ["41235"],
-    "EVAP HW ELGIN 9K": ["41230"],
-    "EVAP HW ELGIN 12K": ["41231"],
-    "EVAP HW ELGIN 18K": ["48623"],
-    // GREE
-    "COND BI GREE 18K": ["34545"],
-    "COND TRI GREE 24K": ["34515"],
-    "COND TRI GREE 30K": ["34501"],
-    "COND QUADRI GREE 36K": ["34502"],
-    "COND PENTA GREE 42K": ["34518"],
-    "COND PENTA GREE 48K": ["34519"],
-    "EVAP HW GREE 9K": ["34541"],
-    "EVAP HW GREE 12K": ["34543"],
-    "EVAP HW GREE 18K": ["34540"],
-    "EVAP HW GREE 24K": ["34544"],
-    "EVAP HW GREE DIAMOND 9K": ["41426"],
-    "EVAP HW GREE DIAMOND 12K": ["41423"],
-    "EVAP HW GREE DIAMOND 18K": ["41424"],
-    "EVAP HW GREE DIAMOND 24K": ["41421"],
-    "EVAP K7 1 VIA GREE 9K": ["34513"],
-    "EVAP K7 1 VIA GREE 12K": ["34514"],
-    "EVAP K7 1 VIA GREE 18K": ["34496"],
-    "EVAP K7 1 VIA GREE 24K": ["34492"],
-    "GRELHA K7 1 VIA GREE": ["34499"],
-    //FUJITSU
-    "COND BI FUJITSU 18K": ["10548"],
-    "COND TRI FUJITSU 18K": ["10549"],
-    "COND TRI FUJITSU 24K": ["10555"],
-    "COND QUADRI FUJITSU 30K": ["10556"],
-    "COND QUADRI FUJITSU 36K": ["10557"],
-    "COND HEXA FUJITSU 45K": ["10561"],
-    "EVAP HW FUJITSU 7K": ["10581"],
-    "EVAP HW FUJITSU 9K": ["10567"],
-    "EVAP HW FUJITSU 12K": ["10571"],
-    "EVAP HW FUJITSU 18K": ["10582"],
-    "EVAP HW FUJITSU 24K": ["10562"],
-    "EVAP PISO FUJITSU 12K": ["7034"],
-    "EVAP K7 4 VIAS FUJITSU 9K": ["10576"],
-    "EVAP K7 4 VIAS FUJITSU 12K": ["10577"],
-    "EVAP K7 4 VIAS FUJITSU 18K": ["10578"],
-    "GRELHA K7 4 VIAS FUJITSU": ["10579"],
-    "EVAP BUILT IN FUJITSU 12K": ["10564"],
-    "EVAP BUILT IN FUJITSU 18K": ["10565"]
-};
+let familiasConfig = {};
+let _promiseFamilias = null;
+
+async function carregarFamilias() {
+    try {
+        const { data, error } = await supabase
+            .from('familias_sku')
+            .select('nome, skus')
+            .order('nome');
+
+        if (error) throw error;
+
+        familiasConfig = {};
+        (data || []).forEach(f => {
+            familiasConfig[f.nome] = (f.skus || []).map(String);
+        });
+
+        console.log(`✅ ${Object.keys(familiasConfig).length} famílias carregadas do banco.`);
+    } catch (err) {
+        console.error("Erro ao carregar famílias:", err);
+    }
+}
+
+// Garante que famílias estejam prontas antes de renderizar a tabela
+function garantirFamilias() {
+    if (!_promiseFamilias) _promiseFamilias = carregarFamilias();
+    return _promiseFamilias;
+}
+garantirFamilias(); // kick-off na inicialização
 
 const regrasAcessorios = {
     "41851": ["17105" , "14412"],
@@ -1018,11 +879,11 @@ window.atualizarLinhaDaTabela = function(selectElement, idLinha) {
     }
 };
 
-caixaMarca.addEventListener('change', function(){
+caixaMarca.addEventListener('change', async function(){
     let marcaEscolhida = caixaMarca.value.toUpperCase();
     corpoTabela.innerHTML = "";
     corpoEvap.innerHTML = "";
-    
+
     // 🧹 PREVENÇÃO: Apaga o número do Teste de Hipótese ao trocar de marca
     const inputEvidencia = document.getElementById('input-evidencia');
     if (inputEvidencia) inputEvidencia.value = '';
@@ -1034,6 +895,9 @@ caixaMarca.addEventListener('change', function(){
         if(avisoEvap) avisoEvap.classList.add("hidden");
         return;
     }
+
+    // Garante que as famílias do banco estejam prontas antes de montar a tabela
+    await garantirFamilias();
 
     cardEvap.classList.remove('opacity-50');
     cardEvap.classList.remove('hidden');
