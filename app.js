@@ -318,7 +318,7 @@ carregarAgendamento();
 function badgeEstoque(sku, estoqueQtd) {
     const qtd = parseInt(estoqueQtd) || 0;
     if (qtd > 0) {
-        return `<span class="inline-block bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">🟢 Pronta Entrega</span>`;
+        return `<span class="inline-block text-green-700 text-[10px] font-medium whitespace-nowrap">● Pronta Entrega</span>`;
     }
     const agendado = agendamentoMap[String(sku).trim()];
     if (agendado) {

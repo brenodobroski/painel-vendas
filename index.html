@@ -120,12 +120,12 @@
                     </div>
                     <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         <!-- NOVO BOTÃO DE MURAL DE AVISOS (Sininho) -->
-                        <button id="btn-reabrir-avisos" onclick="forcarExibicaoAvisos()" class="hidden w-full sm:w-auto bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-all flex items-center justify-center relative">
+                        <button id="btn-reabrir-avisos" onclick="forcarExibicaoAvisos()" class="hidden w-full sm:w-auto bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4 py-2 rounded-sm text-sm font-medium transition-all flex items-center justify-center relative">
                             <i class="fas fa-bell mr-2"></i> Avisos
-                            <span id="badge-avisos" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md hidden">0</span>
+                            <span id="badge-avisos" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full hidden">0</span>
                         </button>
                         
-                        <button onclick="window.location.reload()" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-all flex items-center justify-center">
+                        <button onclick="window.location.reload()" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-sm text-sm font-medium transition-all flex items-center justify-center">
                             <i class="fas fa-sync-alt mr-2"></i> Atualizar
                         </button>
                     </div>
@@ -253,7 +253,7 @@
 
                                 <div class="mb-6">
                                     <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                        <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded flex items-center justify-center text-xs">1</span> 
+                                        <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-sm flex items-center justify-center text-xs">1</span>
                                         Selecione a Marca
                                     </h3>
                                     <div class="relative w-full custom-dropdown" id="dropdown-marca-condensadora">
@@ -300,7 +300,7 @@
 
                             <div id="card-evaporadoras" class="bg-white border border-slate-200 rounded-md shadow-sm p-4 sm:p-6 opacity-50 transition-all">
                                 <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded flex items-center justify-center text-xs">2</span> Evaporadoras
+                                    <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-sm flex items-center justify-center text-xs">2</span> Evaporadoras
                                 </h3>
                                 <div id="container-tabela-evap" class="hidden border border-slate-200 rounded-md overflow-hidden">
                                     <div class="max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
@@ -362,28 +362,28 @@
                                     </div>
                                 </div>
 
-                                <button id="btn-finalizar" disabled class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 sm:py-4 rounded-md transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed uppercase text-xs tracking-widest">
+                                <button id="btn-finalizar" disabled class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 sm:py-4 rounded-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase text-xs tracking-widest">
                                     Gerar Orçamento
                                 </button>
 
-                                <div id="container-teste-hipotese" class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded hidden">
-                                    <h3 class="text-xs font-bold text-indigo-800 mb-2"><i class="fas fa-calculator"></i> Negociação</h3>
+                                <div id="container-teste-hipotese" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-sm hidden">
+                                    <h3 class="text-xs font-medium text-blue-800 mb-2"><i class="fas fa-calculator"></i> Negociação</h3>
                                     <div class="flex flex-col sm:flex-row gap-2 items-end">
                                         <div class="flex-1 w-full sm:w-auto">
-                                            <label class="text-[10px] text-indigo-600 font-bold">Valor Alvo</label>
+                                            <label class="text-[10px] text-blue-700 font-medium">Valor Alvo</label>
                                             <div class="flex">
-                                                <select id="tipo-alvo-hipotese" class="p-2 sm:p-1.5 text-xs border border-indigo-300 border-r-0 rounded-l outline-none focus:border-indigo-500 font-bold bg-white text-indigo-700 cursor-pointer">
+                                                <select id="tipo-alvo-hipotese" class="p-2 sm:p-1.5 text-xs border border-blue-200 border-r-0 rounded-none outline-none focus:border-blue-500 font-medium bg-white text-slate-700 cursor-pointer">
                                                     <option value="avista">À Vista</option>
                                                     <option value="parcelado">Até 10x</option>
                                                 </select>
-                                                <input type="number" id="input-evidencia" class="w-full p-2 sm:p-1.5 text-sm border border-indigo-300 rounded-r outline-none focus:border-indigo-500 font-bold" placeholder="Ex: 8500.00">
+                                                <input type="number" id="input-evidencia" class="w-full p-2 sm:p-1.5 text-sm border border-blue-200 rounded-none outline-none focus:border-blue-500 font-medium" placeholder="Ex: 8500.00">
                                             </div>
                                         </div>
-                                        <button onclick="fazerTesteHipotese()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 sm:py-1.5 px-3 rounded text-xs transition-colors">
+                                        <button onclick="fazerTesteHipotese()" class="w-full sm:w-auto bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 sm:py-1.5 px-3 rounded-sm text-xs transition-colors">
                                             Calcular
                                         </button>
                                     </div>
-                                    <p id="msg-hipotese" class="text-[10px] text-red-600 font-bold mt-2 hidden">⚠️ Orçamento bloqueado.</p>
+                                    <p id="msg-hipotese" class="text-[10px] text-red-600 font-medium mt-2 hidden">Orçamento bloqueado.</p>
                                 </div>
                             </div>
                         </div>
@@ -397,11 +397,11 @@
                             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <i class="fas fa-search text-slate-400"></i>
                             </div>
-                            <input type="text" id="input-busca-orcamento" onkeyup="filtrarMinhasSolicitacoes()" class="bg-white border border-slate-300 text-slate-900 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 shadow-sm transition-colors outline-none" placeholder="Buscar Nº do Orçamento...">
+                            <input type="text" id="input-busca-orcamento" onkeyup="filtrarMinhasSolicitacoes()" class="bg-white border border-slate-300 text-slate-900 text-sm font-medium rounded-sm focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition-colors outline-none" placeholder="Buscar Nº do Orçamento...">
                         </div>
                     </div>
 
-                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
                                 <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
@@ -420,7 +420,7 @@
                         </div>
 
                         <div class="p-4 flex justify-center bg-slate-50 border-t border-slate-200">
-                            <button id="btn-carregar-mais-solicitacoes" onclick="carregarMaisMinhasSolicitacoes()" class="hidden bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 px-6 py-2 rounded-full text-xs font-bold shadow-sm transition-colors flex items-center gap-2">
+                            <button id="btn-carregar-mais-solicitacoes" onclick="carregarMaisMinhasSolicitacoes()" class="hidden bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 px-6 py-2 rounded-sm text-xs font-medium transition-colors flex items-center gap-2">
                                 <i class="fas fa-chevron-down"></i> Carregar Mais Antigos
                             </button>
                         </div>
@@ -443,24 +443,24 @@
     </div>
 
     <div id="modal-solicitacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
-            <button onclick="fecharModalSolicitacao()" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors text-2xl font-bold leading-none outline-none">&times;</button>
-            <h2 class="text-lg font-black text-slate-800 mb-1">Solicitar Desconto Especial</h2>
+        <div class="bg-white rounded-sm shadow-xl w-full max-w-md p-6 relative">
+            <button onclick="fecharModalSolicitacao()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors text-2xl font-medium leading-none outline-none">&times;</button>
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Solicitar Desconto Especial</h2>
             <p class="text-xs text-slate-500 mb-4">Esta cotação será enviada para aprovação</p>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Motivo / Concorrente <span class="text-red-500">*</span></label>
-                    <textarea id="input-motivo-solicitacao" rows="3" class="w-full border border-slate-300 rounded p-2 text-sm outline-none focus:border-orange-500"></textarea>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Motivo / Concorrente <span class="text-red-500">*</span></label>
+                    <textarea id="input-motivo-solicitacao" rows="3" class="w-full border border-slate-300 rounded-sm p-2 text-sm outline-none focus:border-blue-500"></textarea>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Evidências (PDF ou Imagem)</label>
-                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition-colors cursor-pointer" onclick="document.getElementById('input-arquivo-solicitacao').click()">
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Evidências (PDF ou Imagem)</label>
+                    <div class="border border-dashed border-slate-300 rounded-sm p-4 text-center hover:bg-slate-50 transition-colors cursor-pointer" onclick="document.getElementById('input-arquivo-solicitacao').click()">
                         <i class="fas fa-cloud-upload-alt text-2xl text-slate-400 mb-2"></i>
-                        <p id="nome-arquivo-selecionado" class="text-xs text-slate-500 font-bold">Clique para anexar arquivo</p>
+                        <p id="nome-arquivo-selecionado" class="text-xs text-slate-500 font-medium">Clique para anexar arquivo</p>
                         <input type="file" id="input-arquivo-solicitacao" class="hidden" accept=".pdf, image/*" multiple onchange="mostrarNomeArquivo(this)">
                     </div>
                 </div>
-                <button id="btn-enviar-solicitacao" onclick="enviarSolicitacaoSupabase()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded uppercase text-sm mt-2">
+                <button id="btn-enviar-solicitacao" onclick="enviarSolicitacaoSupabase()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-sm uppercase text-sm mt-2 transition-colors">
                     Enviar para Aprovação
                 </button>
             </div>
@@ -468,22 +468,22 @@
     </div>
 
     <div id="modal-motivo-reprovacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative">
-            <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 text-2xl font-bold outline-none">&times;</button>
-            <h2 class="text-lg font-black text-red-600 mb-2 border-b border-slate-100 pb-2"><i class="fas fa-times-circle"></i> Solicitação Reprovada</h2>
-            <p class="text-sm font-bold text-slate-700 mt-4">Justificativa:</p>
-            <p id="texto-motivo-reprovacao" class="text-sm text-slate-600 mt-2 bg-red-50 p-4 rounded border border-red-100 italic font-medium"></p>
-            <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 rounded mt-6 text-sm">
+        <div class="bg-white rounded-sm shadow-xl w-full max-w-sm p-6 relative">
+            <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-2xl font-medium outline-none">&times;</button>
+            <h2 class="text-lg font-bold text-red-600 mb-2 border-b border-slate-100 pb-2"><i class="fas fa-times-circle"></i> Solicitação Reprovada</h2>
+            <p class="text-sm font-medium text-slate-700 mt-4">Justificativa:</p>
+            <p id="texto-motivo-reprovacao" class="text-sm text-slate-600 mt-2 bg-red-50 p-4 rounded-sm border border-red-100 italic font-medium"></p>
+            <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-sm mt-6 text-sm transition-colors">
                 Entendido
             </button>
         </div>
     </div>
 
     <div id="modal-aviso-global" class="fixed inset-0 z-[999] bg-slate-900/80 backdrop-blur-sm hidden flex justify-center items-center p-2 sm:p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full md:w-auto max-w-5xl overflow-hidden transform transition-all scale-95 opacity-0 flex flex-col md:flex-row max-h-[90vh]" id="modal-aviso-content">
+        <div class="bg-white rounded-sm shadow-2xl w-full md:w-auto max-w-5xl overflow-hidden transform transition-all scale-95 opacity-0 flex flex-col md:flex-row max-h-[90vh]" id="modal-aviso-content">
             <div id="aviso-imagem-container" class="hidden w-full md:w-auto relative bg-slate-50 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 flex-shrink-0">
                 <img id="aviso-imagem" src="" alt="Aviso" class="w-full md:w-auto h-auto max-h-[45vh] md:max-h-[85vh] object-contain">
-                <button id="aviso-btn-download" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-blue-600/95 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition shadow-xl z-10 backdrop-blur-sm border border-blue-400/50 whitespace-nowrap">
+                <button id="aviso-btn-download" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-blue-700 hover:bg-blue-800 text-white px-5 py-2.5 rounded-sm text-xs font-medium flex items-center gap-2 transition z-10 whitespace-nowrap">
                     <i class="fas fa-download"></i> Baixar Imagem
                 </button>
             </div>
@@ -499,7 +499,7 @@
                         <input type="checkbox" id="checkbox-nao-mostrar-hoje" class="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer transition">
                         <span class="text-sm font-bold text-slate-500 group-hover:text-slate-700 transition">Não mostrar este aviso novamente hoje</span>
                     </label>
-                    <button id="btn-acao-aviso" onclick="window.processarFechamentoAviso()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg uppercase text-sm tracking-widest transition-colors shadow-lg active:scale-[0.98]">
+                    <button id="btn-acao-aviso" onclick="window.processarFechamentoAviso()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-4 rounded-sm uppercase text-sm tracking-widest transition-colors active:scale-[0.98]">
                         Próximo Aviso ➔
                     </button>
                 </div>
