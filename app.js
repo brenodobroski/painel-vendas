@@ -286,6 +286,47 @@ async function carregarProdutosSupabase(forcarBaixar = false) {
 }
 carregarProdutosSupabase();
 
+// ==========================================
+// AGENDAMENTO DE TRÂNSITO
+// ==========================================
+let agendamentoMap = {};
+
+async function carregarAgendamento() {
+    try {
+        const { data, error } = await supabase
+            .from('agendamento_transito')
+            .select('sku, quantidade, quinzena');
+
+        if (error) throw error;
+
+        agendamentoMap = {};
+        (data || []).forEach(item => {
+            agendamentoMap[String(item.sku).trim()] = {
+                quantidade: item.quantidade,
+                quinzena:   item.quinzena
+            };
+        });
+
+        console.log(`🚚 ${Object.keys(agendamentoMap).length} SKUs em trânsito carregados.`);
+    } catch (err) {
+        console.error("Erro ao carregar agendamento:", err);
+    }
+}
+carregarAgendamento();
+
+// Retorna o HTML do badge de disponibilidade de um SKU
+function badgeEstoque(sku, estoqueQtd) {
+    const qtd = parseInt(estoqueQtd) || 0;
+    if (qtd > 0) {
+        return `<span class="inline-block bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">🟢 Pronta Entrega</span>`;
+    }
+    const agendado = agendamentoMap[String(sku).trim()];
+    if (agendado) {
+        return `<span class="inline-block bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">📅 ${agendado.quinzena}</span>`;
+    }
+    return `<span class="inline-block bg-slate-100 text-slate-500 text-[10px] italic px-2 py-0.5 rounded-full whitespace-nowrap">A Confirmar</span>`;
+}
+
 window.forcarAtualizacaoSistema = function() {
     localStorage.removeItem('climario_versao_catalogo');
     window.location.reload(); 
@@ -809,8 +850,8 @@ window.popularTabela = function(lista, corpo, container) {
                     <td class="border border-slate-200 px-4 py-2 font-bold text-slate-900 desc-col text-md">
                         ${nomeExibicaoTabela}
                     </td>
-                    <td class="border border-slate-200 px-4 py-2 text-center estoque-col text-sm font-bold">
-                        ${itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0}
+                    <td class="border border-slate-200 px-4 py-2 text-center estoque-col">
+                        ${badgeEstoque(skuPrincipal, itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0)}
                     </td>
                     <td class="border border-slate-200 px-3 py-2 text-center font-bold text-blue-700 preco-avista-col">
                         <i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>
@@ -871,7 +912,7 @@ window.atualizarLinhaDaTabela = function(selectElement, idLinha) {
     if (produtoData) {
         const inputQtd = linha.querySelector('.qtd-input');
         inputQtd.setAttribute('data-sku', skuSelecionado);
-        linha.querySelector('.estoque-col').innerText = `${produtoData.estoque || produtoData.ESTOQUE || 0}`;
+        linha.querySelector('.estoque-col').innerHTML = badgeEstoque(skuSelecionado, produtoData.estoque || produtoData.ESTOQUE || 0);
         linha.querySelector('.preco-col').innerHTML = '<i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>';
         
         buscarPrecosBaseTabela([skuSelecionado]); 
