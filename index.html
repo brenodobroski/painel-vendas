@@ -131,7 +131,7 @@
                     </div>
                 </div>
 
-                <div id="box-aviso-sistema" class="hidden bg-amber-50 border border-amber-200 rounded-md shadow-sm mb-6 mt-4 overflow-hidden">
+                <div id="box-aviso-sistema" class="hidden bg-amber-50 border border-amber-200 rounded-sm mb-6 mt-4 overflow-hidden">
                     <div class="bg-amber-100 px-4 py-2 border-b border-amber-200 flex items-center gap-2">
                         <i class="fas fa-bullhorn text-amber-600"></i>
                         <h3 class="text-sm font-bold text-amber-800">Avisos</h3>
@@ -145,17 +145,17 @@
                         
                         <div class="lg:col-span-2 space-y-6">
                             
-                            <div class="bg-white border border-slate-200 rounded-md shadow-sm p-4 sm:p-6">
+                            <div class="bg-white border border-slate-200 rounded-sm p-4 sm:p-6">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 pb-6 border-b border-slate-100">
                                     
                                     <div>
                                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Desconto</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-input-desconto">
-                                            <button type="button" id="btn-input-desconto" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('input-desconto')">
+                                            <button type="button" id="btn-input-desconto" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center hover:border-blue-400 transition-all outline-none" onclick="toggleDropdown('input-desconto')">
                                                 <span id="texto-input-desconto" class="truncate pr-2 text-left">0%</span>
                                                 <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-input-desconto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </button>
-                                            <div id="lista-input-desconto" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                                            <div id="lista-input-desconto" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                                                 <ul class="py-1 text-sm text-slate-700 font-bold">
                                                     <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">0%</li>
                                                     <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="1">1%</li>
@@ -185,11 +185,11 @@
                                     <div>
                                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">RT</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-input-rt">
-                                            <button type="button" id="btn-input-rt" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('input-rt')">
+                                            <button type="button" id="btn-input-rt" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center hover:border-blue-400 transition-all outline-none" onclick="toggleDropdown('input-rt')">
                                                 <span id="texto-input-rt" class="truncate pr-2 text-left">0%</span>
                                                 <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-input-rt" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </button>
-                                            <div id="lista-input-rt" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                                            <div id="lista-input-rt" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                                                 <ul class="py-1 text-sm text-slate-700 font-bold">
                                                     <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">0%</li>
                                                     <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="1">1%</li>
@@ -211,11 +211,11 @@
                                     <div>
                                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Destino (Frete)</label>
                                         <div class="relative w-full custom-dropdown" id="dropdown-select-uf">
-                                            <button type="button" id="btn-select-uf" class="w-full bg-white border border-slate-300 rounded-md py-2 px-3 text-sm font-bold text-slate-700 flex justify-between items-center hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none" onclick="toggleDropdown('select-uf')">
+                                            <button type="button" id="btn-select-uf" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center hover:border-blue-400 transition-all outline-none" onclick="toggleDropdown('select-uf')">
                                                 <span id="texto-select-uf" class="truncate pr-2">SP</span>
                                                 <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-select-uf" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </button>
-                                            <div id="lista-select-uf" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                                            <div id="lista-select-uf" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                                                 <ul class="py-1 text-sm text-slate-700 font-bold">
                                                     <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.0">SP</li>                                                    
                                                     <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.5">PR</li>
@@ -257,11 +257,11 @@
                                         Selecione a Marca
                                     </h3>
                                     <div class="relative w-full custom-dropdown" id="dropdown-marca-condensadora">
-                                        <button type="button" id="btn-marca-condensadora" class="w-full bg-white border border-slate-300 rounded-md py-3 px-4 text-sm font-bold text-slate-700 flex justify-between items-center outline-none hover:border-blue-400 transition-all" onclick="toggleDropdown('marca-condensadora')">
+                                        <button type="button" id="btn-marca-condensadora" class="w-full bg-white border border-slate-300 rounded-sm py-3 px-4 text-sm font-medium text-slate-700 flex justify-between items-center outline-none hover:border-blue-400 transition-all" onclick="toggleDropdown('marca-condensadora')">
                                             <span id="texto-marca-condensadora" class="uppercase truncate pr-2 text-left">-- Escolha a Marca --</span>
                                             <svg class="w-4 h-4 text-slate-500" id="seta-marca-condensadora" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                         </button>
-                                        <div id="lista-marca-condensadora" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-64 overflow-y-auto">
+                                        <div id="lista-marca-condensadora" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-64 overflow-y-auto">
                                             <ul class="py-1 text-sm text-slate-700 font-bold uppercase">
                                                 <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="SAMSUNG">SAMSUNG</li>
                                                 <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="LG">LG</li>
@@ -279,7 +279,7 @@
                                     </div>
                                 </div>
 
-                                <div id="container-tabela" class="hidden border border-slate-200 rounded-md overflow-hidden bg-slate-50">
+                                <div id="container-tabela" class="hidden border border-slate-200 rounded-sm overflow-hidden bg-slate-50">
                                     <div class="max-h-64 overflow-y-auto overflow-x-auto custom-scrollbar">
                                         <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
                                             <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0 z-10">
@@ -298,11 +298,11 @@
                                 </div>
                             </div>
 
-                            <div id="card-evaporadoras" class="bg-white border border-slate-200 rounded-md shadow-sm p-4 sm:p-6 opacity-50 transition-all">
+                            <div id="card-evaporadoras" class="bg-white border border-slate-200 rounded-sm p-4 sm:p-6 opacity-50 transition-all">
                                 <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-sm flex items-center justify-center text-xs">2</span> Evaporadoras
                                 </h3>
-                                <div id="container-tabela-evap" class="hidden border border-slate-200 rounded-md overflow-hidden">
+                                <div id="container-tabela-evap" class="hidden border border-slate-200 rounded-sm overflow-hidden">
                                     <div class="max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
                                         <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
                                             <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0 z-10">
@@ -323,7 +323,7 @@
                         </div>
 
                         <div class="lg:col-span-1">
-                            <div class="bg-white border border-slate-200 rounded-sm shadow-md p-4 sm:p-6 sticky top-6 border-t-4 border-t-blue-700">
+                            <div class="bg-white border border-slate-200 rounded-sm p-4 sm:p-6 sticky top-6 border-t-4 border-t-blue-700">
                                 <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Resumo da Cotação</h3>
                                 
                                 <div id="lista-itens-resumo" class="space-y-3 mb-6 max-h-80 overflow-y-auto custom-scrollbar pr-1">
@@ -331,7 +331,7 @@
                                 </div>
 
                                 <div class="space-y-2 mb-6 border-t border-slate-100 pt-4">
-                                    <div class="space-y-2 mb-4 text-slate-600 bg-slate-50 p-3 rounded-md border">
+                                    <div class="space-y-2 mb-4 text-slate-600 bg-slate-50 p-3 rounded-sm border">
                                         <div class="flex justify-between items-center">
                                             <span class="text-[11px] uppercase font-bold text-slate-500">Capacidade Condensadoras:</span>
                                             <span id="resumo-btu-cond" class="text-xs font-mono font-bold text-slate-400">0 BTUs</span>

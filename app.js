@@ -322,9 +322,9 @@ function badgeEstoque(sku, estoqueQtd) {
     }
     const agendado = agendamentoMap[String(sku).trim()];
     if (agendado) {
-        return `<span class="inline-block bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">📅 ${agendado.quinzena}</span>`;
+        return `<span class="inline-block text-amber-700 text-[10px] font-medium whitespace-nowrap">● ${agendado.quinzena}</span>`;
     }
-    return `<span class="inline-block bg-slate-100 text-slate-500 text-[10px] italic px-2 py-0.5 rounded-full whitespace-nowrap">A Confirmar</span>`;
+    return `<span class="inline-block text-slate-400 text-[10px] italic whitespace-nowrap">A confirmar</span>`;
 }
 
 window.forcarAtualizacaoSistema = function() {
@@ -742,7 +742,7 @@ async function executarCalculoSeguro() {
             if (window.testeHipoteseAtivo) {
                 btnFinalizar.disabled = false;
                 btnFinalizar.innerText = "Solicitar Aprovação";
-                btnFinalizar.className = "w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
+                btnFinalizar.className = "w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-sm uppercase text-sm mt-4 transition-colors cursor-pointer";
                 
                 btnFinalizar.onclick = (e) => {
                     e.preventDefault();
@@ -751,7 +751,7 @@ async function executarCalculoSeguro() {
             } else {
                 btnFinalizar.disabled = false;
                 btnFinalizar.innerText = "Gerar Orçamento";
-                btnFinalizar.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
+                btnFinalizar.className = "w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-sm uppercase text-sm mt-4 transition-colors cursor-pointer";
                 
                 btnFinalizar.onclick = async () => {
                     const txtAnterior = btnFinalizar.innerText;
@@ -910,7 +910,7 @@ window.popularTabela = function(lista, corpo, container) {
                     <td class="border border-slate-200 px-4 py-2 text-center estoque-col text-sm font-bold">
                         ${itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0}
                     </td>
-                    <td class="border border-slate-200 px-3 py-2 text-center font-bold text-blue-700 preco-avista-col">
+                    <td class="border border-slate-200 px-3 py-2 text-center font-bold text-slate-900 preco-avista-col">
                         <i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>
                     </td>
                     <td class="border border-slate-200 px-3 py-2 text-center font-bold text-slate-600 preco-parcelado-col">
@@ -1093,10 +1093,10 @@ window.mostrarNomeArquivo = function(input) {
         } else {
             nomeVisual.innerText = `${input.files.length} arquivos selecionados`;
         }
-        nomeVisual.classList.replace('text-slate-500', 'text-orange-600');
+        nomeVisual.classList.replace('text-slate-500', 'text-blue-700');
     } else {
         nomeVisual.innerText = 'Clique para anexar arquivo(s)';
-        nomeVisual.classList.replace('text-orange-600', 'text-slate-500');
+        nomeVisual.classList.replace('text-blue-700', 'text-slate-500');
     }
 };
 
@@ -1204,7 +1204,7 @@ function renderizarMinhasSolicitacoes(lista) {
         let infoGestor = '';
         if (window.roleUsuario === 'gestor') {
             const nomeVendedor = req.vendedor_email ? req.vendedor_email.split('@')[0] : 'Desconhecido';
-            infoGestor = `<div class="text-[10px] text-blue-600 font-black mt-1 uppercase truncate w-24 sm:w-auto" title="${req.vendedor_email}">${nomeVendedor}</div>`;
+            infoGestor = `<div class="text-[10px] text-slate-500 font-medium mt-1 uppercase truncate w-24 sm:w-auto" title="${req.vendedor_email}">${nomeVendedor}</div>`;
         }
 
         let statusHtml = '';
@@ -1212,17 +1212,17 @@ function renderizarMinhasSolicitacoes(lista) {
         let botaoPrincipal = '';
 
         if (req.status === 'aprovado') {
-            statusHtml = `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Aprovado</span>`;
-            botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
+            statusHtml = `<span class="text-green-700 text-[10px] font-medium uppercase tracking-wide">● Aprovado</span>`;
+            botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
         } else if (req.status === 'reprovado') {
-            statusHtml = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Reprovado</span>`;
-            botaoPrincipal = `<button onclick="verMotivoReprovacao('${req.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-search mr-1"></i> Ver Motivo</button>`;
+            statusHtml = `<span class="text-red-600 text-[10px] font-medium uppercase tracking-wide">● Reprovado</span>`;
+            botaoPrincipal = `<button onclick="verMotivoReprovacao('${req.id}')" class="border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-search mr-1"></i> Ver Motivo</button>`;
         } else {
-            statusHtml = `<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Pendente</span>`;
+            statusHtml = `<span class="text-slate-400 text-[10px] font-medium uppercase tracking-wide">● Pendente</span>`;
             botaoPrincipal = `<span class="text-xs text-slate-400 italic whitespace-nowrap">Aguardando...</span>`;
         }
 
-        const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
+        const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
 
         acoesHtml = `
             <div class="flex items-center justify-end gap-3">
@@ -1255,10 +1255,10 @@ function renderizarMinhasSolicitacoes(lista) {
             <td class="p-4 text-center font-bold text-slate-700 font-mono text-xs">${codigoExibicao}</td>
             <td class="p-4 text-center font-bold text-slate-700">${qtdItens} un</td>
             <td class="p-4 text-right">
-                <div class="font-black text-indigo-700">${strAVista} <span class="text-[9px] font-bold text-slate-400 uppercase">À Vista</span></div>
-                <div class="font-black text-slate-600 mt-1">${strParcelado} <span class="text-[9px] font-bold text-slate-400 uppercase">10x</span></div>
+                <div class="font-medium text-slate-900">${strAVista} <span class="text-[9px] font-medium text-slate-400 uppercase">À Vista</span></div>
+                <div class="font-medium text-slate-500 mt-1">${strParcelado} <span class="text-[9px] font-medium text-slate-400 uppercase">10x</span></div>
             </td>
-            <td class="p-4 text-center font-bold text-orange-600">${parseFloat(req.desconto_solicitado).toFixed(2)}%</td>
+            <td class="p-4 text-center font-medium text-slate-600">${parseFloat(req.desconto_solicitado).toFixed(0)}%</td>
             <td class="p-4 text-center">${statusHtml}</td>
             <td class="p-4 text-right">${acoesHtml}</td>
         `;
@@ -1399,7 +1399,7 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         if (statusDefinido === 'pendente' && btnEnviar) {
             btnEnviar.innerText = "Enviar para Aprovação";
             btnEnviar.disabled = false;
-            btnEnviar.classList.replace('bg-slate-400', 'bg-orange-500');
+            btnEnviar.classList.replace('bg-slate-400', 'bg-blue-700');
         }
     }
 };
@@ -1550,7 +1550,7 @@ window.carregarCatalogosDoBanco = async function() {
 
         if (!catalogos || catalogos.length === 0) {
             container.innerHTML = `
-                <div class="col-span-full flex flex-col justify-center items-center py-20 bg-white rounded-xl shadow-sm border border-slate-200">
+                <div class="col-span-full flex flex-col justify-center items-center py-20 bg-white rounded-sm border border-slate-200">
                     <i class="fas fa-folder-open text-5xl text-slate-300 mb-4"></i>
                     <p class="text-slate-500 font-bold">Nenhum catálogo disponível no momento.</p>
                 </div>`;
@@ -1565,13 +1565,13 @@ window.carregarCatalogosDoBanco = async function() {
 
             html += `
                 <a href="${cat.url_pdf}" target="_blank" rel="noopener noreferrer" 
-                   class="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-400 transition-all p-5 flex flex-col group h-full">
+                   class="bg-white rounded-sm border border-slate-200 hover:border-blue-400 transition-all p-5 flex flex-col group h-full">
                     <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
                         <img src="${caminhoLogo}" alt="${cat.marca}" onerror="this.src='./img/logo-site.jpg'" class="h-6 object-contain max-w-[100px]">
                         <i class="fas fa-external-link-alt text-slate-300 group-hover:text-blue-500 transition-colors"></i>
                     </div>
                     <div class="flex-1">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">${cat.marca}</span>
+                        <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">${cat.marca}</span>
                         <h3 class="font-bold text-slate-800 text-sm mt-1 leading-tight group-hover:text-blue-700 transition-colors">${cat.titulo}</h3>
                     </div>
                     <div class="mt-5 pt-3 flex items-center justify-between text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors">
@@ -1590,7 +1590,7 @@ window.carregarCatalogosDoBanco = async function() {
     } catch (err) {
         loading.classList.add('hidden');
         console.error("Erro ao carregar catálogos:", err);
-        container.innerHTML = `<div class="col-span-full p-4 bg-red-50 text-red-700 rounded-lg text-center font-bold">Erro ao buscar catálogos. Tente novamente.</div>`;
+        container.innerHTML = `<div class="col-span-full p-4 bg-red-50 text-red-700 rounded-sm text-center font-medium">Erro ao buscar catálogos. Tente novamente.</div>`;
     }
 };
 
