@@ -795,6 +795,51 @@ function renderizarResumoVazio() {
 }
 
 // ==========================================
+// ORDENAÇÃO DE GRUPOS DA TABELA
+// ==========================================
+function chaveOrdemGrupo(grupo) {
+    const nome = (grupo.isFamilia
+        ? grupo.nome
+        : (grupo.itens[0]?.produto || grupo.itens[0]?.DESCRIÇÃO || '')
+    ).toUpperCase();
+
+    // Extrai o primeiro número seguido de "K" como capacidade em BTU (ex: "18K" → 18)
+    const btuMatch = nome.match(/(\d+)\s*K/);
+    const btu = btuMatch ? parseInt(btuMatch[1]) : 0;
+
+    // --- Condensadoras: prioridade por número de splits ---
+    if (/COND/.test(nome)) {
+        let splits = 1;
+        if (/HEXA/.test(nome))         splits = 6;
+        else if (/PENTA/.test(nome))   splits = 5;
+        else if (/QUADRI/.test(nome))  splits = 4;
+        else if (/TRI/.test(nome))     splits = 3;
+        else if (/BI/.test(nome))      splits = 2;
+        return splits * 10000 + btu;
+    }
+
+    // --- Evaporadoras e acessórios: prioridade por tipo de produto ---
+    let tipoPrio;
+    if      (/\bHW\b/.test(nome) && !/BLACK/.test(nome) && !/PLACA|INTERFACE/.test(nome))         tipoPrio = 1;  // HW normal
+    else if (/BLACK|ARTCOOL/.test(nome))                                                           tipoPrio = 2;  // HW Black / Artcool
+    else if (/K7.*\b1\b.*VIA|\b1\b.*VIA.*K7/.test(nome) && !/GRELHA/.test(nome))                  tipoPrio = 3;  // K7 1 via (evap)
+    else if (/GRELHA.*K7.*\b1\b|K7.*\b1\b.*GRELHA/.test(nome))                                   tipoPrio = 4;  // Grelha K7 1 via
+    else if (/K7.*4.*VIAS|4.*VIAS.*K7/.test(nome) && !/GRELHA/.test(nome))                       tipoPrio = 5;  // K7 4 vias (evap)
+    else if (/GRELHA.*K7.*4|K7.*4.*GRELHA/.test(nome))                                           tipoPrio = 6;  // Grelha K7 4 vias
+    else if (/BUILT.?IN/.test(nome))                                                               tipoPrio = 7;  // Built-in
+    else if (/PISO/.test(nome))                                                                    tipoPrio = 8;  // Piso
+    else if (/PAINEL|GALLERY/.test(nome))                                                          tipoPrio = 9;  // Painel/Gallery
+    else if (/K7.*360/.test(nome))                                                                 tipoPrio = 10; // K7 360
+    else if (/GRELHA/.test(nome))                                                                  tipoPrio = 11; // Grelhas genéricas
+    else if (/CONTROLE|KIT.?WI|WIFI|PLACA|INTERFACE/.test(nome))                                  tipoPrio = 12; // Acessórios
+    else                                                                                            tipoPrio = 13; // Resto
+
+    // Itens sem família ficam no final do seu tipo
+    const semFamilia = grupo.isFamilia ? 0 : 100000;
+    return semFamilia + tipoPrio * 10000 + btu;
+}
+
+// ==========================================
 // RENDERIZAÇÃO DA TABELA
 // ==========================================
 window.popularTabela = function(lista, corpo, container) {
@@ -821,6 +866,10 @@ window.popularTabela = function(lista, corpo, container) {
                 gruposParaRenderizar.push({ isFamilia: false, itens: [item] });
             }
         });
+
+        // Ordena grupos: condensadoras por n° de splits → BTU;
+        // evaporadoras por tipo (HW → Black → K7 1V → grelha 1V → K7 4V → grelha 4V → outros) → BTU
+        gruposParaRenderizar.sort((a, b) => chaveOrdemGrupo(a) - chaveOrdemGrupo(b));
 
         const skusParaAtualizarPreco = [];
 
