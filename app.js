@@ -520,12 +520,20 @@ async function executarCalculoSeguro() {
                 if (tipoItem.includes('CONDENSADORA')) totalBtuCond += (quantidade * capacidadeBtu);
                 else if (tipoItem.includes('EVAPORADORA')) totalBtuEvap += (quantidade * capacidadeBtu);
 
+                const estoqueItem = parseInt(produtoData.estoque || produtoData.ESTOQUE || 0);
+                const agendadoItem = agendamentoMap[String(skuBuscado).trim()];
+                let disponibilidadeItem;
+                if (estoqueItem > 0)   disponibilidadeItem = { texto: 'Pronta Entrega', cor: 'green' };
+                else if (agendadoItem) disponibilidadeItem = { texto: agendadoItem.quinzena, cor: 'amber' };
+                else                   disponibilidadeItem = { texto: 'A Confirmar', cor: 'red' };
+
                 itensMapeados.push({
                     codigo: skuBuscado,
                     descricao: produtoData.produto || produtoData.DESCRIÇÃO || "Item",
-                    modelo: produtoData["codfab"] || produtoData["codigo fabricante"] || produtoData.MODELO || "-", 
+                    modelo: produtoData["codfab"] || produtoData["codigo fabricante"] || produtoData.MODELO || "-",
                     qtd: quantidade,
-                    estoque: produtoData.estoque || produtoData.ESTOQUE || 0
+                    estoque: estoqueItem,
+                    disponibilidade: disponibilidadeItem
                 });
             }
         }
@@ -850,8 +858,8 @@ window.popularTabela = function(lista, corpo, container) {
                     <td class="border border-slate-200 px-4 py-2 font-bold text-slate-900 desc-col text-md">
                         ${nomeExibicaoTabela}
                     </td>
-                    <td class="border border-slate-200 px-4 py-2 text-center estoque-col">
-                        ${badgeEstoque(skuPrincipal, itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0)}
+                    <td class="border border-slate-200 px-4 py-2 text-center estoque-col text-sm font-bold">
+                        ${itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0}
                     </td>
                     <td class="border border-slate-200 px-3 py-2 text-center font-bold text-blue-700 preco-avista-col">
                         <i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>
@@ -912,7 +920,7 @@ window.atualizarLinhaDaTabela = function(selectElement, idLinha) {
     if (produtoData) {
         const inputQtd = linha.querySelector('.qtd-input');
         inputQtd.setAttribute('data-sku', skuSelecionado);
-        linha.querySelector('.estoque-col').innerHTML = badgeEstoque(skuSelecionado, produtoData.estoque || produtoData.ESTOQUE || 0);
+        linha.querySelector('.estoque-col').innerText = `${produtoData.estoque || produtoData.ESTOQUE || 0}`;
         linha.querySelector('.preco-col').innerHTML = '<i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>';
         
         buscarPrecosBaseTabela([skuSelecionado]); 

@@ -155,17 +155,25 @@
 
             const corpoTabela = document.getElementById('tabela-corpo');
             dados.itens.forEach(item => {
-                const emEstoque = parseInt(item.estoque) > 0;
-                const statusTexto = emEstoque ? "Pronta Entrega" : "A confirmar";
-                const statusCor = emEstoque ? "text-green-600" : "text-red-500";
-                
+                // Compatibilidade com snapshots antigos (sem campo disponibilidade)
+                const disp = item.disponibilidade || (parseInt(item.estoque) > 0
+                    ? { texto: 'Pronta Entrega', cor: 'green' }
+                    : { texto: 'A Confirmar', cor: 'red' });
+
+                const corMap = {
+                    green: 'text-green-600',
+                    amber: 'text-amber-600',
+                    red:   'text-red-500'
+                };
+                const statusCor = corMap[disp.cor] || 'text-red-500';
+
                 corpoTabela.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="text-center font-bold text-[12px] text-slate-800">${item.codigo}</td>
                         <td class="font-bold text-slate-800 text-[12px]">${item.descricao}</td>
                         <td class="text-center text-slate-800 font-bold text-[12px]">${item.modelo}</td>
                         <td class="text-center font-bold text-slate-800">${item.qtd}</td>
-                        <td class="text-center font-bold text-[10px] uppercase ${statusCor}">${statusTexto}</td>
+                        <td class="text-center font-bold text-[10px] uppercase ${statusCor}">${disp.texto}</td>
                         <td class="text-center font-bold text-slate-800 text-[13px]">
                             <div class="text-blue-700">${formataMoeda(item.valorUnitarioParcelado)}</div>
                         </td>
