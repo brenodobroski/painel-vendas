@@ -820,7 +820,7 @@ function chaveOrdemGrupo(grupo) {
 
     // --- Evaporadoras e acessórios: prioridade por tipo de produto ---
     let tipoPrio;
-    if      (/\bHW\b/.test(nome) && !/BLACK/.test(nome) && !/PLACA|INTERFACE/.test(nome))         tipoPrio = 1;  // HW normal
+    if      (/\bHW\b/.test(nome) && !/BLACK|ARTCOOL/.test(nome) && !/PLACA|INTERFACE/.test(nome))  tipoPrio = 1;  // HW normal
     else if (/BLACK|ARTCOOL/.test(nome))                                                           tipoPrio = 2;  // HW Black / Artcool
     else if (/K7.*\b1\b.*VIA|\b1\b.*VIA.*K7/.test(nome) && !/GRELHA/.test(nome))                  tipoPrio = 3;  // K7 1 via (evap)
     else if (/GRELHA.*K7.*\b1\b|K7.*\b1\b.*GRELHA/.test(nome))                                   tipoPrio = 4;  // Grelha K7 1 via
