@@ -66,7 +66,7 @@
             <div class="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-950 overflow-hidden">
                 <div class="flex items-center flex-shrink-0">
                     <img class="w-8 rounded-lg" src="./img/logo-site.jpg" alt="Logo">
-                    <span class="logo-text font-bold text-lg text-white tracking-tight ml-3 whitespace-nowrap">Climario <span class="text-slate-500">Multi</span></span>
+                    <span class="logo-text font-bold text-lg text-white tracking-tight ml-3 whitespace-nowrap">Climario Multi</span>
                 </div>
                 <button onclick="toggleSidebarDesktop()" class="hidden md:flex text-slate-500 hover:text-white p-1 ml-1">
                     <i id="toggle-icon" class="fas fa-chevron-left"></i>
@@ -76,21 +76,19 @@
                 </button>
             </div>
             
-            <nav class="flex-1 p-3 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
-                <div class="nav-title text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2 whitespace-nowrap">Comercial</div>
-                
-                <button onclick="mudarAba('simulador')" id="btn-aba-simulador" class="w-full flex items-center gap-4 px-3 py-3 rounded-md text-sm font-medium bg-blue-900/40 text-blue-400 transition-colors group">
-                    <i class="fas fa-chart-bar text-lg flex-shrink-0 w-6 text-center"></i>
+            <nav class="flex-1 py-3 space-y-0.5 overflow-y-auto custom-scrollbar overflow-x-hidden">
+                <button onclick="mudarAba('simulador')" id="btn-aba-simulador" class="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-sm font-medium border-l-2 rounded-r-sm transition-colors border-blue-400 bg-slate-800 text-slate-200">
+                    <i class="fas fa-chart-bar flex-shrink-0 w-4 text-center"></i>
                     <span class="nav-text whitespace-nowrap">Novo Orçamento</span>
                 </button>
-                
-                <button onclick="mudarAba('solicitacoes')" id="btn-aba-solicitacoes" class="w-full flex items-center gap-4 px-3 py-3 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors group">
-                    <i class="fas fa-clipboard-list text-lg flex-shrink-0 w-6 text-center"></i>
+
+                <button onclick="mudarAba('solicitacoes')" id="btn-aba-solicitacoes" class="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-2 border-transparent rounded-r-sm transition-colors">
+                    <i class="fas fa-clipboard-list flex-shrink-0 w-4 text-center"></i>
                     <span class="nav-text whitespace-nowrap">Minhas Solicitações</span>
                 </button>
 
-                <button onclick="mudarAba('catalogos')" id="btn-aba-catalogos" class="w-full flex items-center gap-4 px-3 py-3 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors group">
-                    <i class="fas fa-book-open text-lg flex-shrink-0 w-6 text-center"></i>
+                <button onclick="mudarAba('catalogos')" id="btn-aba-catalogos" class="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-2 border-transparent rounded-r-sm transition-colors">
+                    <i class="fas fa-book-open flex-shrink-0 w-4 text-center"></i>
                     <span class="nav-text whitespace-nowrap">Catálogos</span>
                 </button>
             </nav>
@@ -525,12 +523,18 @@
             secoes.forEach(s => {
                 document.getElementById('secao-' + s).classList.add('hidden');
                 const btn = document.getElementById('btn-aba-' + s);
-                if(btn) btn.classList.remove('bg-blue-900/40', 'text-blue-400');
+                if (btn) {
+                    btn.classList.remove('border-blue-400', 'bg-slate-800', 'text-slate-200');
+                    btn.classList.add('border-transparent', 'text-slate-400');
+                }
             });
 
             document.getElementById('secao-' + aba).classList.remove('hidden');
             const btnAtivo = document.getElementById('btn-aba-' + aba);
-            if(btnAtivo) btnAtivo.classList.add('bg-blue-900/40', 'text-blue-400');
+            if (btnAtivo) {
+                btnAtivo.classList.remove('border-transparent', 'text-slate-400');
+                btnAtivo.classList.add('border-blue-400', 'bg-slate-800', 'text-slate-200');
+            }
 
             const titulos = {
                 'simulador': ['Configurador Multi-Split', 'Configure os parâmetros e selecione os itens abaixo.'],
