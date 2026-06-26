@@ -254,9 +254,12 @@
             setTimeout(() => {
                 const elemento = document.getElementById('area-pdf');
 
-                // Calcula altura real do conteúdo e gera PDF de página única
-                const margin = 5; // mm (cada lado)
-                const pdfWidthMm = 297; // largura A4 landscape
+                // Remove sombra antes de capturar — o html2canvas captura a shadow-xl
+                // além do offsetHeight, causando overflow para uma segunda página vazia
+                elemento.classList.remove('shadow-xl');
+
+                const margin = 5;
+                const pdfWidthMm = 297;
                 const availableWidthMm = pdfWidthMm - margin * 2;
                 const pxToMm = availableWidthMm / elemento.offsetWidth;
                 const contentHeightMm = elemento.offsetHeight * pxToMm;
@@ -275,6 +278,7 @@
                 };
 
                 html2pdf().set(opt).from(elemento).save().then(() => {
+                    elemento.classList.add('shadow-xl');
                     wrapper.style.transform = oldTransform;
                     wrapper.style.marginBottom = oldMargin;
                 });
