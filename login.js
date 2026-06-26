@@ -75,9 +75,9 @@ if (loginForm) {
                 return;
             }
 
-            // 5. Redirecionamento Único
-            // Aqui, tanto Admin quanto Vendedor vão para o simulador (index.html)
-            window.location.href = "index.html";
+            // 5. Loading + Redirecionamento
+            if (typeof window.mostrarLoading === 'function') window.mostrarLoading();
+            setTimeout(() => { window.location.href = "index.html"; }, 3000);
 
         } catch (error) {
             console.error("Erro no login:", error.message);
