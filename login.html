@@ -54,30 +54,39 @@
 
     <div class="w-full h-full flex">
 
-        <!-- PAINEL ESQUERDO -->
-        <div class="relative flex-1 flex flex-col justify-between p-10 overflow-hidden"
-             style="background: linear-gradient(150deg, #0a1628 0%, #1a3254 55%, #0f172a 100%);">
+        <!-- PAINEL ESQUERDO — oculto em mobile -->
+        <div class="relative flex-1 overflow-hidden hidden md:block">
+
+            <!-- Ilustração de fundo -->
+            <img src="./img/Ilustra%C3%A7%C3%A3o%20Multi.png" alt=""
+                 class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none">
+
+            <!-- Gradiente topo (para legibilidade do texto) -->
+            <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(10,22,40,0.68) 0%, rgba(10,22,40,0.1) 55%, rgba(10,22,40,0) 100%);"></div>
+
+            <!-- Gradiente rodapé (para o badge) -->
+            <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(10,22,40,0.6) 0%, rgba(10,22,40,0) 30%);"></div>
 
             <!-- Conteúdo -->
-            <div class="relative z-10">
-                <div style="width: 3px; height: 40px; background: #3b82f6; border-radius: 2px; margin-bottom: 1.5rem;"></div>
-                <h2 class="text-3xl font-bold text-slate-100 leading-tight" style="letter-spacing: -0.5px;">
-                    Orçamentos<br><span class="text-blue-400">Multisplit</span>
-                </h2>
-            </div>
+            <div class="relative z-10 h-full flex flex-col justify-between p-10">
+                <div>
+                    <div style="width: 3px; height: 40px; background: #3b82f6; border-radius: 2px; margin-bottom: 1.5rem;"></div>
+                    <h2 class="text-5xl font-bold text-white leading-tight" style="letter-spacing: -1px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                        Orçamentos<br><span class="text-blue-300">Multisplit</span>
+                    </h2>
+                </div>
 
-            <!-- Badge inferior -->
-            <div class="relative z-10">
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded"
-                     style="background: rgba(29,78,216,0.1); border: 0.5px solid rgba(59,130,246,0.2);">
+                <!-- Badge inferior -->
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded w-fit"
+                     style="background: rgba(10,22,40,0.55); backdrop-filter: blur(6px); border: 0.5px solid rgba(255,255,255,0.12);">
                     <div style="width: 6px; height: 6px; background: #22c55e; border-radius: 50%; flex-shrink: 0;"></div>
-                    <span class="text-xs text-slate-400 font-medium">Sistema interno Climario</span>
+                    <span class="text-xs text-slate-300 font-medium">Sistema interno Climario</span>
                 </div>
             </div>
         </div>
 
-        <!-- PAINEL DIREITO -->
-        <div class="flex flex-col justify-between bg-white p-10" style="width: 420px; flex-shrink: 0;">
+        <!-- PAINEL DIREITO — tela cheia em mobile, 420px em desktop -->
+        <div class="flex flex-col justify-between bg-white w-full md:w-[420px] md:flex-shrink-0 p-8 md:p-10">
 
             <div class="flex flex-col justify-center flex-1">
                 <!-- Logo -->
