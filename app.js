@@ -742,7 +742,7 @@ async function executarCalculoSeguro() {
             if (window.testeHipoteseAtivo) {
                 btnFinalizar.disabled = false;
                 btnFinalizar.innerText = "Solicitar Aprovação";
-                btnFinalizar.className = "w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-sm uppercase text-sm mt-4 transition-colors cursor-pointer";
+                btnFinalizar.className = "w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-sm uppercase text-sm mt-4 transition-colors cursor-pointer";
                 
                 btnFinalizar.onclick = (e) => {
                     e.preventDefault();
