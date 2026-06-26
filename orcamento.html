@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçamento Comercial - Climario</title>
+    <link rel="icon" type="image/jpg" href="./img/logo-site.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        body { font-family: 'Inter', sans-serif; animation: pageFadeIn 0.25s ease-out; }
         .table-print { border-collapse: collapse; width: 100%; }
         .table-print th, .table-print td { border: 1px solid #e2e8f0; padding: 12px 8px;}
         .table-print th { background-color: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
@@ -155,17 +157,25 @@
 
             const corpoTabela = document.getElementById('tabela-corpo');
             dados.itens.forEach(item => {
-                const emEstoque = parseInt(item.estoque) > 0;
-                const statusTexto = emEstoque ? "Pronta Entrega" : "A confirmar";
-                const statusCor = emEstoque ? "text-green-600" : "text-red-500";
-                
+                // Compatibilidade com snapshots antigos (sem campo disponibilidade)
+                const disp = item.disponibilidade || (parseInt(item.estoque) > 0
+                    ? { texto: 'Pronta Entrega', cor: 'green' }
+                    : { texto: 'A Confirmar', cor: 'red' });
+
+                const corMap = {
+                    green: 'text-green-600',
+                    amber: 'text-amber-600',
+                    red:   'text-red-500'
+                };
+                const statusCor = corMap[disp.cor] || 'text-red-500';
+
                 corpoTabela.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="text-center font-bold text-[12px] text-slate-800">${item.codigo}</td>
                         <td class="font-bold text-slate-800 text-[12px]">${item.descricao}</td>
                         <td class="text-center text-slate-800 font-bold text-[12px]">${item.modelo}</td>
                         <td class="text-center font-bold text-slate-800">${item.qtd}</td>
-                        <td class="text-center font-bold text-[10px] uppercase ${statusCor}">${statusTexto}</td>
+                        <td class="text-center font-bold text-[10px] uppercase ${statusCor}">${disp.texto}</td>
                         <td class="text-center font-bold text-slate-800 text-[13px]">
                             <div class="text-blue-700">${formataMoeda(item.valorUnitarioParcelado)}</div>
                         </td>
@@ -245,21 +255,32 @@
             // Aguarda 100ms para a tela redesenhar em tamanho original
             setTimeout(() => {
                 const elemento = document.getElementById('area-pdf');
+                elemento.classList.remove('shadow-xl');
+
+                // overflow:hidden garante que o html2canvas capture exatamente
+                // offsetWidth × offsetHeight, sem pixels extras que causam página 2
+                elemento.style.overflow = 'hidden';
+
+                const W = elemento.offsetWidth;
+                const H = elemento.offsetHeight;
+                const pdfWidthMm = 297;
+                const pdfHeightMm = H * (pdfWidthMm / W);
+
                 const opt = {
-                    margin: [5, 5, 5, 5],
-                    filename: `Orcamento_ClimaHub_${codigoOrctoParaDownload}.pdf`,
+                    margin: 0,
+                    filename: `Orcamento_Multi_${codigoOrctoParaDownload}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2, 
+                    html2canvas: {
+                        scale: 2,
                         useCORS: true,
-                        letterRendering: true 
+                        letterRendering: true
                     },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                    pagebreak: { mode: 'avoid-all' }
+                    jsPDF: { unit: 'mm', format: [pdfWidthMm, pdfHeightMm], orientation: 'landscape' },
                 };
 
                 html2pdf().set(opt).from(elemento).save().then(() => {
-                    // Restaura o layout redimensionado para o celular depois que baixar
+                    elemento.style.overflow = '';
+                    elemento.classList.add('shadow-xl');
                     wrapper.style.transform = oldTransform;
                     wrapper.style.marginBottom = oldMargin;
                 });

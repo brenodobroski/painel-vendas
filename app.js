@@ -286,6 +286,47 @@ async function carregarProdutosSupabase(forcarBaixar = false) {
 }
 carregarProdutosSupabase();
 
+// ==========================================
+// AGENDAMENTO DE TRÂNSITO
+// ==========================================
+let agendamentoMap = {};
+
+async function carregarAgendamento() {
+    try {
+        const { data, error } = await supabase
+            .from('agendamento_transito')
+            .select('sku, quantidade, quinzena');
+
+        if (error) throw error;
+
+        agendamentoMap = {};
+        (data || []).forEach(item => {
+            agendamentoMap[String(item.sku).trim()] = {
+                quantidade: item.quantidade,
+                quinzena:   item.quinzena
+            };
+        });
+
+        console.log(`🚚 ${Object.keys(agendamentoMap).length} SKUs em trânsito carregados.`);
+    } catch (err) {
+        console.error("Erro ao carregar agendamento:", err);
+    }
+}
+carregarAgendamento();
+
+// Retorna o HTML do badge de disponibilidade de um SKU
+function badgeEstoque(sku, estoqueQtd) {
+    const qtd = parseInt(estoqueQtd) || 0;
+    if (qtd > 0) {
+        return `<span class="inline-block text-green-700 text-[10px] font-medium whitespace-nowrap">● Pronta Entrega</span>`;
+    }
+    const agendado = agendamentoMap[String(sku).trim()];
+    if (agendado) {
+        return `<span class="inline-block text-amber-700 text-[10px] font-medium whitespace-nowrap">● ${agendado.quinzena}</span>`;
+    }
+    return `<span class="inline-block text-slate-400 text-[10px] italic whitespace-nowrap">A confirmar</span>`;
+}
+
 window.forcarAtualizacaoSistema = function() {
     localStorage.removeItem('climario_versao_catalogo');
     window.location.reload(); 
@@ -294,174 +335,35 @@ window.forcarAtualizacaoSistema = function() {
 // ==========================================
 // FAMILIAS E REGRAS
 // ==========================================
-const familiasConfig = {
-    "COND BI SAMSUNG 18K": ["29753"],
-    "COND TRI SAMSUNG 24K": ["29754"],
-    "COND QUADRI SAMSUNG 28K": ["29755"],
-    "COND PENTA SAMSUNG 34K": ["42326", "29764"], 
-    "COND PENTA SAMSUNG 48K": ["42325", "29765"],
-    "EVAP HW SAMSUNG 7K": ["33872", "29756"], 
-    "EVAP HW  SAMSUNG 9K": ["34076", "29752"], 
-    "EVAP HW SAMSUNG 12K": ["33806", "34445"], 
-    "EVAP HW SAMSUNG 18K": ["34078"],
-    "EVAP HW SAMSUNG 24K": ["34077", "29760"], 
-    "EVAP HW SAMSUNG BLACK 9K": ["44612"],
-    "EVAP HW SAMSUNG BLACK 12K": ["44613"],
-    "EVAP HW SAMSUNG BLACK 18K": ["44614"],
-    "EVAP HW SAMSUNG BLACK 24K": ["44615"],
-    "EVAP K7 4 VIAS SAMSUNG  9K": ["41851"],
-    "EVAP K7 4 VIAS SAMSUNG 12K": ["41797"],
-    "EVAP K7 4 VIAS SAMSUNG 18K": ["41796"],
-    "GRELHA K7 4 VIAS SAMSUNG": ["17105"],
-    "EVAP K7 1 VIA SAMSUNG 9K": ["44610", "29761", "47977"],
-    "EVAP K7 1 VIA SAMSUNG 12K": ["43406","44611", "29762"],
-    "EVAP K7 1 VIA SAMSUNG 18K": ["47978", "29763", "42647"],
-    "EVAP K7 1 VIA SAMSUNG 24K": ["43408", "42328"],
-    "SAMSUNG GRELHA K7 1 VIA 9 A 12K": ["14407"], 
-    "SAMSUNG GRELHA K7 1 VIA 18 A 24K": ["16506"],
-    "SAMSUNG CONTROLE SEM FIO": ["14412"],
-    "SAMSUNG KIT WI-FI": ["21843"],
-    "SAMSUNG PLACA DE INTERFACE HW": ["29767"],
-    // LG
-    "COND BI LG 18K": ["43180", "29973", "15468"],
-    "COND BI LG 21K FRIO": ["48758"],
-    "COND TRI LG 21K": ["43182", "30310"],
-    "COND TRI LG 24K": ["43632", "24415"],
-    "COND TRI LG 24K FRIO": ["48761"],
-    "COND QUADRI LG 30K": ["43631", "15467"],
-    "COND QUADRI LG 30K FRIO": ["48762"],
-    "COND QUADRI LG 36K FRIO": ["48764"],
-    "COND PENTA LG 36K": ["43679", "15472"],
-    "COND PENTA LG 48K": ["43680", "23774"],
-    "COND PENTA LG 48K FRIO": ["48765"],
-    "COND PENTA LG 54K FRIO": ["48763"],
-    "EVAP HW LG 7K": ["43638", "32215"],
-    "EVAP HW LG 9K": ["43224", "15466","12497"],
-    "EVAP HW LG 12K": ["43681", "32246"],
-    "EVAP HW LG 18K": ["43226", "32260"],
-    "EVAP HW LG 24K": ["43227", "32267"],
-    "EVAP HW ARTCOOL LG 7K": ["32251"],
-    "EVAP HW ARTCOOL LG 9K": ["32214","14512"],
-    "EVAP HW ARTCOOL LG 12K": ["32208"],
-    "EVAP HW ARTCOOL LG 18K": ["34399"],
-    "EVAP HW ARTCOOL LG 24K": ["35667"],
-    "EVAP PAINEL GALLERY LG  9K": ["20789"],
-    "EVAP PAINEL GALLERY LG  12K": ["20788"],
-    "EVAP K7 4 VIAS LG  9K": ["18517"],
-    "EVAP K7 4 VIAS LG  12K": ["17465"],
-    "EVAP K7 4 VIAS LG 18K": ["49980"],
-    "EVAP K7 4 VIAS LG 24K": ["49981", "43244"],
-    "EVAP K7 360 LG 36K": ["50925"],
-    "GRELHA K7 4 VIAS LG 9 A 12K": ["30405"],
-    "GRELHA K7 4 VIAS LG 18 A 24K": ["42443"],
-    "EVAP K7 1 VIA LG 7K": ["48445"],
-    "EVAP K7 1 VIA LG 9K": ["17591"],
-    "EVAP K7 1 VIA LG 12K": ["17590"],
-    "EVAP K7 1 VIA LG 18K": ["23773"],
-    "EVAP K7 1 VIA LG 24K": ["30327"],
-    // LG BI
-    "LG BI 16K FRIO": ["33175"],
-    "LG HW 9K FRIO": ["33176"],
-    "LG HW 12K FRIO": ["33177"],
-    // DAIKIN
-    "COND BI DAIKIN 18K": ["24540"],
-    "COND TRI DAIKIN 18K": ["26426"],
-    "COND TRI DAIKIN 24K": ["24542"],
-    "COND QUADRI DAIKIN 28K": ["24544"],
-    "COND QUADRI DAIKIN 34K": ["24546"],
-    "COND PENTA DAIKIN 38K": ["5836"],
-    "EVAP HW DAIKIN 9K": ["30312"],
-    "EVAP HW DAIKIN 12K": ["26429"],
-    "EVAP HW DAIKIN 18K": ["23647"],
-    "EVAP HW DAIKIN 20K": ["33390"],
-    "EVAP HW DAIKIN 24K": ["27177"],
-    "EVAP K7 4 VIAS DAIKIN 9K": ["5844"],
-    "EVAP K7 4 VIAS DAIKIN 12K": ["5845"],
-    "EVAP K7 4 VIAS DAIKIN 17K": ["5846"],
-    "EVAP K7 4 VIAS DAIKIN 20K": ["5847"],
-    "GRELHA K7 4 VIA DAIKIN ": ["7443"],
-    "EVAP K7 1 VIA DAIKIN 9K": ["10178"],
-    "EVAP K7 1 VIA DAIKIN 12K": ["10179"],
-    "EVAP K7 1 VIA DAIKIN 18K": ["10180"],
-    "GRELHA K7 1 VIA DAIKIN ": ["10181"],
-    "EVAP BUILT IN DAIKIN 9K": ["5840"],
-    "EVAP BUILT IN DAIKIN 12K": ["5841"],
-    "EVAP BUILT IN DAIKIN 18K": ["5842"],
-    "EVAPBUILT IN DAIKIN 21K": ["5843"],
-    "DAIKIN CONTROLE SEM FIO": ["5849"],
-    // DAIKIN BI - R32
-    "COND BI DAIKIN  18K R32": ["30456"],
-    "EVAP HW DAIKIN 9K R32 - BI": ["30457"],
-    "EVAP HW DAIKIN 12K R32 - BI": ["30458"],
-    // DAIKIN TRI - R32
-    "COND TRI DAIKIN 18K R32 FRIO": ["33087"],
-    "EVAP HW DAIKIN 9K R32 - TRI": ["33085"],
-    "EVAP HW DAIKIN 12K R32 - TRI": ["33086"],
-    // MIDEA
-    "COND BI MIDEA 18K": ["35269"],
-    "COND TRI MIDEA 27K": ["33117"],
-    "COND QUADRI MIDEA 36K": ["33118"],
-    "COND PENTA MIDEA 42K": ["32510"],
-    "EVAP HW MIDEA 9K": ["48165", "33250"],
-    "EVAP HW MIDEA 12K": ["33251", "48171"],
-    "EVAP HW  MIDEA 18K": ["48721", "35699"],
-    "EVAP HW MIDEA 24K": ["35700", "48173"],
-    "EVAP HW MIDEA BLACK 9K": ["33988"],
-    "EVAP HW MIDEA BLACK 12K": ["33984"],
-    "EVAP HW MIDEA BLACK 18K": ["33985"],
-    "EVAP HW MIDEA BLACK 24K": ["33986"],
-    "EVAP K7 1 VIA MIDEA 12K": ["35850"],
-    "EVAP K7 1 VIA MIDEA 18K": ["35852"],
-    "GRELHA K7 1 VIA MIDEA 12K": ["35857"],
-    "GRELHA K7 1 VIA MIDEA 18K": ["35858"],
-    "EVAP BUILT IN MIDEA 9K": ["22093"],
-    "EVAP BUILT IN MIDEA 12K": ["22094"],
-    // ELGIN
-    "COND BI ELGIN 18K": ["41232"],
-    "COND TRI ELGIN 27K": ["41235"],
-    "EVAP HW ELGIN 9K": ["41230"],
-    "EVAP HW ELGIN 12K": ["41231"],
-    "EVAP HW ELGIN 18K": ["48623"],
-    // GREE
-    "COND BI GREE 18K": ["34545"],
-    "COND TRI GREE 24K": ["34515"],
-    "COND TRI GREE 30K": ["34501"],
-    "COND QUADRI GREE 36K": ["34502"],
-    "COND PENTA GREE 42K": ["34518"],
-    "COND PENTA GREE 48K": ["34519"],
-    "EVAP HW GREE 9K": ["34541"],
-    "EVAP HW GREE 12K": ["34543"],
-    "EVAP HW GREE 18K": ["34540"],
-    "EVAP HW GREE 24K": ["34544"],
-    "EVAP HW GREE DIAMOND 9K": ["41426"],
-    "EVAP HW GREE DIAMOND 12K": ["41423"],
-    "EVAP HW GREE DIAMOND 18K": ["41424"],
-    "EVAP HW GREE DIAMOND 24K": ["41421"],
-    "EVAP K7 1 VIA GREE 9K": ["34513"],
-    "EVAP K7 1 VIA GREE 12K": ["34514"],
-    "EVAP K7 1 VIA GREE 18K": ["34496"],
-    "EVAP K7 1 VIA GREE 24K": ["34492"],
-    "GRELHA K7 1 VIA GREE": ["34499"],
-    //FUJITSU
-    "COND BI FUJITSU 18K": ["10548"],
-    "COND TRI FUJITSU 18K": ["10549"],
-    "COND TRI FUJITSU 24K": ["10555"],
-    "COND QUADRI FUJITSU 30K": ["10556"],
-    "COND QUADRI FUJITSU 36K": ["10557"],
-    "COND HEXA FUJITSU 45K": ["10561"],
-    "EVAP HW FUJITSU 7K": ["10581"],
-    "EVAP HW FUJITSU 9K": ["10567"],
-    "EVAP HW FUJITSU 12K": ["10571"],
-    "EVAP HW FUJITSU 18K": ["10582"],
-    "EVAP HW FUJITSU 24K": ["10562"],
-    "EVAP PISO FUJITSU 12K": ["7034"],
-    "EVAP K7 4 VIAS FUJITSU 9K": ["10576"],
-    "EVAP K7 4 VIAS FUJITSU 12K": ["10577"],
-    "EVAP K7 4 VIAS FUJITSU 18K": ["10578"],
-    "GRELHA K7 4 VIAS FUJITSU": ["10579"],
-    "EVAP BUILT IN FUJITSU 12K": ["10564"],
-    "EVAP BUILT IN FUJITSU 18K": ["10565"]
-};
+let familiasConfig = {};
+let _promiseFamilias = null;
+
+async function carregarFamilias() {
+    try {
+        const { data, error } = await supabase
+            .from('familias_sku')
+            .select('nome, skus')
+            .order('nome');
+
+        if (error) throw error;
+
+        familiasConfig = {};
+        (data || []).forEach(f => {
+            familiasConfig[f.nome] = (f.skus || []).map(String);
+        });
+
+        console.log(`✅ ${Object.keys(familiasConfig).length} famílias carregadas do banco.`);
+    } catch (err) {
+        console.error("Erro ao carregar famílias:", err);
+    }
+}
+
+// Garante que famílias estejam prontas antes de renderizar a tabela
+function garantirFamilias() {
+    if (!_promiseFamilias) _promiseFamilias = carregarFamilias();
+    return _promiseFamilias;
+}
+garantirFamilias(); // kick-off na inicialização
 
 const regrasAcessorios = {
     "41851": ["17105" , "14412"],
@@ -618,12 +520,20 @@ async function executarCalculoSeguro() {
                 if (tipoItem.includes('CONDENSADORA')) totalBtuCond += (quantidade * capacidadeBtu);
                 else if (tipoItem.includes('EVAPORADORA')) totalBtuEvap += (quantidade * capacidadeBtu);
 
+                const estoqueItem = parseInt(produtoData.estoque || produtoData.ESTOQUE || 0);
+                const agendadoItem = agendamentoMap[String(skuBuscado).trim()];
+                let disponibilidadeItem;
+                if (estoqueItem > 0)   disponibilidadeItem = { texto: 'Pronta Entrega', cor: 'green' };
+                else if (agendadoItem) disponibilidadeItem = { texto: agendadoItem.quinzena, cor: 'amber' };
+                else                   disponibilidadeItem = { texto: 'A Confirmar', cor: 'red' };
+
                 itensMapeados.push({
                     codigo: skuBuscado,
                     descricao: produtoData.produto || produtoData.DESCRIÇÃO || "Item",
-                    modelo: produtoData["codfab"] || produtoData["codigo fabricante"] || produtoData.MODELO || "-", 
+                    modelo: produtoData["codfab"] || produtoData["codigo fabricante"] || produtoData.MODELO || "-",
                     qtd: quantidade,
-                    estoque: produtoData.estoque || produtoData.ESTOQUE || 0
+                    estoque: estoqueItem,
+                    disponibilidade: disponibilidadeItem
                 });
             }
         }
@@ -722,32 +632,31 @@ async function executarCalculoSeguro() {
         const subtotalParcelado = Math.round((dadosAPI.totalBrutoParcelado || 0) * 100) / 100;
 
         const subtotalComDesconto = Math.round((dadosAPI.totalBruto || 0) * 100) / 100;
-        let valorFrete = subtotalParcelado * (percentualFrete / 100);
-        valorFrete = Math.round(valorFrete * 100) / 100;
-       
-        let totalFinalAVista = subtotalAVista + valorFrete;
-        let totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
+
+        // Frete calculado separadamente para cada modalidade
+        let freteAVista    = Math.round(subtotalAVista    * (percentualFrete / 100) * 100) / 100;
+        let freteParcelado = Math.round(subtotalParcelado * (percentualFrete / 100) * 100) / 100;
+
+        let totalFinalAVista    = Math.round((subtotalAVista    + freteAVista)    * 100) / 100;
+        let totalFinalParcelado = Math.round((subtotalParcelado + freteParcelado) * 100) / 100;
+
+        // valorFrete exibido na tabela usa o parcelado (itens são exibidos em parcelado)
+        let valorFrete = freteParcelado;
 
         if (window.testeHipoteseAtivo) {
             const inputEvidencia = document.getElementById('input-evidencia');
             const tipoAlvo = document.getElementById('tipo-alvo-hipotese')?.value;
             const valorEvidenciaBruto = parseFloat(inputEvidencia?.value);
-            
+
             if (valorEvidenciaBruto > 0) {
                 if (tipoAlvo === 'avista') {
-                    // Calcula a diferença entre o sistema e o que o vendedor pediu
                     const diff = Math.abs(totalFinalAVista - valorEvidenciaBruto);
-                    
-                    // CORREÇÃO: Aumentamos a tolerância para até R$ 5,00 para absorver os arredondamentos dos novos markups
                     if (diff > 0 && diff <= 5.00) {
                         totalFinalAVista = valorEvidenciaBruto;
-                        // Recalcula o parcelado já com o valor exato ajustado
                         totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
                     }
                 } else if (tipoAlvo === 'parcelado') {
                     const diff = Math.abs(totalFinalParcelado - valorEvidenciaBruto);
-                    
-                    // CORREÇÃO: Aumentamos a tolerância para até R$ 5,00 para absorver os arredondamentos dos novos markups
                     if (diff > 0 && diff <= 5.00) {
                         totalFinalParcelado = valorEvidenciaBruto;
                         totalFinalAVista = Math.round((totalFinalParcelado / 1.05) * 100) / 100;
@@ -832,7 +741,7 @@ async function executarCalculoSeguro() {
             if (window.testeHipoteseAtivo) {
                 btnFinalizar.disabled = false;
                 btnFinalizar.innerText = "Solicitar Aprovação";
-                btnFinalizar.className = "w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
+                btnFinalizar.className = "w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-sm uppercase text-sm mt-4 transition-colors cursor-pointer";
                 
                 btnFinalizar.onclick = (e) => {
                     e.preventDefault();
@@ -841,7 +750,7 @@ async function executarCalculoSeguro() {
             } else {
                 btnFinalizar.disabled = false;
                 btnFinalizar.innerText = "Gerar Orçamento";
-                btnFinalizar.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded uppercase text-sm mt-4 transition-colors shadow-sm cursor-pointer";
+                btnFinalizar.className = "w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-sm uppercase text-sm mt-4 transition-colors cursor-pointer";
                 
                 btnFinalizar.onclick = async () => {
                     const txtAnterior = btnFinalizar.innerText;
@@ -885,6 +794,51 @@ function renderizarResumoVazio() {
 }
 
 // ==========================================
+// ORDENAÇÃO DE GRUPOS DA TABELA
+// ==========================================
+function chaveOrdemGrupo(grupo) {
+    const nome = (grupo.isFamilia
+        ? grupo.nome
+        : (grupo.itens[0]?.produto || grupo.itens[0]?.DESCRIÇÃO || '')
+    ).toUpperCase();
+
+    // Extrai o primeiro número seguido de "K" como capacidade em BTU (ex: "18K" → 18)
+    const btuMatch = nome.match(/(\d+)\s*K/);
+    const btu = btuMatch ? parseInt(btuMatch[1]) : 0;
+
+    // --- Condensadoras: prioridade por número de splits ---
+    if (/COND/.test(nome)) {
+        let splits = 1;
+        if (/HEXA/.test(nome))         splits = 6;
+        else if (/PENTA/.test(nome))   splits = 5;
+        else if (/QUADRI/.test(nome))  splits = 4;
+        else if (/TRI/.test(nome))     splits = 3;
+        else if (/BI/.test(nome))      splits = 2;
+        return splits * 10000 + btu;
+    }
+
+    // --- Evaporadoras e acessórios: prioridade por tipo de produto ---
+    let tipoPrio;
+    if      (/\bHW\b/.test(nome) && !/BLACK|ARTCOOL/.test(nome) && !/PLACA|INTERFACE/.test(nome))  tipoPrio = 1;  // HW normal
+    else if (/BLACK|ARTCOOL/.test(nome))                                                           tipoPrio = 2;  // HW Black / Artcool
+    else if (/K7.*\b1\b.*VIA|\b1\b.*VIA.*K7/.test(nome) && !/GRELHA/.test(nome))                  tipoPrio = 3;  // K7 1 via (evap)
+    else if (/GRELHA.*K7.*\b1\b|K7.*\b1\b.*GRELHA/.test(nome))                                   tipoPrio = 4;  // Grelha K7 1 via
+    else if (/K7.*4.*VIAS|4.*VIAS.*K7/.test(nome) && !/GRELHA/.test(nome))                       tipoPrio = 5;  // K7 4 vias (evap)
+    else if (/GRELHA.*K7.*4|K7.*4.*GRELHA/.test(nome))                                           tipoPrio = 6;  // Grelha K7 4 vias
+    else if (/BUILT.?IN/.test(nome))                                                               tipoPrio = 7;  // Built-in
+    else if (/PISO/.test(nome))                                                                    tipoPrio = 8;  // Piso
+    else if (/PAINEL|GALLERY/.test(nome))                                                          tipoPrio = 9;  // Painel/Gallery
+    else if (/K7.*360/.test(nome))                                                                 tipoPrio = 10; // K7 360
+    else if (/GRELHA/.test(nome))                                                                  tipoPrio = 11; // Grelhas genéricas
+    else if (/CONTROLE|KIT.?WI|WIFI|PLACA|INTERFACE/.test(nome))                                  tipoPrio = 12; // Acessórios
+    else                                                                                            tipoPrio = 13; // Resto
+
+    // Itens sem família ficam no final do seu tipo
+    const semFamilia = grupo.isFamilia ? 0 : 100000;
+    return semFamilia + tipoPrio * 10000 + btu;
+}
+
+// ==========================================
 // RENDERIZAÇÃO DA TABELA
 // ==========================================
 window.popularTabela = function(lista, corpo, container) {
@@ -911,6 +865,10 @@ window.popularTabela = function(lista, corpo, container) {
                 gruposParaRenderizar.push({ isFamilia: false, itens: [item] });
             }
         });
+
+        // Ordena grupos: condensadoras por n° de splits → BTU;
+        // evaporadoras por tipo (HW → Black → K7 1V → grelha 1V → K7 4V → grelha 4V → outros) → BTU
+        gruposParaRenderizar.sort((a, b) => chaveOrdemGrupo(a) - chaveOrdemGrupo(b));
 
         const skusParaAtualizarPreco = [];
 
@@ -951,7 +909,7 @@ window.popularTabela = function(lista, corpo, container) {
                     <td class="border border-slate-200 px-4 py-2 text-center estoque-col text-sm font-bold">
                         ${itemPrincipal.estoque || itemPrincipal.ESTOQUE || 0}
                     </td>
-                    <td class="border border-slate-200 px-3 py-2 text-center font-bold text-blue-700 preco-avista-col">
+                    <td class="border border-slate-200 px-3 py-2 text-center font-bold text-slate-900 preco-avista-col">
                         <i class="fas fa-spinner fa-spin text-slate-300 text-[10px]"></i>
                     </td>
                     <td class="border border-slate-200 px-3 py-2 text-center font-bold text-slate-600 preco-parcelado-col">
@@ -1018,11 +976,11 @@ window.atualizarLinhaDaTabela = function(selectElement, idLinha) {
     }
 };
 
-caixaMarca.addEventListener('change', function(){
+caixaMarca.addEventListener('change', async function(){
     let marcaEscolhida = caixaMarca.value.toUpperCase();
     corpoTabela.innerHTML = "";
     corpoEvap.innerHTML = "";
-    
+
     // 🧹 PREVENÇÃO: Apaga o número do Teste de Hipótese ao trocar de marca
     const inputEvidencia = document.getElementById('input-evidencia');
     if (inputEvidencia) inputEvidencia.value = '';
@@ -1034,6 +992,9 @@ caixaMarca.addEventListener('change', function(){
         if(avisoEvap) avisoEvap.classList.add("hidden");
         return;
     }
+
+    // Garante que as famílias do banco estejam prontas antes de montar a tabela
+    await garantirFamilias();
 
     cardEvap.classList.remove('opacity-50');
     cardEvap.classList.remove('hidden');
@@ -1131,10 +1092,10 @@ window.mostrarNomeArquivo = function(input) {
         } else {
             nomeVisual.innerText = `${input.files.length} arquivos selecionados`;
         }
-        nomeVisual.classList.replace('text-slate-500', 'text-orange-600');
+        nomeVisual.classList.replace('text-slate-500', 'text-blue-700');
     } else {
         nomeVisual.innerText = 'Clique para anexar arquivo(s)';
-        nomeVisual.classList.replace('text-orange-600', 'text-slate-500');
+        nomeVisual.classList.replace('text-blue-700', 'text-slate-500');
     }
 };
 
@@ -1230,77 +1191,80 @@ function renderizarMinhasSolicitacoes(lista) {
     if (!corpo) return;
     corpo.innerHTML = '';
 
-    // Ajustado o colspan de 6 para 7 por causa da nova coluna
     if (lista.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">Nenhuma solicitação encontrada.</td></tr>`;
+        corpo.innerHTML = `<p class="py-10 text-center text-slate-400 italic text-sm">Nenhuma solicitação encontrada.</p>`;
         return;
     }
 
     lista.forEach(req => {
         const dataFormatada = new Date(req.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        
+
         let infoGestor = '';
         if (window.roleUsuario === 'gestor') {
             const nomeVendedor = req.vendedor_email ? req.vendedor_email.split('@')[0] : 'Desconhecido';
-            infoGestor = `<div class="text-[10px] text-blue-600 font-black mt-1 uppercase truncate w-24 sm:w-auto" title="${req.vendedor_email}">${nomeVendedor}</div>`;
+            infoGestor = `<span class="text-[10px] text-slate-400 uppercase ml-2" title="${req.vendedor_email}">${nomeVendedor}</span>`;
         }
 
-        let statusHtml = '';
-        let acoesHtml = '';
-        let botaoPrincipal = '';
+        let borderColor, statusHtml, botaoPrincipal;
 
         if (req.status === 'aprovado') {
-            statusHtml = `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Aprovado</span>`;
-            botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
+            borderColor = 'border-l-green-600';
+            statusHtml = `<span class="text-[11px] font-medium text-green-700 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Aprovado</span>`;
+            botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
         } else if (req.status === 'reprovado') {
-            statusHtml = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Reprovado</span>`;
-            botaoPrincipal = `<button onclick="verMotivoReprovacao('${req.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-search mr-1"></i> Ver Motivo</button>`;
+            borderColor = 'border-l-red-500';
+            statusHtml = `<span class="text-[11px] font-medium text-red-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span> Reprovado</span>`;
+            botaoPrincipal = `<button onclick="verMotivoReprovacao('${req.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-search mr-1"></i> Ver motivo</button>`;
         } else {
-            statusHtml = `<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Pendente</span>`;
-            botaoPrincipal = `<span class="text-xs text-slate-400 italic whitespace-nowrap">Aguardando...</span>`;
+            borderColor = 'border-l-amber-400';
+            statusHtml = `<span class="text-[11px] font-medium text-amber-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span> Pendente</span>`;
+            botaoPrincipal = `<span class="text-xs text-slate-400 italic">Aguardando aprovação...</span>`;
         }
 
-        const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
-
-        acoesHtml = `
-            <div class="flex items-center justify-end gap-3">
-                ${botaoPrincipal}
-                <span class="text-slate-300 font-light">|</span>
-                ${botaoRefazer}
-            </div>
-        `;
+        const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
 
         let qtdItens = 0;
-        if(req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
+        if (req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
 
-        // Formata o número do orçamento (Coloca um "-" caso seja um pedido muito antigo e não tenha código)
-       const codigoExibicao = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
+        const codigoExibicao = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
 
-        // 1. Puxa os dois valores do snapshot (Cofre) ou calcula caso seja um pedido muito antigo
         let valorAVista = req.snapshot?.totalGeralAVista || req.valor_alvo || 0;
         let valorParcelado = req.snapshot?.totalGeralParcelado || (valorAVista * 1.05);
 
-        // 2. Formata para Moeda (R$)
         const strAVista = parseFloat(valorAVista).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const strParcelado = parseFloat(valorParcelado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const desconto = parseFloat(req.desconto_solicitado).toFixed(0);
 
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
-        
-        // 3. Monta a linha com o visual duplo igual ao Admin
-        tr.innerHTML = `
-            <td class="p-4 text-xs font-mono text-slate-500">${dataFormatada}</td>
-            <td class="p-4 text-center font-bold text-slate-700 font-mono text-xs">${codigoExibicao}</td>
-            <td class="p-4 text-center font-bold text-slate-700">${qtdItens} un</td>
-            <td class="p-4 text-right">
-                <div class="font-black text-indigo-700">${strAVista} <span class="text-[9px] font-bold text-slate-400 uppercase">À Vista</span></div>
-                <div class="font-black text-slate-600 mt-1">${strParcelado} <span class="text-[9px] font-bold text-slate-400 uppercase">10x</span></div>
-            </td>
-            <td class="p-4 text-center font-bold text-orange-600">${parseFloat(req.desconto_solicitado).toFixed(2)}%</td>
-            <td class="p-4 text-center">${statusHtml}</td>
-            <td class="p-4 text-right">${acoesHtml}</td>
+        const card = document.createElement('div');
+        card.className = `bg-white border border-slate-200 border-l-4 ${borderColor} rounded-sm p-4 flex flex-col gap-2.5 transition-colors hover:bg-slate-50`;
+
+        card.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-mono font-medium text-sm text-slate-800">${codigoExibicao}</span>
+                    <span class="text-xs text-slate-600">${dataFormatada}</span>
+                    ${infoGestor}
+                </div>
+                ${statusHtml}
+            </div>
+            <div class="flex items-baseline gap-2 flex-wrap">
+                <span class="text-base font-medium text-slate-900">${strAVista}</span>
+                <span class="text-[10px] text-slate-400 uppercase tracking-wide">à vista</span>
+                <span class="text-slate-300">·</span>
+                <span class="text-sm text-slate-500">${strParcelado} em 10×</span>
+                <span class="text-slate-300">·</span>
+                <span class="text-[11px] text-slate-700 bg-slate-100 border border-slate-300 rounded-sm px-1.5 py-0.5 font-medium">${desconto}% desc</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'}</span>
+                <div class="flex gap-2">
+                    ${botaoPrincipal}
+                    ${req.status !== 'pendente' ? botaoRefazer : ''}
+                </div>
+            </div>
         `;
-        corpo.appendChild(tr);
+
+        corpo.appendChild(card);
     });
 }
 
@@ -1437,7 +1401,7 @@ window.enviarSolicitacaoSupabase = async function(statusDefinido = 'pendente') {
         if (statusDefinido === 'pendente' && btnEnviar) {
             btnEnviar.innerText = "Enviar para Aprovação";
             btnEnviar.disabled = false;
-            btnEnviar.classList.replace('bg-slate-400', 'bg-orange-500');
+            btnEnviar.classList.replace('bg-slate-400', 'bg-blue-700');
         }
     }
 };
@@ -1588,7 +1552,7 @@ window.carregarCatalogosDoBanco = async function() {
 
         if (!catalogos || catalogos.length === 0) {
             container.innerHTML = `
-                <div class="col-span-full flex flex-col justify-center items-center py-20 bg-white rounded-xl shadow-sm border border-slate-200">
+                <div class="col-span-full flex flex-col justify-center items-center py-20 bg-white rounded-sm border border-slate-200">
                     <i class="fas fa-folder-open text-5xl text-slate-300 mb-4"></i>
                     <p class="text-slate-500 font-bold">Nenhum catálogo disponível no momento.</p>
                 </div>`;
@@ -1603,13 +1567,13 @@ window.carregarCatalogosDoBanco = async function() {
 
             html += `
                 <a href="${cat.url_pdf}" target="_blank" rel="noopener noreferrer" 
-                   class="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-400 transition-all p-5 flex flex-col group h-full">
+                   class="bg-white rounded-sm border border-slate-200 hover:border-blue-400 transition-all p-5 flex flex-col group h-full">
                     <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
                         <img src="${caminhoLogo}" alt="${cat.marca}" onerror="this.src='./img/logo-site.jpg'" class="h-6 object-contain max-w-[100px]">
                         <i class="fas fa-external-link-alt text-slate-300 group-hover:text-blue-500 transition-colors"></i>
                     </div>
                     <div class="flex-1">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">${cat.marca}</span>
+                        <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">${cat.marca}</span>
                         <h3 class="font-bold text-slate-800 text-sm mt-1 leading-tight group-hover:text-blue-700 transition-colors">${cat.titulo}</h3>
                     </div>
                     <div class="mt-5 pt-3 flex items-center justify-between text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors">
@@ -1628,7 +1592,7 @@ window.carregarCatalogosDoBanco = async function() {
     } catch (err) {
         loading.classList.add('hidden');
         console.error("Erro ao carregar catálogos:", err);
-        container.innerHTML = `<div class="col-span-full p-4 bg-red-50 text-red-700 rounded-lg text-center font-bold">Erro ao buscar catálogos. Tente novamente.</div>`;
+        container.innerHTML = `<div class="col-span-full p-4 bg-red-50 text-red-700 rounded-sm text-center font-medium">Erro ao buscar catálogos. Tente novamente.</div>`;
     }
 };
 

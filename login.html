@@ -6,45 +6,134 @@
     <title>Login - Climario ERP</title>
     <link rel="icon" type="image/jpg" href="./img/logo-site.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner-ring {
+            animation: spin 1.1s linear infinite;
+        }
+        #loading-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        #loading-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
 </head>
-<body class="bg-slate-900 h-screen flex items-center justify-center font-sans">
+<body class="h-screen overflow-hidden">
 
-    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-2xl">
-        <div class="text-center">
-            <div class="flex justify-center items-center mb-8">
-                <img class="w-30" src="./img/logo-climario.png" alt="logo-climario">
-            </div>
-            <h1 class="text-3xl font-black text-slate-900 tracking-tight">
-                Orçamentos <span class="text-blue-700">Multisplit</span>
-            </h1>
-        </div>
-
-        <form id="login-form" class="space-y-4 pt-5">
-            <div>
-                <label for="email" class="block text-xs font-bold text-slate-700 uppercase mb-1">E-mail Corporativo</label>
-                <input type="email" id="email" required placeholder="vendedor@climario.com.br"
-                       class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700 outline-none transition-all text-sm">
-            </div>
-
-            <div>
-                <label for="password" class="block text-xs font-bold text-slate-700 uppercase mb-1">Senha</label>
-                <input type="password" id="password" required placeholder="••••••••"
-                       class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700 outline-none transition-all text-sm">
-            </div>
-
-            <button type="submit" 
-                    class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-lg transform transition-all active:scale-[0.98] uppercase text-xs tracking-widest">
-                Entrar no Sistema
-            </button>
-        </form>
-
-        <div class="text-center pt-4">
-            <p class="text-slate-400 text-[10px] uppercase font-medium">
-                Desenvolvido por Breno Dobroski | Rio de Janeiro
-            </p>
+    <!-- LOADING OVERLAY (oculto até o login ser confirmado) -->
+    <div id="loading-overlay"
+         class="fixed inset-0 z-50 flex flex-col items-center justify-center"
+         style="background: linear-gradient(150deg, #0a1628 0%, #1a3254 55%, #0f172a 100%);">
+        <div class="relative flex items-center justify-center">
+            <!-- Anel girando -->
+            <svg class="spinner-ring absolute" width="100" height="100" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44"
+                        fill="none"
+                        stroke="#1d4ed8"
+                        stroke-width="3"
+                        stroke-dasharray="200"
+                        stroke-dashoffset="140"
+                        stroke-linecap="round"/>
+            </svg>
+            <!-- Logo centralizada -->
+            <img src="./img/logo-site.jpg" alt="Climario"
+                 class="rounded-full object-cover"
+                 style="width: 70px; height: 70px;">
         </div>
     </div>
 
+    <div class="w-full h-full flex">
+
+        <!-- PAINEL ESQUERDO — oculto em mobile -->
+        <div class="relative flex-1 overflow-hidden hidden md:block">
+
+            <!-- Ilustração de fundo -->
+            <img src="./img/ilustracao-login.webp" alt=""
+                 class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none">
+
+            <!-- Gradiente topo (para legibilidade do texto) -->
+            <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(10,22,40,0.68) 0%, rgba(10,22,40,0.1) 55%, rgba(10,22,40,0) 100%);"></div>
+
+            <!-- Gradiente rodapé (para o badge) -->
+            <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(10,22,40,0.6) 0%, rgba(10,22,40,0) 30%);"></div>
+
+            <!-- Conteúdo -->
+            <div class="relative z-10 h-full flex flex-col justify-between p-10">
+                <div>
+                    <div style="width: 3px; height: 40px; background: #3b82f6; border-radius: 2px; margin-bottom: 1.5rem;"></div>
+                    <h2 class="text-5xl font-bold text-white leading-tight" style="letter-spacing: -1px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                        Orçamentos<br><span class="text-blue-300">Multisplit</span>
+                    </h2>
+                </div>
+
+                <!-- Badge inferior -->
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded w-fit"
+                     style="background: rgba(10,22,40,0.55); backdrop-filter: blur(6px); border: 0.5px solid rgba(255,255,255,0.12);">
+                    <div style="width: 6px; height: 6px; background: #22c55e; border-radius: 50%; flex-shrink: 0;"></div>
+                    <span class="text-xs text-slate-300 font-medium">Sistema interno Climario</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAINEL DIREITO — tela cheia em mobile, 420px em desktop -->
+        <div class="flex flex-col justify-between bg-white w-full md:w-[420px] md:flex-shrink-0 p-8 md:p-10">
+
+            <div class="flex flex-col justify-center flex-1">
+                <!-- Logo -->
+                <div class="mb-8">
+                    <img src="./img/LOGO_CLIMARIO_OFICIAL.png" alt="Climario"
+                         class="h-8 object-contain">
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-900 mb-1">Acesse sua conta</h3>
+                <p class="text-xs text-slate-400 mb-7">Use suas credenciais corporativas</p>
+
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                            E-mail
+                        </label>
+                        <input type="email" id="email" required placeholder="vendedor@climario.com.br"
+                               class="w-full px-3 py-2.5 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                            Senha
+                        </label>
+                        <input type="password" id="password" required placeholder="••••••••"
+                               class="w-full px-3 py-2.5 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-blue-700 hover:bg-blue-800 active:scale-[0.98] text-white font-semibold py-2.5 rounded transition-all text-xs uppercase tracking-widest mt-1">
+                        Entrar
+                    </button>
+                </form>
+            </div>
+
+            <p class="text-[10.5px] text-slate-500 text-right pt-4 border-t border-slate-100">
+                Desenvolvido por Breno Dobroski · Rio de Janeiro
+            </p>
+        </div>
+
+    </div>
+
+    <script>
+        window.mostrarLoading = function() {
+            document.getElementById('loading-overlay').classList.add('active');
+        };
+    </script>
     <script type="module" src="login.js"></script>
 </body>
 </html>
