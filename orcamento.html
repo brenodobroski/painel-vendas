@@ -255,6 +255,10 @@
                 const elemento = document.getElementById('area-pdf');
                 elemento.classList.remove('shadow-xl');
 
+                // overflow:hidden garante que o html2canvas capture exatamente
+                // offsetWidth × offsetHeight, sem pixels extras que causam página 2
+                elemento.style.overflow = 'hidden';
+
                 const W = elemento.offsetWidth;
                 const H = elemento.offsetHeight;
                 const pdfWidthMm = 297;
@@ -267,16 +271,13 @@
                     html2canvas: {
                         scale: 2,
                         useCORS: true,
-                        letterRendering: true,
-                        width: W,
-                        height: H,
-                        windowWidth: W,
-                        windowHeight: H
+                        letterRendering: true
                     },
                     jsPDF: { unit: 'mm', format: [pdfWidthMm, pdfHeightMm], orientation: 'landscape' },
                 };
 
                 html2pdf().set(opt).from(elemento).save().then(() => {
+                    elemento.style.overflow = '';
                     elemento.classList.add('shadow-xl');
                     wrapper.style.transform = oldTransform;
                     wrapper.style.marginBottom = oldMargin;
