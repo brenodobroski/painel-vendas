@@ -9,8 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-        @keyframes pageSlideIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
-        body { font-family: 'Inter', sans-serif; animation: pageSlideIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        body { font-family: 'Inter', sans-serif; animation: pageFadeIn 0.25s ease-out; }
         .table-print { border-collapse: collapse; width: 100%; }
         .table-print th, .table-print td { border: 1px solid #e2e8f0; padding: 12px 8px;}
         .table-print th { background-color: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
