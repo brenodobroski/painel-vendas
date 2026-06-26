@@ -253,26 +253,25 @@
             // Aguarda 100ms para a tela redesenhar em tamanho original
             setTimeout(() => {
                 const elemento = document.getElementById('area-pdf');
-
-                // Remove sombra antes de capturar — o html2canvas captura a shadow-xl
-                // além do offsetHeight, causando overflow para uma segunda página vazia
                 elemento.classList.remove('shadow-xl');
 
-                const margin = 5;
+                const W = elemento.offsetWidth;
+                const H = elemento.offsetHeight;
                 const pdfWidthMm = 297;
-                const availableWidthMm = pdfWidthMm - margin * 2;
-                const pxToMm = availableWidthMm / elemento.offsetWidth;
-                const contentHeightMm = elemento.offsetHeight * pxToMm;
-                const pdfHeightMm = contentHeightMm + margin * 2;
+                const pdfHeightMm = H * (pdfWidthMm / W);
 
                 const opt = {
-                    margin: [margin, margin, margin, margin],
+                    margin: 0,
                     filename: `Orcamento_ClimaHub_${codigoOrctoParaDownload}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: {
                         scale: 2,
                         useCORS: true,
-                        letterRendering: true
+                        letterRendering: true,
+                        width: W,
+                        height: H,
+                        windowWidth: W,
+                        windowHeight: H
                     },
                     jsPDF: { unit: 'mm', format: [pdfWidthMm, pdfHeightMm], orientation: 'landscape' },
                 };
