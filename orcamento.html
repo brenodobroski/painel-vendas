@@ -253,21 +253,28 @@
             // Aguarda 100ms para a tela redesenhar em tamanho original
             setTimeout(() => {
                 const elemento = document.getElementById('area-pdf');
+
+                // Calcula altura real do conteúdo e gera PDF de página única
+                const margin = 5; // mm (cada lado)
+                const pdfWidthMm = 297; // largura A4 landscape
+                const availableWidthMm = pdfWidthMm - margin * 2;
+                const pxToMm = availableWidthMm / elemento.offsetWidth;
+                const contentHeightMm = elemento.offsetHeight * pxToMm;
+                const pdfHeightMm = contentHeightMm + margin * 2;
+
                 const opt = {
-                    margin: [5, 5, 5, 5],
+                    margin: [margin, margin, margin, margin],
                     filename: `Orcamento_ClimaHub_${codigoOrctoParaDownload}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2, 
+                    html2canvas: {
+                        scale: 2,
                         useCORS: true,
-                        letterRendering: true 
+                        letterRendering: true
                     },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                    pagebreak: { mode: 'avoid-all' }
+                    jsPDF: { unit: 'mm', format: [pdfWidthMm, pdfHeightMm], orientation: 'landscape' },
                 };
 
                 html2pdf().set(opt).from(elemento).save().then(() => {
-                    // Restaura o layout redimensionado para o celular depois que baixar
                     wrapper.style.transform = oldTransform;
                     wrapper.style.marginBottom = oldMargin;
                 });
