@@ -1192,77 +1192,80 @@ function renderizarMinhasSolicitacoes(lista) {
     if (!corpo) return;
     corpo.innerHTML = '';
 
-    // Ajustado o colspan de 6 para 7 por causa da nova coluna
     if (lista.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 italic">Nenhuma solicitação encontrada.</td></tr>`;
+        corpo.innerHTML = `<p class="py-10 text-center text-slate-400 italic text-sm">Nenhuma solicitação encontrada.</p>`;
         return;
     }
 
     lista.forEach(req => {
         const dataFormatada = new Date(req.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        
+
         let infoGestor = '';
         if (window.roleUsuario === 'gestor') {
             const nomeVendedor = req.vendedor_email ? req.vendedor_email.split('@')[0] : 'Desconhecido';
-            infoGestor = `<div class="text-[10px] text-slate-500 font-medium mt-1 uppercase truncate w-24 sm:w-auto" title="${req.vendedor_email}">${nomeVendedor}</div>`;
+            infoGestor = `<span class="text-[10px] text-slate-400 uppercase ml-2" title="${req.vendedor_email}">${nomeVendedor}</span>`;
         }
 
-        let statusHtml = '';
-        let acoesHtml = '';
-        let botaoPrincipal = '';
+        let borderColor, statusHtml, botaoPrincipal;
 
         if (req.status === 'aprovado') {
-            statusHtml = `<span class="text-green-700 text-[10px] font-medium uppercase tracking-wide">● Aprovado</span>`;
+            borderColor = 'border-l-green-600';
+            statusHtml = `<span class="text-[11px] font-medium text-green-700 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Aprovado</span>`;
             botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
         } else if (req.status === 'reprovado') {
-            statusHtml = `<span class="text-red-600 text-[10px] font-medium uppercase tracking-wide">● Reprovado</span>`;
-            botaoPrincipal = `<button onclick="verMotivoReprovacao('${req.id}')" class="border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-search mr-1"></i> Ver Motivo</button>`;
+            borderColor = 'border-l-red-500';
+            statusHtml = `<span class="text-[11px] font-medium text-red-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span> Reprovado</span>`;
+            botaoPrincipal = `<button onclick="verMotivoReprovacao('${req.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-search mr-1"></i> Ver motivo</button>`;
         } else {
-            statusHtml = `<span class="text-slate-400 text-[10px] font-medium uppercase tracking-wide">● Pendente</span>`;
-            botaoPrincipal = `<span class="text-xs text-slate-400 italic whitespace-nowrap">Aguardando...</span>`;
+            borderColor = 'border-l-amber-400';
+            statusHtml = `<span class="text-[11px] font-medium text-amber-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span> Pendente</span>`;
+            botaoPrincipal = `<span class="text-xs text-slate-400 italic">Aguardando aprovação...</span>`;
         }
 
-        const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
-
-        acoesHtml = `
-            <div class="flex items-center justify-end gap-3">
-                ${botaoPrincipal}
-                <span class="text-slate-300 font-light">|</span>
-                ${botaoRefazer}
-            </div>
-        `;
+        const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
 
         let qtdItens = 0;
-        if(req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
+        if (req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
 
-        // Formata o número do orçamento (Coloca um "-" caso seja um pedido muito antigo e não tenha código)
-       const codigoExibicao = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
+        const codigoExibicao = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
 
-        // 1. Puxa os dois valores do snapshot (Cofre) ou calcula caso seja um pedido muito antigo
         let valorAVista = req.snapshot?.totalGeralAVista || req.valor_alvo || 0;
         let valorParcelado = req.snapshot?.totalGeralParcelado || (valorAVista * 1.05);
 
-        // 2. Formata para Moeda (R$)
         const strAVista = parseFloat(valorAVista).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const strParcelado = parseFloat(valorParcelado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const desconto = parseFloat(req.desconto_solicitado).toFixed(0);
 
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
-        
-        // 3. Monta a linha com o visual duplo igual ao Admin
-        tr.innerHTML = `
-            <td class="p-4 text-xs font-mono text-slate-500">${dataFormatada}</td>
-            <td class="p-4 text-center font-bold text-slate-700 font-mono text-xs">${codigoExibicao}</td>
-            <td class="p-4 text-center font-bold text-slate-700">${qtdItens} un</td>
-            <td class="p-4 text-right">
-                <div class="font-medium text-slate-900">${strAVista} <span class="text-[9px] font-medium text-slate-400 uppercase">À Vista</span></div>
-                <div class="font-medium text-slate-500 mt-1">${strParcelado} <span class="text-[9px] font-medium text-slate-400 uppercase">10x</span></div>
-            </td>
-            <td class="p-4 text-center font-medium text-slate-600">${parseFloat(req.desconto_solicitado).toFixed(0)}%</td>
-            <td class="p-4 text-center">${statusHtml}</td>
-            <td class="p-4 text-right">${acoesHtml}</td>
+        const card = document.createElement('div');
+        card.className = `bg-white border border-slate-200 border-l-4 ${borderColor} rounded-sm p-4 flex flex-col gap-2.5 transition-colors hover:bg-slate-50`;
+
+        card.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-mono font-medium text-sm text-slate-800">${codigoExibicao}</span>
+                    <span class="text-xs text-slate-400">${dataFormatada}</span>
+                    ${infoGestor}
+                </div>
+                ${statusHtml}
+            </div>
+            <div class="flex items-baseline gap-2 flex-wrap">
+                <span class="text-base font-medium text-slate-900">${strAVista}</span>
+                <span class="text-[10px] text-slate-400 uppercase tracking-wide">à vista</span>
+                <span class="text-slate-300">·</span>
+                <span class="text-sm text-slate-500">${strParcelado} em 10×</span>
+                <span class="text-slate-300">·</span>
+                <span class="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 rounded-sm px-1.5 py-0.5">${desconto}% desc</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'}</span>
+                <div class="flex gap-2">
+                    ${botaoPrincipal}
+                    ${req.status !== 'pendente' ? botaoRefazer : ''}
+                </div>
+            </div>
         `;
-        corpo.appendChild(tr);
+
+        corpo.appendChild(card);
     });
 }
 
