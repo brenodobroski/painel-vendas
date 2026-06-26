@@ -632,32 +632,31 @@ async function executarCalculoSeguro() {
         const subtotalParcelado = Math.round((dadosAPI.totalBrutoParcelado || 0) * 100) / 100;
 
         const subtotalComDesconto = Math.round((dadosAPI.totalBruto || 0) * 100) / 100;
-        let valorFrete = subtotalParcelado * (percentualFrete / 100);
-        valorFrete = Math.round(valorFrete * 100) / 100;
-       
-        let totalFinalAVista = subtotalAVista + valorFrete;
-        let totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
+
+        // Frete calculado separadamente para cada modalidade
+        let freteAVista    = Math.round(subtotalAVista    * (percentualFrete / 100) * 100) / 100;
+        let freteParcelado = Math.round(subtotalParcelado * (percentualFrete / 100) * 100) / 100;
+
+        let totalFinalAVista    = Math.round((subtotalAVista    + freteAVista)    * 100) / 100;
+        let totalFinalParcelado = Math.round((subtotalParcelado + freteParcelado) * 100) / 100;
+
+        // valorFrete exibido na tabela usa o parcelado (itens são exibidos em parcelado)
+        let valorFrete = freteParcelado;
 
         if (window.testeHipoteseAtivo) {
             const inputEvidencia = document.getElementById('input-evidencia');
             const tipoAlvo = document.getElementById('tipo-alvo-hipotese')?.value;
             const valorEvidenciaBruto = parseFloat(inputEvidencia?.value);
-            
+
             if (valorEvidenciaBruto > 0) {
                 if (tipoAlvo === 'avista') {
-                    // Calcula a diferença entre o sistema e o que o vendedor pediu
                     const diff = Math.abs(totalFinalAVista - valorEvidenciaBruto);
-                    
-                    // CORREÇÃO: Aumentamos a tolerância para até R$ 5,00 para absorver os arredondamentos dos novos markups
                     if (diff > 0 && diff <= 5.00) {
                         totalFinalAVista = valorEvidenciaBruto;
-                        // Recalcula o parcelado já com o valor exato ajustado
                         totalFinalParcelado = Math.round((totalFinalAVista * 1.05) * 100) / 100;
                     }
                 } else if (tipoAlvo === 'parcelado') {
                     const diff = Math.abs(totalFinalParcelado - valorEvidenciaBruto);
-                    
-                    // CORREÇÃO: Aumentamos a tolerância para até R$ 5,00 para absorver os arredondamentos dos novos markups
                     if (diff > 0 && diff <= 5.00) {
                         totalFinalParcelado = valorEvidenciaBruto;
                         totalFinalAVista = Math.round((totalFinalParcelado / 1.05) * 100) / 100;
