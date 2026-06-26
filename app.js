@@ -1243,7 +1243,7 @@ function renderizarMinhasSolicitacoes(lista) {
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-mono font-medium text-sm text-slate-800">${codigoExibicao}</span>
-                    <span class="text-xs text-slate-400">${dataFormatada}</span>
+                    <span class="text-xs text-slate-600">${dataFormatada}</span>
                     ${infoGestor}
                 </div>
                 ${statusHtml}
@@ -1254,7 +1254,7 @@ function renderizarMinhasSolicitacoes(lista) {
                 <span class="text-slate-300">·</span>
                 <span class="text-sm text-slate-500">${strParcelado} em 10×</span>
                 <span class="text-slate-300">·</span>
-                <span class="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 rounded-sm px-1.5 py-0.5">${desconto}% desc</span>
+                <span class="text-[11px] text-slate-700 bg-slate-100 border border-slate-300 rounded-sm px-1.5 py-0.5 font-medium">${desconto}% desc</span>
             </div>
             <div class="flex justify-between items-center">
                 <span class="text-xs text-slate-400">${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'}</span>
