@@ -249,17 +249,17 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-6">
-                                    <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <div class="flex items-center justify-between gap-4 mb-4">
+                                    <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
                                         <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-sm flex items-center justify-center text-xs">1</span>
-                                        Selecione a Marca
+                                        Condensadoras
                                     </h3>
-                                    <div class="relative w-full custom-dropdown" id="dropdown-marca-condensadora">
-                                        <button type="button" id="btn-marca-condensadora" class="w-full bg-white border border-slate-300 rounded-sm py-3 px-4 text-sm font-medium text-slate-700 flex justify-between items-center outline-none hover:border-blue-400 transition-all" onclick="toggleDropdown('marca-condensadora')">
-                                            <span id="texto-marca-condensadora" class="uppercase truncate pr-2 text-left">-- Escolha a Marca --</span>
-                                            <svg class="w-4 h-4 text-slate-500" id="seta-marca-condensadora" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <div class="relative custom-dropdown w-52 flex-shrink-0" id="dropdown-marca-condensadora">
+                                        <button type="button" id="btn-marca-condensadora" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center outline-none hover:border-blue-400 transition-all" onclick="toggleDropdown('marca-condensadora')">
+                                            <span id="texto-marca-condensadora" class="uppercase truncate pr-2 text-left text-xs">-- Escolha a Marca --</span>
+                                            <svg class="w-4 h-4 text-slate-500 flex-shrink-0" id="seta-marca-condensadora" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                         </button>
-                                        <div id="lista-marca-condensadora" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-64 overflow-y-auto">
+                                        <div id="lista-marca-condensadora" class="hidden absolute right-0 z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-64 overflow-y-auto">
                                             <ul class="py-1 text-sm text-slate-700 font-bold uppercase">
                                                 <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="SAMSUNG">SAMSUNG</li>
                                                 <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="LG">LG</li>
