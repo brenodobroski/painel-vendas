@@ -7,7 +7,7 @@
     <link rel="icon" type="image/jpg" href="./img/logo-site.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
         @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -314,35 +314,34 @@
             const btn = document.getElementById('btn-copiar-orcamento');
             const originalHTML = btn.innerHTML;
             const wrapper = document.getElementById('area-pdf-wrapper');
+            const elemento = document.getElementById('area-pdf');
 
             btn.disabled = true;
             btn.innerHTML = 'Gerando...';
 
+            // Remove a escala de zoom (celular) para capturar em tamanho real
             const oldTransform = wrapper.style.transform;
             const oldMargin = wrapper.style.marginBottom;
             wrapper.style.transform = 'none';
             wrapper.style.marginBottom = '0px';
 
-            let canvas = null;
+            let blob = null;
 
             try {
-                // Aguarda fontes, rola para o topo e aguarda redesenho
+                // Aguarda as fontes carregarem para não desalinhar o texto
                 await document.fonts.ready;
-                window.scrollTo(0, 0);
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise(r => setTimeout(r, 150));
 
-                const elemento = document.getElementById('area-pdf');
-                canvas = await html2canvas(elemento, {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
+                // html-to-image usa <foreignObject> SVG: o próprio navegador
+                // renderiza o HTML, então o resultado é idêntico ao da tela.
+                blob = await htmlToImage.toBlob(elemento, {
+                    pixelRatio: 2,
                     backgroundColor: '#ffffff',
-                    imageTimeout: 0,
-                    letterRendering: true,
-                    scrollX: 0,
-                    scrollY: 0
+                    width: elemento.offsetWidth,
+                    height: elemento.offsetHeight,
+                    cacheBust: true
                 });
+                if (!blob) throw new Error('blob nulo');
 
             } catch (err) {
                 console.error('Erro ao gerar imagem:', err);
@@ -357,17 +356,9 @@
             wrapper.style.transform = oldTransform;
             wrapper.style.marginBottom = oldMargin;
 
-            // Tenta copiar para o clipboard
+            // Tenta copiar para a área de transferência
             try {
-                await new Promise((resolve, reject) => {
-                    canvas.toBlob(async (blob) => {
-                        if (!blob) { reject(new Error('blob nulo')); return; }
-                        try {
-                            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                            resolve();
-                        } catch (e) { reject(e); }
-                    }, 'image/png');
-                });
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 
                 btn.innerHTML = '✅ Copiado!';
                 btn.classList.remove('bg-slate-700', 'hover:bg-slate-800');
@@ -380,9 +371,9 @@
                 }, 2500);
 
             } catch (err) {
-                // Fallback: abre a imagem em nova aba para o usuário copiar manualmente
+                // Fallback: abre a imagem em nova aba para copiar manualmente
                 console.warn('Clipboard bloqueado, abrindo imagem em nova aba:', err);
-                const dataUrl = canvas.toDataURL('image/png');
+                const dataUrl = URL.createObjectURL(blob);
                 const aba = window.open();
                 aba.document.write(`
                     <html><head><title>Orçamento — copiar imagem</title></head>
