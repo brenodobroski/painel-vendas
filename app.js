@@ -365,19 +365,56 @@ function garantirFamilias() {
 }
 garantirFamilias(); // kick-off na inicialização
 
-const regrasAcessorios = {
-    "41851": ["17105" , "14412"],
-    "41797": ["17105" , "14412"], "41796": ["17105" , "14412"], 
-    "44610": ["14407" , "14412"], "29761": ["14407" , "14412"], "47977": ["14407" , "14412"], 
-    "44611": ["14407" , "14412"], "43406": ["14407" , "14412"], "29762": ["14407" , "14412"], 
-    "47978": ["16506" , "14412"], "42647": ["16506" , "14412"], "29763": ["16506" , "14412"], 
-    "43408": ["16506" , "14412"], "42328": ["16506" , "14412"], "18517": ["30405"], 
-    "17465": ["30405"], "43244": ["42443"], "5844": ["7443", "5849"], "5845": ["7443", "5849"], 
-    "5846": ["7443", "5849"], "5847": ["7443", "5849"], "10178": ["10181"], "10179": ["10181"], 
-    "10180": ["10181"], "35850": ["35857"], "35852": ["35858"], "34513": ["34499"], 
-    "34514": ["34499"], "34496": ["34499"], "34492": ["34499"], "10576": ["10579"], 
-    "10577": ["10579"], "10578": ["10579"] 
+// Fallback hardcoded — usado enquanto o Supabase carrega ou se houver falha de rede
+const _regrasAcessoriosFallback = {
+    "41851": ["17105","14412"], "41797": ["17105","14412"], "41796": ["17105","14412"],
+    "44610": ["14407","14412"], "29761": ["14407","14412"], "47977": ["14407","14412"],
+    "44611": ["14407","14412"], "43406": ["14407","14412"], "29762": ["14407","14412"],
+    "47978": ["16506","14412"], "42647": ["16506","14412"], "29763": ["16506","14412"],
+    "43408": ["16506","14412"], "42328": ["16506","14412"], "18517": ["30405"],
+    "17465": ["30405"],         "43244": ["42443"],
+    "5844":  ["7443","5849"],   "5845":  ["7443","5849"],
+    "5846":  ["7443","5849"],   "5847":  ["7443","5849"],
+    "10178": ["10181"],         "10179": ["10181"],         "10180": ["10181"],
+    "35850": ["35857"],         "35852": ["35858"],
+    "34513": ["34499"],         "34514": ["34499"],
+    "34496": ["34499"],         "34492": ["34499"],
+    "10576": ["10579"],         "10577": ["10579"],         "10578": ["10579"]
 };
+
+// Começa populado com o fallback — nunca fica vazio durante a sessão
+let regrasAcessorios = { ..._regrasAcessoriosFallback };
+let _promiseRegras = null;
+
+async function carregarRegrasAcessorios() {
+    try {
+        const { data, error } = await supabase
+            .from('regras_acessorios')
+            .select('sku_principal, skus_acessorios');
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            regrasAcessorios = data.reduce((acc, r) => {
+                acc[r.sku_principal] = (r.skus_acessorios || []).map(String);
+                return acc;
+            }, {});
+            console.log(`✅ ${data.length} regras de acessórios carregadas do banco.`);
+        } else {
+            console.warn('⚠️ Tabela regras_acessorios vazia — usando fallback hardcoded.');
+            regrasAcessorios = { ..._regrasAcessoriosFallback };
+        }
+    } catch (err) {
+        console.error('Erro ao carregar regras de acessórios — usando fallback:', err);
+        regrasAcessorios = { ..._regrasAcessoriosFallback };
+    }
+}
+
+function garantirRegras() {
+    if (!_promiseRegras) _promiseRegras = carregarRegrasAcessorios();
+    return _promiseRegras;
+}
+garantirRegras(); // kick-off na inicialização
 
 // Logout
 if (btnLogout) {
