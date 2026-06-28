@@ -338,7 +338,11 @@
                     logging: false,
                     backgroundColor: '#ffffff',
                     imageTimeout: 0,
-                    letterRendering: true
+                    letterRendering: true,
+                    scrollX: 0,
+                    scrollY: -window.scrollY,
+                    windowWidth: elemento.scrollWidth,
+                    windowHeight: elemento.scrollHeight
                 });
 
             } catch (err) {
