@@ -560,7 +560,7 @@ async function executarCalculoSeguro() {
                 const estoqueItem = parseInt(produtoData.estoque || produtoData.ESTOQUE || 0);
                 const agendadoItem = agendamentoMap[String(skuBuscado).trim()];
                 let disponibilidadeItem;
-                if (estoqueItem > 0)   disponibilidadeItem = { texto: 'Pronta Entrega', cor: 'green' };
+                if (estoqueItem >= quantidade) disponibilidadeItem = { texto: 'Pronta Entrega', cor: 'green' };
                 else if (agendadoItem) disponibilidadeItem = { texto: agendadoItem.quinzena, cor: 'amber' };
                 else                   disponibilidadeItem = { texto: 'A Confirmar', cor: 'red' };
 
