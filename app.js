@@ -1157,7 +1157,7 @@ async function carregarMinhasSolicitacoes(userId) {
         // 1. Monta a base da consulta (agora pedimos o vendedor_email também)
         let query = supabase
             .from('solicitacoes_orcamento')
-            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
+            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, rt, status, motivo, motivo_reprovacao, itens')
             .eq('vendedor_id', userId)
             .order('created_at', { ascending: false })
             .limit(limiteAtualMinhasSolicitacoes);
@@ -1410,10 +1410,57 @@ window.enviarParaProtheus = function(id) {
         return;
     }
 
-    // 3. Perfil ok — abre o modal de dados do pedido
+    // 3. Perfil ok — monta o modal com os dados do pedido
+    const req = window.minhasSolicitacoes.find(s => s.id === id);
+    if (!req) {
+        alert("Orçamento não encontrado. Recarregue a página e tente de novo.");
+        return;
+    }
+
     _protheusOrcamentoId = id;
+    const fmt = (v) => (parseFloat(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Cabeçalho
+    document.getElementById('pedido-codigo').innerText = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '';
+
+    // Itens + subtotal
+    const itens = req.itens || [];
+    let subtotal = 0;
+    let linhasHtml = '';
+    itens.forEach(item => {
+        const unit = parseFloat(item.valorUnitarioAVista) || 0;
+        const sub  = parseFloat(item.subtotalAVista) || (unit * (parseInt(item.qtd) || 0));
+        subtotal += sub;
+        linhasHtml += `<tr>
+            <td class="px-3 py-2 text-slate-700">${item.descricao || item.codigo || 'Item'}</td>
+            <td class="px-2 py-2 text-center text-slate-600">${item.qtd || 0}</td>
+            <td class="px-3 py-2 text-right text-slate-600">${fmt(unit)}</td>
+            <td class="px-3 py-2 text-right font-medium text-slate-800">${fmt(sub)}</td>
+        </tr>`;
+    });
+    document.getElementById('pedido-itens-corpo').innerHTML = linhasHtml ||
+        '<tr><td colspan="4" class="px-3 py-4 text-center text-slate-400 italic">Sem itens.</td></tr>';
+
+    // Totais (valor_alvo = total à vista, já com frete)
+    const total = parseFloat(req.valor_alvo) || subtotal;
+    let frete = total - subtotal;
+    if (frete < 0) frete = 0;
+    document.getElementById('pedido-subtotal').innerText = fmt(subtotal);
+    document.getElementById('pedido-frete').innerText = fmt(frete);
+    document.getElementById('pedido-total').innerText = fmt(total);
+
+    // RT — só aparece se o pedido tiver
+    const temRt = (parseFloat(req.rt) || 0) > 0;
+    document.getElementById('pedido-rt-wrapper').classList.toggle('hidden', !temRt);
+    if (temRt) {
+        document.getElementById('pedido-rt-valor').innerText =
+            `${parseFloat(req.rt).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
+    }
+
+    // Reset dos campos
     document.getElementById('pedido-input-pagamento').value = '';
     document.getElementById('pedido-select-rt').value = '';
+
     document.getElementById('modal-dados-pedido').classList.remove('hidden');
 };
 
@@ -1424,10 +1471,12 @@ window.fecharModalDadosPedido = function() {
 
 window.confirmarDadosPedido = function() {
     const pagamento = document.getElementById('pedido-input-pagamento').value.trim();
-    const rtPagamento = document.getElementById('pedido-select-rt').value;
-
     if (!pagamento) { alert("Informe a forma de pagamento."); return; }
-    if (!rtPagamento) { alert("Selecione a forma de pagamento da RT."); return; }
+
+    // A forma de pagamento da RT só é exigida quando o pedido tem RT
+    const rtVisivel = !document.getElementById('pedido-rt-wrapper').classList.contains('hidden');
+    const rtPagamento = document.getElementById('pedido-select-rt').value;
+    if (rtVisivel && !rtPagamento) { alert("Selecione a forma de pagamento da RT."); return; }
 
     // TODO (próxima etapa): enviar para /api/protheus-enviar com
     // { solicitacao_id: _protheusOrcamentoId, pagamento, rt_forma_pagamento: rtPagamento }
