@@ -118,6 +118,10 @@
                         <p class="text-[10px] text-slate-500 truncate" id="perfil-email">Aguarde</p>
                     </div>
                 </div>
+                <button onclick="abrirMeuPerfil()" class="w-full flex items-center gap-4 px-3 py-2 rounded-md text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors group mb-1">
+                    <i class="fas fa-user-circle text-lg flex-shrink-0 w-6 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Meu Perfil</span>
+                </button>
                 <button id="btn-logout" class="w-full flex items-center gap-4 px-3 py-2 rounded-md text-xs font-medium text-red-400 hover:bg-red-950/20 transition-colors group">
                     <i class="fas fa-sign-out-alt text-lg flex-shrink-0 w-6 text-center"></i>
                     <span class="nav-text whitespace-nowrap">Sair do Sistema</span>
@@ -473,6 +477,71 @@
             <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-sm mt-6 text-sm transition-colors">
                 Entendido
             </button>
+        </div>
+    </div>
+
+    <!-- MODAL: MEU PERFIL (dados do vendedor) -->
+    <div id="modal-perfil-vendedor" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
+        <div class="bg-white rounded-sm shadow-xl w-full max-w-md p-6 relative">
+            <button onclick="fecharMeuPerfil()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors text-2xl font-medium leading-none outline-none">&times;</button>
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Meu Perfil</h2>
+            <p class="text-xs text-slate-500 mb-4">Campos com <span class="text-red-500">*</span> são obrigatórios para enviar pedidos ao Protheus.</p>
+
+            <div id="perfil-aviso-rca" class="hidden mb-4 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium rounded-sm p-3">
+                <i class="fas fa-exclamation-triangle mr-1"></i> Preencha seu código de vendedor (RCA) antes de enviar o pedido ao Protheus.
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Nome</label>
+                    <input id="perfil-input-nome" type="text" class="w-full border border-slate-300 rounded-sm p-2 text-sm outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">E-mail</label>
+                    <p id="perfil-texto-email" class="w-full bg-slate-50 border border-slate-200 rounded-sm p-2 text-sm text-slate-500"></p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Filial</label>
+                    <p id="perfil-texto-filial" class="w-full bg-slate-50 border border-slate-200 rounded-sm p-2 text-sm text-slate-500"></p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Código do vendedor (RCA) <span class="text-red-500">*</span></label>
+                    <input id="perfil-input-rca" type="text" class="w-full border border-slate-300 rounded-sm p-2 text-sm outline-none focus:border-blue-500" placeholder="Ex: 000123">
+                </div>
+                <button id="btn-salvar-perfil" onclick="salvarMeuPerfil()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-sm uppercase text-sm mt-2 transition-colors">
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DADOS DO PEDIDO (forma de pagamento + RT) -->
+    <div id="modal-dados-pedido" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
+        <div class="bg-white rounded-sm shadow-xl w-full max-w-md p-6 relative">
+            <button onclick="fecharModalDadosPedido()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors text-2xl font-medium leading-none outline-none">&times;</button>
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Dados do Pedido</h2>
+            <p class="text-xs text-slate-500 mb-4">Confirme as informações antes de enviar ao Protheus.</p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Forma de pagamento <span class="text-red-500">*</span></label>
+                    <input id="pedido-input-pagamento" type="text" class="w-full border border-slate-300 rounded-sm p-2 text-sm outline-none focus:border-blue-500" placeholder="Ex: 30/60/90">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Forma de pagamento da RT <span class="text-red-500">*</span></label>
+                    <select id="pedido-select-rt" class="w-full border border-slate-300 rounded-sm p-2 text-sm outline-none focus:border-blue-500 bg-white">
+                        <option value="">Selecione...</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Produto">Produto</option>
+                    </select>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 text-blue-700 text-xs rounded-sm p-3">
+                    <i class="fas fa-info-circle mr-1"></i> Este pedido será registrado no Protheus com o <strong>cliente padrão da filial</strong>.
+                </div>
+                <button id="btn-confirmar-pedido" onclick="confirmarDadosPedido()" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-sm uppercase text-sm mt-2 transition-colors">
+                    Enviar para o Protheus
+                </button>
+            </div>
         </div>
     </div>
 

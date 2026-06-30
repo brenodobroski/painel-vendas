@@ -48,7 +48,7 @@ async function verificarAcesso() {
 
         const { data: perfil, error } = await supabase
             .from('usuarios')
-            .select('role, filial, token_sessao') 
+            .select('role, filial, token_sessao, nome, RCA')
             .eq('id', session.user.id)
             .single();
 
@@ -76,6 +76,15 @@ async function verificarAcesso() {
         // Salvamos as credenciais globais e tratamos espaços invisíveis
         window.filialVendedor = String(perfil?.filial || '1028').trim();
         window.roleUsuario = String(perfil?.role || '').trim();
+
+        // Dados do vendedor para o "Meu Perfil" e validação do envio ao Protheus
+        window.perfilVendedor = {
+            id: session.user.id,
+            nome: perfil?.nome || nomeUsuario,
+            email: session.user.email,
+            filial: (perfil?.filial !== null && perfil?.filial !== undefined) ? String(perfil.filial).trim() : '',
+            rca: perfil?.RCA ? String(perfil.RCA).trim() : ''
+        };
 
 
         // Adiciona o teste de hipotese para as filiais selecionadas e para o admin
@@ -1242,12 +1251,13 @@ function renderizarMinhasSolicitacoes(lista) {
             infoGestor = `<span class="text-[10px] text-slate-400 uppercase ml-2" title="${req.vendedor_email}">${nomeVendedor}</span>`;
         }
 
-        let borderColor, statusHtml, botaoPrincipal;
+        let borderColor, statusHtml, botaoPrincipal, botaoProtheus = '';
 
         if (req.status === 'aprovado') {
             borderColor = 'border-l-green-600';
             statusHtml = `<span class="text-[11px] font-medium text-green-700 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Aprovado</span>`;
             botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
+            botaoProtheus = `<button onclick="enviarParaProtheus('${req.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-paper-plane mr-1"></i> Enviar para o Protheus</button>`;
         } else if (req.status === 'reprovado') {
             borderColor = 'border-l-red-500';
             statusHtml = `<span class="text-[11px] font-medium text-red-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span> Reprovado</span>`;
@@ -1294,8 +1304,9 @@ function renderizarMinhasSolicitacoes(lista) {
             </div>
             <div class="flex justify-between items-center">
                 <span class="text-xs text-slate-400">${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'}</span>
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap justify-end">
                     ${botaoPrincipal}
+                    ${botaoProtheus}
                     ${req.status !== 'pendente' ? botaoRefazer : ''}
                 </div>
             </div>
@@ -1310,6 +1321,118 @@ window.verMotivoReprovacao = function(id) {
     if (!req) return;
     document.getElementById('texto-motivo-reprovacao').innerText = req.motivo_reprovacao || "Não foi fornecido um comentário adicional para esta reprovação.";
     document.getElementById('modal-motivo-reprovacao').classList.remove('hidden');
+};
+
+// ==========================================
+// MEU PERFIL (dados do vendedor)
+// ==========================================
+window.abrirMeuPerfil = function(destacarRca = false) {
+    const p = window.perfilVendedor;
+    if (!p) {
+        alert("Seus dados ainda estão carregando. Tente novamente em instantes.");
+        return;
+    }
+    document.getElementById('perfil-input-nome').value   = p.nome || '';
+    document.getElementById('perfil-texto-email').innerText  = p.email || '—';
+    document.getElementById('perfil-texto-filial').innerText = p.filial || 'Não configurada';
+    document.getElementById('perfil-input-rca').value    = p.rca || '';
+
+    const aviso = document.getElementById('perfil-aviso-rca');
+    if (aviso) aviso.classList.toggle('hidden', !destacarRca);
+
+    document.getElementById('modal-perfil-vendedor').classList.remove('hidden');
+};
+
+window.fecharMeuPerfil = function() {
+    document.getElementById('modal-perfil-vendedor').classList.add('hidden');
+};
+
+window.salvarMeuPerfil = async function() {
+    const p = window.perfilVendedor;
+    if (!p) return;
+
+    const novoNome = document.getElementById('perfil-input-nome').value.trim();
+    const novoRca  = document.getElementById('perfil-input-rca').value.trim();
+
+    if (!novoNome) { alert("Informe o seu nome."); return; }
+
+    const btn = document.getElementById('btn-salvar-perfil');
+    const txtAnterior = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Salvando...";
+
+    try {
+        const { error } = await supabase
+            .from('usuarios')
+            .update({ nome: novoNome, RCA: novoRca })
+            .eq('id', p.id);
+
+        if (error) throw error;
+
+        // Atualiza o estado em memória e a barra lateral
+        window.perfilVendedor.nome = novoNome;
+        window.perfilVendedor.rca = novoRca;
+        const elNome = document.getElementById('perfil-nome');
+        if (elNome) elNome.innerText = novoNome;
+
+        fecharMeuPerfil();
+        alert("✅ Perfil atualizado!");
+    } catch (err) {
+        console.error("Erro ao salvar perfil:", err);
+        alert("Erro ao salvar: " + (err.message || err));
+    } finally {
+        btn.disabled = false;
+        btn.innerText = txtAnterior;
+    }
+};
+
+// ==========================================
+// ENVIO PARA O PROTHEUS (fluxo de validação)
+// ==========================================
+let _protheusOrcamentoId = null;
+
+window.enviarParaProtheus = function(id) {
+    const p = window.perfilVendedor;
+    if (!p) {
+        alert("Seus dados ainda estão carregando. Tente novamente em instantes.");
+        return;
+    }
+
+    // 1. RCA é obrigatório — sem ele, abre o perfil pedindo pra preencher
+    if (!p.rca) {
+        abrirMeuPerfil(true);
+        return;
+    }
+
+    // 2. Filial é obrigatória e não é editável pelo vendedor
+    if (!p.filial) {
+        alert("Sua filial não está configurada. Contate o administrador antes de enviar ao Protheus.");
+        return;
+    }
+
+    // 3. Perfil ok — abre o modal de dados do pedido
+    _protheusOrcamentoId = id;
+    document.getElementById('pedido-input-pagamento').value = '';
+    document.getElementById('pedido-select-rt').value = '';
+    document.getElementById('modal-dados-pedido').classList.remove('hidden');
+};
+
+window.fecharModalDadosPedido = function() {
+    document.getElementById('modal-dados-pedido').classList.add('hidden');
+    _protheusOrcamentoId = null;
+};
+
+window.confirmarDadosPedido = function() {
+    const pagamento = document.getElementById('pedido-input-pagamento').value.trim();
+    const rtPagamento = document.getElementById('pedido-select-rt').value;
+
+    if (!pagamento) { alert("Informe a forma de pagamento."); return; }
+    if (!rtPagamento) { alert("Selecione a forma de pagamento da RT."); return; }
+
+    // TODO (próxima etapa): enviar para /api/protheus-enviar com
+    // { solicitacao_id: _protheusOrcamentoId, pagamento, rt_forma_pagamento: rtPagamento }
+    fecharModalDadosPedido();
+    alert("✅ Dados confirmados. A integração com o Protheus será conectada na próxima etapa.");
 };
 
 window.abrirOrcamentoAprovado = async function(id) {
