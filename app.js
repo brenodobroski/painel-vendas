@@ -1257,7 +1257,7 @@ function renderizarMinhasSolicitacoes(lista) {
             borderColor = 'border-l-green-600';
             statusHtml = `<span class="text-[11px] font-medium text-green-700 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Aprovado</span>`;
             botaoPrincipal = `<button onclick="abrirOrcamentoAprovado('${req.id}')" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-file-pdf mr-1"></i> Ver PDF</button>`;
-            botaoProtheus = `<button onclick="enviarParaProtheus('${req.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-paper-plane mr-1"></i> Enviar para o Protheus</button>`;
+            botaoProtheus = `<button onclick="enviarParaProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap inline-flex items-center gap-1.5"><img src="./img/protheus.png" onerror="this.style.display='none'" alt="" class="h-3.5 object-contain"> Enviar para o Protheus</button>`;
         } else if (req.status === 'reprovado') {
             borderColor = 'border-l-red-500';
             statusHtml = `<span class="text-[11px] font-medium text-red-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span> Reprovado</span>`;
@@ -1451,7 +1451,7 @@ window.enviarParaProtheus = function(id) {
 
     // RT — só aparece se o pedido tiver; sem RT, o pagamento ocupa a linha toda
     const temRt = (parseFloat(req.rt) || 0) > 0;
-    document.getElementById('pedido-rt-wrapper').classList.toggle('hidden', !temRt);
+    document.getElementById('dropdown-pedido-rt').classList.toggle('hidden', !temRt);
     document.getElementById('pedido-pagamento-wrapper').classList.toggle('sm:col-span-2', !temRt);
     if (temRt) {
         document.getElementById('pedido-rt-valor').innerText =
@@ -1461,6 +1461,12 @@ window.enviarParaProtheus = function(id) {
     // Reset dos campos
     document.getElementById('pedido-input-pagamento').value = '';
     document.getElementById('pedido-select-rt').value = '';
+    const rtTexto = document.getElementById('texto-pedido-rt');
+    rtTexto.innerText = 'Selecione…';
+    rtTexto.classList.add('text-slate-400');
+    rtTexto.classList.remove('text-slate-700');
+    document.getElementById('lista-pedido-rt').classList.add('hidden');
+    document.getElementById('seta-pedido-rt').classList.remove('rotate-180');
 
     document.getElementById('modal-dados-pedido').classList.remove('hidden');
 };
@@ -1470,12 +1476,22 @@ window.fecharModalDadosPedido = function() {
     _protheusOrcamentoId = null;
 };
 
+window.selecionarRt = function(valor) {
+    document.getElementById('pedido-select-rt').value = valor;
+    const txt = document.getElementById('texto-pedido-rt');
+    txt.innerText = valor;
+    txt.classList.remove('text-slate-400');
+    txt.classList.add('text-slate-700');
+    document.getElementById('lista-pedido-rt').classList.add('hidden');
+    document.getElementById('seta-pedido-rt').classList.remove('rotate-180');
+};
+
 window.confirmarDadosPedido = function() {
     const pagamento = document.getElementById('pedido-input-pagamento').value.trim();
     if (!pagamento) { alert("Informe a forma de pagamento."); return; }
 
     // A forma de pagamento da RT só é exigida quando o pedido tem RT
-    const rtVisivel = !document.getElementById('pedido-rt-wrapper').classList.contains('hidden');
+    const rtVisivel = !document.getElementById('dropdown-pedido-rt').classList.contains('hidden');
     const rtPagamento = document.getElementById('pedido-select-rt').value;
     if (rtVisivel && !rtPagamento) { alert("Selecione a forma de pagamento da RT."); return; }
 
