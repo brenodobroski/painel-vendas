@@ -517,7 +517,7 @@
 
     <!-- MODAL: DADOS DO PEDIDO (forma de pagamento + RT + itens) -->
     <div id="modal-dados-pedido" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
-        <div class="bg-white rounded-sm shadow-xl w-full max-w-lg relative flex flex-col max-h-[90vh]">
+        <div class="bg-white rounded-sm shadow-xl w-full max-w-2xl relative flex flex-col max-h-[90vh]">
 
             <div class="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
                 <div>
@@ -529,24 +529,20 @@
 
             <div class="overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
 
-                <!-- Forma de pagamento (topo) -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">Forma de pagamento <span class="text-red-500">*</span></label>
-                    <input id="pedido-input-pagamento" type="text" class="w-full border border-slate-300 rounded-sm p-2.5 text-sm outline-none focus:border-blue-500" placeholder="Ex: 30/60/90 dias">
-                </div>
-
-                <!-- Forma de pagamento da RT (só aparece se o pedido tiver RT) -->
-                <div id="pedido-rt-wrapper" class="hidden">
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">Forma de pagamento da RT <span class="text-red-500">*</span></label>
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-[11px] text-slate-500">Este pedido possui RT de</span>
-                        <span id="pedido-rt-valor" class="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5"></span>
+                <!-- Forma de pagamento + RT (lado a lado) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div id="pedido-pagamento-wrapper" class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">Forma de pagamento <span class="text-red-500">*</span></label>
+                        <input id="pedido-input-pagamento" type="text" class="w-full border border-slate-300 rounded-sm p-2.5 text-sm outline-none focus:border-blue-500" placeholder="Ex: 30/60/90 dias">
                     </div>
-                    <select id="pedido-select-rt" class="w-full border border-slate-300 rounded-sm p-2.5 text-sm outline-none focus:border-blue-500 bg-white">
-                        <option value="">Selecione...</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Produto">Produto</option>
-                    </select>
+                    <div id="pedido-rt-wrapper" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">Forma de pagamento da RT <span id="pedido-rt-valor" class="text-slate-400 normal-case font-normal lowercase"></span> <span class="text-red-500">*</span></label>
+                        <select id="pedido-select-rt" class="w-full border border-slate-300 rounded-sm p-2.5 text-sm outline-none focus:border-blue-500 bg-white">
+                            <option value="">Selecione...</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Produto">Produto</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Itens do pedido -->
@@ -590,8 +586,9 @@
             </div>
 
             <div class="p-6 pt-4 border-t border-slate-100">
-                <button id="btn-confirmar-pedido" onclick="confirmarDadosPedido()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-sm uppercase text-sm transition-colors flex items-center justify-center gap-2">
-                    <i class="fas fa-paper-plane"></i> Enviar para o Protheus
+                <button id="btn-confirmar-pedido" onclick="confirmarDadosPedido()" class="w-full bg-slate-900 hover:bg-black text-white font-medium py-3 rounded-sm uppercase text-sm transition-colors flex items-center justify-center gap-2.5">
+                    <img src="./img/protheus.png" onerror="this.style.display='none'" alt="" class="h-4 object-contain">
+                    Enviar para o Protheus
                 </button>
             </div>
         </div>

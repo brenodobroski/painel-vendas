@@ -1449,12 +1449,13 @@ window.enviarParaProtheus = function(id) {
     document.getElementById('pedido-frete').innerText = fmt(frete);
     document.getElementById('pedido-total').innerText = fmt(total);
 
-    // RT — só aparece se o pedido tiver
+    // RT — só aparece se o pedido tiver; sem RT, o pagamento ocupa a linha toda
     const temRt = (parseFloat(req.rt) || 0) > 0;
     document.getElementById('pedido-rt-wrapper').classList.toggle('hidden', !temRt);
+    document.getElementById('pedido-pagamento-wrapper').classList.toggle('sm:col-span-2', !temRt);
     if (temRt) {
         document.getElementById('pedido-rt-valor').innerText =
-            `${parseFloat(req.rt).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
+            `(${parseFloat(req.rt).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%)`;
     }
 
     // Reset dos campos
