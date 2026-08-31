@@ -2,16 +2,24 @@ export async function onRequestPost(context) {
     const { request, env } = context;
          
     try {
-        //  1. TRAVA DE SEGURANÇA: Exige o Token JWT
+        // 1. TRAVA DE SEGURANÇA: Exige o Token JWT
         const authHeader = request.headers.get('Authorization');
         if (!authHeader) {
             return new Response(JSON.stringify({ sucesso: false, erro: "Acesso Negado: Token ausente." }), { status: 401 });
         }
 
-        //  2. VERIFICAÇÃO NO SUPABASE: 
+        // 2. VERIFICA SE A CHAVE DO SUPABASE EXISTE NAS VARIÁVEIS DE AMBIENTE
         const SUPABASE_URL = 'https://ijkzolhxuuqmkuztdliv.supabase.co';
         const SUPABASE_KEY = env.SUPABASE_CHAVE;
 
+        if (!SUPABASE_KEY) {
+            return new Response(JSON.stringify({ 
+                sucesso: false, 
+                erro: "Erro no Servidor: A variável SUPABASE_CHAVE não foi configurada no Cloudflare Pages." 
+            }), { status: 500 });
+        }
+
+        // 3. VERIFICAÇÃO NO SUPABASE: 
         const authCheck = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
             headers: {
                 'Authorization': authHeader,
@@ -20,7 +28,12 @@ export async function onRequestPost(context) {
         });
 
         if (!authCheck.ok) {
-            return new Response(JSON.stringify({ sucesso: false, erro: "Acesso Negado: Token inválido ou expirado." }), { status: 401 });
+            const detalheErro = await authCheck.text();
+            return new Response(JSON.stringify({ 
+                sucesso: false, 
+                erro: "Acesso Negado: Token inválido ou expirado.",
+                detalhe: detalheErro 
+            }), { status: 401 });
         }
 
         // --- SE PASSOU PELO SEGURANÇA, CONTINUA O CÁLCULO NORMALMENTE ---
