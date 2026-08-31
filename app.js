@@ -413,6 +413,8 @@ async function buscarPrecosBaseTabela(skusParaBuscar) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    console.log(session.access_token);
+
     try {
         const resposta = await fetch('/api/calcular', {
             method: 'POST',
