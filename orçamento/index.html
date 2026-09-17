@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climario - Multisplit</title>
+    <link rel="icon" type="image/jpg" href="./img/logo-site.jpg">
+
+    <!-- PWA (instalação na máquina) -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Vendas Climario">
+    <link rel="apple-touch-icon" href="/img/icon-192.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    if (!localStorage.getItem('sb-ijkzolhxuuqmkuztdliv-auth-token')) {
+        window.location.replace('login.html'); 
+    }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+    @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    body { animation: pageFadeIn 0.25s ease-out; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    /* Transições Suaves para o Menu Retrátil */
+    #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
+    #main-content { transition: margin-left 0.3s ease; }
+    .nav-text, .profile-info, .logo-text { transition: opacity 0.2s ease; }
+    
+    /* Classe para esconder texto quando colapsado */
+    .sidebar-collapsed .nav-text, 
+    .sidebar-collapsed .profile-info, 
+    .sidebar-collapsed .logo-text,
+    .sidebar-collapsed .nav-title {
+        display: none;
+    }
+
+    /* Ajuste de largura colapsada */
+    .sidebar-collapsed { width: 80px !important; }
+    .sidebar-collapsed-margin { margin-left: 80px !important; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
+
+    <div class="md:hidden flex items-center justify-between bg-slate-950 text-white p-4 sticky top-0 z-40 shadow-md">
+        <div class="flex items-center">
+            <img class="w-8 rounded-lg mr-3" src="./img/logo-site.jpg" alt="Logo Climario">
+            <span class="font-bold text-lg tracking-tight">Climario <span class="text-slate-500 text-sm">Multi</span></span>
+        </div>
+        <button onclick="toggleMobileMenu()" class="text-slate-300 hover:text-white focus:outline-none">
+            <i class="fas fa-bars text-2xl"></i>
+        </button>
+    </div>
+
+    <div id="sidebar-backdrop" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-40 hidden md:hidden backdrop-blur-sm"></div>
+
+    <div class="flex">
+        
+        <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col h-screen fixed left-0 top-0 border-r border-slate-800 z-50 transform -translate-x-full md:translate-x-0">
+            
+            <div class="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-950 overflow-hidden">
+                <div class="flex items-center flex-shrink-0">
+                    <img class="logo-text h-7 object-contain" src="./img/LOGO_CLIMARIO_NEGATIVO.png" alt="Climario">
+                </div>
+                <button onclick="toggleSidebarDesktop()" class="hidden md:flex text-slate-500 hover:text-white p-1 ml-1">
+                    <i id="toggle-icon" class="fas fa-chevron-left"></i>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-slate-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <nav class="flex-1 py-3 space-y-0.5 overflow-y-auto custom-scrollbar overflow-x-hidden">
+                <button onclick="mudarAba('simulador')" id="btn-aba-simulador" class="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-sm font-medium border-l-2 rounded-r-sm transition-colors border-blue-400 bg-slate-800 text-slate-200">
+                    <i class="fas fa-chart-bar flex-shrink-0 w-4 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Novo Orçamento</span>
+                </button>
+
+                <button onclick="mudarAba('solicitacoes')" id="btn-aba-solicitacoes" class="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-2 border-transparent rounded-r-sm transition-colors">
+                    <i class="fas fa-clipboard-list flex-shrink-0 w-4 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Minhas Solicitações</span>
+                </button>
+
+                <button onclick="mudarAba('catalogos')" id="btn-aba-catalogos" class="w-full flex items-center gap-3 pl-4 pr-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-2 border-transparent rounded-r-sm transition-colors">
+                    <i class="fas fa-book-open flex-shrink-0 w-4 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Catálogos</span>
+                </button>
+            </nav>
+
+            <div class="p-3 border-t border-slate-800 bg-slate-950 overflow-hidden">
+                <div class="flex items-center gap-3 mb-4 px-1">
+                    <div class="w-10 h-10 rounded bg-slate-800 flex items-center justify-center font-bold text-sm text-white flex-shrink-0 shadow-inner" id="perfil-iniciais">--</div>
+                    <div class="profile-info overflow-hidden min-w-0">
+                        <p class="text-sm font-bold text-white truncate" id="perfil-nome">Carregando...</p>
+                        <p class="text-[10px] text-slate-500 truncate" id="perfil-email">Aguarde</p>
+                    </div>
+                </div>
+                <button id="btn-logout" class="w-full flex items-center gap-4 px-3 py-2 rounded-md text-xs font-medium text-red-400 hover:bg-red-950/20 transition-colors group">
+                    <i class="fas fa-sign-out-alt text-lg flex-shrink-0 w-6 text-center"></i>
+                    <span class="nav-text whitespace-nowrap">Sair do Sistema</span>
+                </button>
+            </div>
+        </aside>
+
+        <main id="main-content" class="flex-1 ml-0 md:ml-64 p-4 md:p-8 min-h-screen w-full overflow-x-hidden">
+            <div class="max-w-[1600px] mx-auto space-y-6">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4">
+                    <div>
+                        <h2 id="titulo-pagina" class="text-xl sm:text-2xl font-bold text-slate-900">Configurador Multi-Split</h2>
+                        <p id="subtitulo-pagina" class="text-slate-500 text-xs font-medium mt-1">Configure os parâmetros e selecione os itens abaixo.</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <!-- NOVO BOTÃO DE MURAL DE AVISOS (Sininho) -->
+                        <button id="btn-reabrir-avisos" onclick="forcarExibicaoAvisos()" class="hidden w-full sm:w-auto bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-4 py-2 rounded-sm text-sm font-medium transition-all flex items-center justify-center relative">
+                            <i class="fas fa-bell mr-2"></i> Avisos
+                            <span id="badge-avisos" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full hidden">0</span>
+                        </button>
+                        
+                        <button onclick="window.location.reload()" class="w-full sm:w-auto bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 px-4 py-2 rounded-sm text-sm font-medium transition-all flex items-center justify-center">
+                            <i class="fas fa-sync-alt mr-2"></i> Atualizar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="box-aviso-sistema" class="hidden bg-amber-50 border border-amber-200 rounded-sm mb-6 mt-4 overflow-hidden">
+                    <div class="bg-amber-100 px-4 py-2 border-b border-amber-200 flex items-center gap-2">
+                        <i class="fas fa-bullhorn text-amber-600"></i>
+                        <h3 class="text-sm font-bold text-amber-800">Avisos</h3>
+                    </div>
+                    <div id="texto-aviso-sistema" class="p-4 text-sm text-amber-900 flex flex-col gap-3 [&_img]:max-w-full [&_img]:rounded-md [&_img]:shadow-sm [&_img]:mx-auto">
+                    </div>
+                </div>
+
+                <section id="secao-simulador" class="block">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <div class="lg:col-span-2 space-y-6">
+                            
+                            <div class="bg-white border border-slate-200 rounded-sm p-4 sm:p-6">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 pb-6 border-b border-slate-100">
+                                    
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Desconto</label>
+                                        <div class="relative w-full custom-dropdown" id="dropdown-input-desconto">
+                                            <button type="button" id="btn-input-desconto" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center hover:border-blue-400 transition-all outline-none" onclick="toggleDropdown('input-desconto')">
+                                                <span id="texto-input-desconto" class="truncate pr-2 text-left">0%</span>
+                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-input-desconto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </button>
+                                            <div id="lista-input-desconto" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                                                <ul class="py-1 text-sm text-slate-700 font-bold">
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 text-blue-700" data-value="22">22%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 text-blue-700" data-value="21">21%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 text-blue-700" data-value="20">20%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 text-blue-700" data-value="19">19%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="18">18%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="17">17%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="16">16%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="15">15%</li>
+                                                </ul>
+                                            </div>
+                                            <input type="hidden" id="input-desconto" value="0" onchange="atualizarResumo()">
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">RT</label>
+                                        <div class="relative w-full custom-dropdown" id="dropdown-input-rt">
+                                            <button type="button" id="btn-input-rt" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center hover:border-blue-400 transition-all outline-none" onclick="toggleDropdown('input-rt')">
+                                                <span id="texto-input-rt" class="truncate pr-2 text-left">0%</span>
+                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-input-rt" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </button>
+                                            <div id="lista-input-rt" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                                                <ul class="py-1 text-sm text-slate-700 font-bold">
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="0">0%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="1">1%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="2">2%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3">3%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4">4%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="5">5%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="6">6%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="7">7%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="8">8%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="9">9%</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer" data-value="10">10%</li>
+                                                </ul>
+                                            </div>
+                                            <input type="hidden" id="input-rt" value="0" onchange="atualizarResumo()">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-2">Destino (Frete)</label>
+                                        <div class="relative w-full custom-dropdown" id="dropdown-select-uf">
+                                            <button type="button" id="btn-select-uf" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center hover:border-blue-400 transition-all outline-none" onclick="toggleDropdown('select-uf')">
+                                                <span id="texto-select-uf" class="truncate pr-2">SP</span>
+                                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0 ml-2" id="seta-select-uf" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </button>
+                                            <div id="lista-select-uf" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                                                <ul class="py-1 text-sm text-slate-700 font-bold">
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.0">SP</li>                                                    
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.5">PR</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.0">RJ</li> 
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.5">RS</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.5">SC</li>                                                                                                       
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">AC</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">AL</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">AM</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">AP</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">BA</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">CE</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">DF</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="2.5">ES</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">GO</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">MA</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.0">MG</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">MS</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">MT</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">PA</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">PB</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">PE</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">PI</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">RN</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">RO</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="10.0">RR</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="4.0">SE</li>
+                                                    <li class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="3.8">TO</li>
+                                                </ul>
+                                            </div>
+                                            <input type="hidden" id="select-uf" value="3.0" onchange="atualizarResumo()">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-4 mb-4">
+                                    <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
+                                        <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-sm flex items-center justify-center text-xs">1</span>
+                                        Condensadoras
+                                    </h3>
+                                    <div class="relative custom-dropdown w-52 flex-shrink-0" id="dropdown-marca-condensadora">
+                                        <button type="button" id="btn-marca-condensadora" class="w-full bg-white border border-slate-300 rounded-sm py-2 px-3 text-sm font-medium text-slate-700 flex justify-between items-center outline-none hover:border-blue-400 transition-all" onclick="toggleDropdown('marca-condensadora')">
+                                            <span id="texto-marca-condensadora" class="uppercase truncate pr-2 text-left text-xs">-- Escolha a Marca --</span>
+                                            <svg class="w-4 h-4 text-slate-500 flex-shrink-0" id="seta-marca-condensadora" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        </button>
+                                        <div id="lista-marca-condensadora" class="hidden absolute right-0 z-50 w-full mt-1 bg-white border border-slate-200 rounded-sm shadow-lg max-h-64 overflow-y-auto">
+                                            <ul class="py-1 text-sm text-slate-700 font-bold uppercase">
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="SAMSUNG">SAMSUNG</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="LG">LG</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="LG BI">LG BI</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="MIDEA">MIDEA</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="ELGIN">ELGIN</li>                                                                                                
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="DAIKIN">DAIKIN</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="DAIKIN BI">DAIKIN BI R-32</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="DAIKIN TRI">DAIKIN TRI R-32</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50" data-value="GREE">GREE</li>
+                                                <li class="px-4 py-3 hover:bg-blue-50 cursor-pointer" data-value="FUJITSU">FUJITSU</li>
+                                            </ul>
+                                        </div>
+                                        <input type="hidden" id="marca-condensadora" value="">
+                                    </div>
+                                </div>
+
+                                <div id="container-tabela" class="hidden border border-slate-200 rounded-sm overflow-hidden bg-slate-50">
+                                    <div class="max-h-64 overflow-y-auto overflow-x-auto custom-scrollbar">
+                                        <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
+                                            <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0 z-10">
+                                                <tr>
+                                                    <th class="border p-2 sm:p-3 w-16 text-center">Qtd</th>
+                                                    <th class="border p-2 sm:p-3 text-center">SKU</th>
+                                                    <th class="border p-2 sm:p-3">Equipamento</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Estoque</th>
+                                                    <th class="border p-2 sm:p-3 text-center">À Vista</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Parcelado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="corpo-tabela" class="bg-white"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="card-evaporadoras" class="bg-white border border-slate-200 rounded-sm p-4 sm:p-6 opacity-50 transition-all">
+                                <h3 class="text-base sm:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-sm flex items-center justify-center text-xs">2</span> Evaporadoras
+                                </h3>
+                                <div id="container-tabela-evap" class="hidden border border-slate-200 rounded-sm overflow-hidden">
+                                    <div class="max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
+                                        <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
+                                            <thead class="bg-slate-100 text-slate-600 font-bold border-b sticky top-0 z-10">
+                                                <tr>
+                                                    <th class="border p-2 sm:p-3 w-16 text-center">Qtd</th>
+                                                    <th class="border p-2 sm:p-3 text-center">SKU</th>
+                                                    <th class="border p-2 sm:p-3">Equipamento</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Estoque</th>
+                                                    <th class="border p-2 sm:p-3 text-center">À Vista</th>
+                                                    <th class="border p-2 sm:p-3 text-center">Parcelado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="corpo-tabela-evap" class="bg-white"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-1">
+                            <div class="bg-white border border-slate-200 rounded-sm p-4 sm:p-6 sticky top-6 border-t-4 border-t-blue-700">
+                                <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Resumo da Cotação</h3>
+                                
+                                <div id="lista-itens-resumo" class="space-y-3 mb-6 max-h-80 overflow-y-auto custom-scrollbar pr-1">
+                                    <p class="text-xs text-slate-400 italic">Nenhum item selecionado.</p>
+                                </div>
+
+                                <div class="space-y-2 mb-6 border-t border-slate-100 pt-4">
+                                    <div class="space-y-2 mb-4 text-slate-600 bg-slate-50 p-3 rounded-sm border">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] uppercase font-bold text-slate-500">Capacidade Condensadoras:</span>
+                                            <span id="resumo-btu-cond" class="text-xs font-mono font-bold text-slate-400">0 BTUs</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[11px] uppercase font-bold text-slate-500">Capapacidade Evaporadoras:</span>
+                                            <span id="resumo-btu-evap" class="text-xs font-mono font-bold text-slate-400">0 BTUs</span>
+                                        </div>
+                                        <div class="flex justify-between items-center pt-1 border-t border-slate-200 mt-1">
+                                            <span class="text-[11px] uppercase font-bold text-slate-500">Simultaneidade:</span>
+                                            <span id="resumo-simultaneidade" class="text-sm font-mono font-bold text-slate-800">0,0%</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between items-center text-slate-500 mt-2 border-b border-slate-100 pb-3">
+                                        <span class="text-xs font-bold uppercase">Frete:</span>
+                                        <span id="resumo-frete" class="text-sm font-bold"> R$ 0,00</span>
+                                    </div>
+                                    <div class="flex flex-col gap-2 pt-3 border-t border-slate-200 mt-2 mb-6">
+                                        <div class="flex justify-between items-center font-bold text-slate-900">
+                                            <span class="text-sm uppercase">Total À Vista:</span>
+                                            <span id="resumo-total-avista" class="text-xl sm:text-2xl font-mono text-blue-700">R$ 0,00</span>
+                                        </div>
+                                        <div class="flex justify-between items-center font-bold text-slate-600 border-t border-slate-100 pt-2">
+                                            <span class="text-sm uppercase">Total até 10x:</span>
+                                            <span id="resumo-total-parcelado" class="text-lg sm:text-xl font-mono text-slate-500">R$ 0,00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button id="btn-finalizar" disabled class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 sm:py-4 rounded-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase text-xs tracking-widest">
+                                    Gerar Orçamento
+                                </button>
+
+                                <div id="container-teste-hipotese" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-sm hidden">
+                                    <h3 class="text-xs font-medium text-blue-800 mb-2"><i class="fas fa-calculator"></i> Negociação</h3>
+                                    <div class="flex flex-col sm:flex-row gap-2 items-end">
+                                        <div class="flex-1 w-full sm:w-auto">
+                                            <label class="text-[10px] text-blue-700 font-medium">Valor Alvo</label>
+                                            <div class="flex">
+                                                <select id="tipo-alvo-hipotese" class="p-2 sm:p-1.5 text-xs border border-blue-200 border-r-0 rounded-none outline-none focus:border-blue-500 font-medium bg-white text-slate-700 cursor-pointer">
+                                                    <option value="avista">À Vista</option>
+                                                    <option value="parcelado">Até 10x</option>
+                                                </select>
+                                                <input type="number" id="input-evidencia" class="w-full p-2 sm:p-1.5 text-sm border border-blue-200 rounded-none outline-none focus:border-blue-500 font-medium" placeholder="Ex: 8500.00">
+                                            </div>
+                                        </div>
+                                        <button onclick="fazerTesteHipotese()" class="w-full sm:w-auto bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 sm:py-1.5 px-3 rounded-sm text-xs transition-colors">
+                                            Calcular
+                                        </button>
+                                    </div>
+                                    <p id="msg-hipotese" class="text-[10px] text-red-600 font-medium mt-2 hidden">Orçamento bloqueado.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section id="secao-solicitacoes" class="hidden space-y-6">
+                    <div class="flex justify-end">
+                        <div class="relative w-full md:w-72">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i class="fas fa-search text-slate-400"></i>
+                            </div>
+                            <input type="text" id="input-busca-orcamento" onkeyup="filtrarMinhasSolicitacoes()" class="bg-white border border-slate-300 text-slate-900 text-sm font-medium rounded-sm focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition-colors outline-none" placeholder="Buscar Nº do Orçamento...">
+                        </div>
+                    </div>
+
+                    <div id="corpo-minhas-solicitacoes" class="flex flex-col gap-2"></div>
+
+                    <div class="flex justify-center pt-2">
+                        <button id="btn-carregar-mais-solicitacoes" onclick="carregarMaisMinhasSolicitacoes()" class="hidden bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 px-6 py-2 rounded-sm text-xs font-medium transition-colors flex items-center gap-2">
+                            <i class="fas fa-chevron-down"></i> Carregar mais antigos
+                        </button>
+                    </div>
+                </section>
+
+                <section id="secao-catalogos">
+                    <div id="loading-catalogos" class="text-center py-20 hidden">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                        <p class="text-slate-500 font-bold">Buscando catálogos...</p>
+                    </div>
+                    
+                    <div id="grid-catalogos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-solicitacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
+        <div class="bg-white rounded-sm shadow-xl w-full max-w-md p-6 relative">
+            <button onclick="fecharModalSolicitacao()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors text-2xl font-medium leading-none outline-none">&times;</button>
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Solicitar Desconto Especial</h2>
+            <p class="text-xs text-slate-500 mb-4">Esta cotação será enviada para aprovação</p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Motivo / Concorrente <span class="text-red-500">*</span></label>
+                    <textarea id="input-motivo-solicitacao" rows="3" class="w-full border border-slate-300 rounded-sm p-2 text-sm outline-none focus:border-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Evidências (PDF ou Imagem)</label>
+                    <div class="border border-dashed border-slate-300 rounded-sm p-4 text-center hover:bg-slate-50 transition-colors cursor-pointer" onclick="document.getElementById('input-arquivo-solicitacao').click()">
+                        <i class="fas fa-cloud-upload-alt text-2xl text-slate-400 mb-2"></i>
+                        <p id="nome-arquivo-selecionado" class="text-xs text-slate-500 font-medium">Clique para anexar arquivo</p>
+                        <input type="file" id="input-arquivo-solicitacao" class="hidden" accept=".pdf, image/*" multiple onchange="mostrarNomeArquivo(this)">
+                    </div>
+                </div>
+                <button id="btn-enviar-solicitacao" onclick="enviarSolicitacaoSupabase()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-sm uppercase text-sm mt-2 transition-colors">
+                    Enviar para Aprovação
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-motivo-reprovacao" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
+        <div class="bg-white rounded-sm shadow-xl w-full max-w-sm p-6 relative">
+            <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-2xl font-medium outline-none">&times;</button>
+            <h2 class="text-lg font-bold text-red-600 mb-2 border-b border-slate-100 pb-2"><i class="fas fa-times-circle"></i> Solicitação Reprovada</h2>
+            <p class="text-sm font-medium text-slate-700 mt-4">Justificativa:</p>
+            <p id="texto-motivo-reprovacao" class="text-sm text-slate-600 mt-2 bg-red-50 p-4 rounded-sm border border-red-100 italic font-medium"></p>
+            <button onclick="document.getElementById('modal-motivo-reprovacao').classList.add('hidden')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-sm mt-6 text-sm transition-colors">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-aviso-global" class="fixed inset-0 z-[999] bg-slate-900/80 backdrop-blur-sm hidden flex justify-center items-center p-2 sm:p-4">
+        <div class="bg-white rounded-sm shadow-2xl w-full md:w-auto max-w-5xl overflow-hidden transform transition-all scale-95 opacity-0 flex flex-col md:flex-row max-h-[90vh]" id="modal-aviso-content">
+            <div id="aviso-imagem-container" class="hidden w-full md:w-auto relative bg-slate-50 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 flex-shrink-0">
+                <img id="aviso-imagem" src="" alt="Aviso" class="w-full md:w-auto h-auto max-h-[45vh] md:max-h-[85vh] object-contain">
+                <button id="aviso-btn-download" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-blue-700 hover:bg-blue-800 text-white px-5 py-2.5 rounded-sm text-xs font-medium flex items-center gap-2 transition z-10 whitespace-nowrap">
+                    <i class="fas fa-download"></i> Baixar Imagem
+                </button>
+            </div>
+            <div id="aviso-texto-container" class="w-full flex-1 md:min-w-[400px] md:max-w-[450px] p-6 sm:p-8 bg-white overflow-y-auto custom-scrollbar flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 id="aviso-titulo" class="text-2xl font-black text-slate-800 leading-tight">Aviso</h3>
+                    </div>
+                    <div id="aviso-mensagem" class="text-slate-600 text-sm sm:text-base leading-relaxed mb-6 whitespace-pre-wrap"></div>
+                </div>
+                <div class="mt-auto pt-6 border-t border-slate-100">
+                    <label class="flex items-center gap-3 mb-5 cursor-pointer select-none group">
+                        <input type="checkbox" id="checkbox-nao-mostrar-hoje" class="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer transition">
+                        <span class="text-sm font-bold text-slate-500 group-hover:text-slate-700 transition">Não mostrar este aviso novamente hoje</span>
+                    </label>
+                    <button id="btn-acao-aviso" onclick="window.processarFechamentoAviso()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-4 rounded-sm uppercase text-sm tracking-widest transition-colors active:scale-[0.98]">
+                        Próximo Aviso ➔
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script type='module' src="app.js"></script>
+    
+    <script>
+        // FUNÇÃO: Toggle Sidebar Desktop (Retrátil)
+        function toggleSidebarDesktop() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+            const icon = document.getElementById('toggle-icon');
+            
+            sidebar.classList.toggle('sidebar-collapsed');
+            main.classList.toggle('sidebar-collapsed-margin');
+            
+            if (sidebar.classList.contains('sidebar-collapsed')) {
+                icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+            } else {
+                icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+            }
+        }
+
+        // FUNÇÃO: Mobile Menu (Gaveta)
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        // Lógica de Abas
+         function mudarAba(aba) {
+            const secoes = ['simulador', 'solicitacoes', 'catalogos'];
+            secoes.forEach(s => {
+                document.getElementById('secao-' + s).classList.add('hidden');
+                const btn = document.getElementById('btn-aba-' + s);
+                if (btn) {
+                    btn.classList.remove('border-blue-400', 'bg-slate-800', 'text-slate-200');
+                    btn.classList.add('border-transparent', 'text-slate-400');
+                }
+            });
+
+            document.getElementById('secao-' + aba).classList.remove('hidden');
+            const btnAtivo = document.getElementById('btn-aba-' + aba);
+            if (btnAtivo) {
+                btnAtivo.classList.remove('border-transparent', 'text-slate-400');
+                btnAtivo.classList.add('border-blue-400', 'bg-slate-800', 'text-slate-200');
+            }
+
+            const titulos = {
+                'simulador': ['Configurador Multi-Split', 'Configure os parâmetros e selecione os itens abaixo.'],
+                'solicitacoes': ['Minhas Solicitações', 'Acompanhe o status de aprovação dos orçamentos enviados.'],
+                'catalogos': ['Catálogos das Marcas', 'Consulte os materiais técnicos e comerciais em PDF.']
+            };
+            
+            document.getElementById('titulo-pagina').innerText = titulos[aba][0];
+            document.getElementById('subtitulo-pagina').innerText = titulos[aba][1];
+
+            if(window.innerWidth < 768) toggleMobileMenu();
+
+            if (aba === 'catalogos' && typeof window.carregarCatalogosDoBanco === 'function') {
+                window.carregarCatalogosDoBanco();
+            }
+        }
+
+        // Dropdowns Customizados
+        document.addEventListener('click', function(e) {
+            document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+                if (!dropdown.contains(e.target)) {
+                    const id = dropdown.id.replace('dropdown-', '');
+                    const lista = document.getElementById('lista-' + id);
+                    const seta = document.getElementById('seta-' + id);
+                    if(lista) lista.classList.add('hidden');
+                    if(seta) seta.classList.remove('rotate-180');
+                }
+            });
+        });
+
+        function toggleDropdown(id) {
+            document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+                const outroId = dropdown.id.replace('dropdown-', '');
+                if (outroId !== id) {
+                    const l = document.getElementById('lista-' + outroId);
+                    const s = document.getElementById('seta-' + outroId);
+                    if(l) l.classList.add('hidden');
+                    if(s) s.classList.remove('rotate-180');
+                }
+            });
+            const lista = document.getElementById('lista-' + id);
+            const seta = document.getElementById('seta-' + id);
+            if(lista) lista.classList.toggle('hidden');
+            if(seta) seta.classList.toggle('rotate-180');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+                const id = dropdown.id.replace('dropdown-', '');
+                const lista = document.getElementById('lista-' + id);
+                const input = document.getElementById(id);
+                const texto = document.getElementById('texto-' + id);
+                const seta = document.getElementById('seta-' + id);
+
+                if(lista) {
+                    lista.querySelectorAll('li').forEach(item => {
+                        item.addEventListener('click', () => {
+                            texto.innerText = item.innerText;
+                            input.value = item.getAttribute('data-value');
+                            lista.classList.add('hidden');
+                            seta.classList.remove('rotate-180');
+                            const event = new Event('change', { bubbles: true });
+                            input.dispatchEvent(event);
+                            if (typeof window.atualizarResumo === 'function' && id !== 'marca-condensadora') {
+                                window.atualizarResumo();
+                            }
+                        });
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
