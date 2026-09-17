@@ -396,8 +396,31 @@
                 </section>
 
                 <section id="secao-solicitacoes" class="hidden space-y-6">
-                    <div class="flex justify-end">
-                        <div class="relative w-full md:w-72">
+                    <style>
+                        .gv-dropdown { position: relative; }
+                        .gv-btn { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:10px 12px; background:#fff; border:1px solid #cbd5e1; font-size:13px; font-weight:600; color:#334155; outline:none; transition:border-color .15s; }
+                        .gv-btn:hover { border-color:#3b82f6; }
+                        .gv-lista { display:none; position:absolute; z-index:60; top:100%; left:0; width:100%; min-width:240px; background:#fff; border:1px solid #cbd5e1; box-shadow:0 10px 25px rgba(0,0,0,.15); max-height:260px; overflow-y:auto; }
+                        .gv-lista.aberto { display:block; }
+                        .gv-item { padding:9px 12px; font-size:12px; color:#334155; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; border-bottom:1px solid #f1f5f9; }
+                        .gv-item:hover { background:#eff6ff; }
+                        .gv-item.selecionado { background:#eff6ff; color:#1d4ed8; font-weight:700; }
+                        .gv-item small { color:#94a3b8; font-weight:400; font-size:10px; }
+                    </style>
+                    <div class="flex flex-col md:flex-row md:items-end gap-3 md:justify-between">
+                        <!-- FILTRO POR VENDEDOR (visível apenas para gestor) -->
+                        <div id="filtro-vendedor-gestor" class="hidden w-full md:w-72">
+                            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Vendedor</label>
+                            <div class="gv-dropdown">
+                                <button type="button" id="btn-vendedor-gestor" class="gv-btn" onclick="toggleDropdownVendedorGestor(event)">
+                                    <span id="texto-vendedor-gestor" class="truncate">Todos os vendedores</span>
+                                    <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
+                                </button>
+                                <div id="lista-vendedores-gestor" class="gv-lista"></div>
+                            </div>
+                        </div>
+
+                        <div class="relative w-full md:w-72 md:ml-auto">
                             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <i class="fas fa-search text-slate-400"></i>
                             </div>
