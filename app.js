@@ -1120,8 +1120,7 @@ async function carregarMinhasSolicitacoes(userId) {
         // 1. Monta a base da consulta (agora pedimos o vendedor_email também)
         let query = supabase
             .from('solicitacoes_orcamento')
-            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
-            .eq('vendedor_id', userId)
+            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens, vendedor_email')
             .order('created_at', { ascending: false })
             .limit(limiteAtualMinhasSolicitacoes);
 
