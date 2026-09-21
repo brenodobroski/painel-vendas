@@ -1309,7 +1309,7 @@ function renderizarMinhasSolicitacoes(lista) {
         const logoProtheus2 = '<img src="./img/logo-protheus-2.svg" alt="Protheus" class="h-3.5 mr-1 inline-block align-middle">';
         const botaoProtheus = req.status === 'aprovado'
             ? (req.orc_protheus
-                ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus2} Ver orçamento</button>`
+                ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-900 text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus2} Ver orçamento</button>`
                 : `<button onclick="abrirModalProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Enviar p/ Protheus</button>`)
             : '';
 
