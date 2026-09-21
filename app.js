@@ -1306,9 +1306,10 @@ function renderizarMinhasSolicitacoes(lista) {
         const barraDivisor = `<span class="w-px h-6 bg-slate-200 mx-0.5"></span>`;
 
         const logoProtheus = '<img src="./img/logo-protheus.svg" alt="Protheus" class="h-3.5 mr-1 inline-block align-middle">';
+        const logoProtheus2 = '<img src="./img/logo-protheus-2.svg" alt="Protheus" class="h-3.5 mr-1 inline-block align-middle">';
         const botaoProtheus = req.status === 'aprovado'
             ? (req.orc_protheus
-                ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-900 bg-white text-slate-900 hover:bg-slate-900 hover:text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Ver orçamento</button>`
+                ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus2} Ver orçamento</button>`
                 : `<button onclick="abrirModalProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Enviar p/ Protheus</button>`)
             : '';
 
