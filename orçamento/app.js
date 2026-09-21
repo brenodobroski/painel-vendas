@@ -1117,30 +1117,36 @@ let limiteAtualMinhasSolicitacoes = 15;
 async function carregarMinhasSolicitacoes(userId) {
     if(!userId) return;
     try {
-        // 1. Monta a base da consulta (agora pedimos o vendedor_email também)
+        // 1. Monta a base da consulta (com vendedor_email e vendedor_id)
         let query = supabase
             .from('solicitacoes_orcamento')
-            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens')
-            .eq('vendedor_id', userId)
+            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens, vendedor_email, vendedor_id')
             .order('created_at', { ascending: false })
             .limit(limiteAtualMinhasSolicitacoes);
 
-        // 2. A MÁGICA DO GESTOR: Filtra por filial ou por vendedor
+        // 2. A MÁGICA DO GESTOR: filial inteira OU vendedor específico
         if (window.roleUsuario === 'gestor') {
-            query = query.eq('filial', window.filialVendedor);
+            document.getElementById('filtro-vendedor-gestor')?.classList.remove('hidden');
+            if (!vendedoresFilialCarregados) carregarVendedoresDaFilial();
+
+            if (window.filtroVendedorGestor) {
+                query = query.eq('vendedor_id', window.filtroVendedorGestor);
+            } else {
+                query = query.eq('filial', window.filialVendedor);
+            }
         } else {
+            document.getElementById('filtro-vendedor-gestor')?.classList.add('hidden');
             query = query.eq('vendedor_id', userId);
         }
 
         const { data, error } = await query;
         if (error) throw error;
-                 
+
         auditarDownload('Vendedor/Gestor: Histórico de Solicitações', data);
         window.minhasSolicitacoes = data || [];
-                 
+
         renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
 
-        // Controla a exibição do botão "Carregar Mais"
         const btnMais = document.getElementById('btn-carregar-mais-solicitacoes');
         if (btnMais) {
             if (data.length < limiteAtualMinhasSolicitacoes) {
@@ -1153,6 +1159,66 @@ async function carregarMinhasSolicitacoes(userId) {
         console.error("Erro ao buscar as solicitações:", error);
     }
 }
+
+// ========= FILTRO POR VENDEDOR (GESTOR) =========
+window.filtroVendedorGestor = null; // null = todos os vendedores da filial
+let vendedoresFilialCarregados = false;
+
+async function carregarVendedoresDaFilial() {
+    const container = document.getElementById('lista-vendedores-gestor');
+    if (!container) return;
+    container.innerHTML = '<div class="gv-item text-slate-400">Carregando...</div>';
+
+    const { data, error } = await supabase
+        .from('usuarios')
+        .select('id, nome, email')
+        .eq('filial', window.filialVendedor)
+        .eq('role', 'vendedor')
+        .order('nome');
+
+    if (error) {
+        container.innerHTML = '<div class="gv-item text-red-500">Erro ao carregar vendedores</div>';
+        return;
+    }
+
+    // Mapa id -> nome (usado nos cards da lista)
+    window.mapaVendedores = {};
+    (data || []).forEach(v => {
+        window.mapaVendedores[v.id] = v.nome || (v.email ? v.email.split('@')[0] : 'Vendedor');
+    });
+
+    let html = `<div class="gv-item selecionado" onclick="selecionarVendedorGestor('', 'Todos os vendedores')"><span>Todos os vendedores</span></div>`;
+    (data || []).forEach(v => {
+        const nome = window.mapaVendedores[v.id].replace(/'/g, "\\'");
+        html += `<div class="gv-item" onclick="selecionarVendedorGestor('${v.id}', '${nome}')"><span>${nome}</span><small>${v.email || ''}</small></div>`;
+    });
+    container.innerHTML = html;
+    vendedoresFilialCarregados = true;
+}
+
+window.toggleDropdownVendedorGestor = function (e) {
+    e.stopPropagation();
+    document.getElementById('lista-vendedores-gestor')?.classList.toggle('aberto');
+};
+
+window.selecionarVendedorGestor = async function (id, nome) {
+    window.filtroVendedorGestor = id || null;
+    document.getElementById('texto-vendedor-gestor').textContent = nome;
+    document.getElementById('lista-vendedores-gestor')?.classList.remove('aberto');
+
+    // Reseta paginação e recarrega com o filtro
+    limiteAtualMinhasSolicitacoes = 15;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) carregarMinhasSolicitacoes(session.user.id);
+};
+
+// Fecha o dropdown ao clicar fora
+document.addEventListener('click', (e) => {
+    const dd = document.querySelector('.gv-dropdown');
+    if (dd && !dd.contains(e.target)) {
+        document.getElementById('lista-vendedores-gestor')?.classList.remove('aberto');
+    }
+});
 
 // Nova função acionada pelo botão do HTML
 window.carregarMaisMinhasSolicitacoes = async function() {
@@ -1210,7 +1276,8 @@ function renderizarMinhasSolicitacoes(lista) {
 
         let infoGestor = '';
         if (window.roleUsuario === 'gestor') {
-            const nomeVendedor = req.vendedor_email ? req.vendedor_email.split('@')[0] : 'Desconhecido';
+            const nomeVendedor = window.mapaVendedores?.[req.vendedor_id]
+                || (req.vendedor_email ? req.vendedor_email.split('@')[0] : 'Desconhecido');
             infoGestor = `<span class="text-[10px] text-slate-400 uppercase ml-2" title="${req.vendedor_email}">${nomeVendedor}</span>`;
         }
 

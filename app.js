@@ -1120,7 +1120,7 @@ async function carregarMinhasSolicitacoes(userId) {
         // 1. Monta a base da consulta (com vendedor_email e vendedor_id)
         let query = supabase
             .from('solicitacoes_orcamento')
-            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens, vendedor_email, vendedor_id')
+            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens, vendedor_email, vendedor_id, rt, filial, snapshot')
             .order('created_at', { ascending: false })
             .limit(limiteAtualMinhasSolicitacoes);
 
@@ -1299,6 +1299,12 @@ function renderizarMinhasSolicitacoes(lista) {
 
         const botaoRefazer = `<button onclick="prepararRefazerPedido('${req.id}')" class="border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors whitespace-nowrap"><i class="fas fa-redo mr-1"></i> Refazer</button>`;
 
+        const barraDivisor = `<span class="w-px h-6 bg-slate-200 mx-0.5"></span>`;
+
+        const botaoProtheus = req.status === 'aprovado'
+            ? `<button onclick="abrirModalProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap"><i class="fas fa-paper-plane mr-1"></i> Enviar p/ Protheus</button>`
+            : '';
+
         let qtdItens = 0;
         if (req.itens) req.itens.forEach(i => qtdItens += parseInt(i.qtd || 0));
 
@@ -1333,9 +1339,10 @@ function renderizarMinhasSolicitacoes(lista) {
             </div>
             <div class="flex justify-between items-center">
                 <span class="text-xs text-slate-400">${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'}</span>
-                <div class="flex gap-2">
+                <div class="flex gap-2 items-center">
                     ${botaoPrincipal}
-                    ${req.status !== 'pendente' ? botaoRefazer : ''}
+                    ${req.status !== 'pendente' ? barraDivisor + botaoRefazer : ''}
+                    ${botaoProtheus}
                 </div>
             </div>
         `;
@@ -1813,4 +1820,267 @@ window.forcarDownloadImagem = async function(url) {
         btn.innerHTML = conteudoOriginal;
         btn.disabled = false;
     }
+};
+// ============================================================
+// ENVIO PARA O PROTHEUS (orçamentos aprovados)
+// ============================================================
+(function injetarModalProtheus() {
+    const css = document.createElement('style');
+    css.textContent = `
+        .pt-dropdown { position: relative; }
+        .pt-btn { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:10px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; font-weight:600; color:#334155; cursor:pointer; transition:border-color .15s; }
+        .pt-btn:hover, .pt-btn:focus { border-color:#3b82f6; outline:none; }
+        .pt-lista { display:none; position:absolute; z-index:80; top:calc(100% + 4px); left:0; width:100%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 12px 28px rgba(0,0,0,.16); overflow:hidden; }
+        .pt-lista.aberto { display:block; }
+        .pt-item { padding:10px 12px; font-size:12px; font-weight:500; color:#334155; cursor:pointer; transition:background .12s; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .pt-item:hover { background:#eff6ff; }
+        .pt-item.selecionado { background:#eff6ff; color:#1d4ed8; font-weight:700; }
+    `;
+    document.head.appendChild(css);
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-protheus';
+    modal.className = 'fixed inset-0 z-50 hidden items-center justify-center p-4';
+    modal.style.cssText = 'background:rgba(10,22,40,.6);backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            <div class="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Enviar para o Protheus</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Orçamento <span id="pt-codigo" class="font-mono font-semibold"></span></p>
+                </div>
+                <button type="button" onclick="fecharModalProtheus()" class="text-slate-400 hover:text-slate-700 text-xl leading-none px-1">&times;</button>
+            </div>
+
+            <div id="pt-alerta" class="hidden mx-6 mt-4 px-3 py-2.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200"></div>
+
+            <div class="p-6 space-y-5">
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Resumo do pedido</h4>
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-left">
+                                    <th class="font-semibold" style="padding:8px 10px;">SKU</th>
+                                    <th class="font-semibold" style="padding:8px 10px;">Descrição</th>
+                                    <th class="font-semibold text-center" style="padding:8px 10px;">Qtd</th>
+                                    <th class="font-semibold text-right" style="padding:8px 10px;">Vlr Unit.</th>
+                                    <th class="font-semibold text-right" style="padding:8px 10px;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pt-corpo-itens" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                        </table>
+                        <div class="border-t border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1 text-xs">
+                            <div class="flex justify-between text-slate-600"><span>Frete</span><span id="pt-frete" class="font-semibold"></span></div>
+                            <div class="flex justify-between text-slate-900 text-sm"><span class="font-bold">Total do pedido</span><span id="pt-total" class="font-bold"></span></div>
+                            <div id="pt-linha-modalidade" class="text-right text-[10px] font-bold uppercase tracking-widest text-blue-700"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div id="pt-grupo-rt" class="hidden">
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Pagamento do RT</label>
+                        <div class="pt-dropdown">
+                            <button type="button" class="pt-btn" id="pt-btn-rt" onclick="ptToggle('rt')">
+                                <span id="pt-txt-rt">Selecione...</span>
+                                <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
+                            </button>
+                            <div class="pt-lista" id="pt-lista-rt">
+                                <div class="pt-item" data-v="dinheiro" onclick="ptSelecionar('rt', 'dinheiro', 'Dinheiro')">Dinheiro</div>
+                                <div class="pt-item" data-v="produto" onclick="ptSelecionar('rt', 'produto', 'Produto')">Produto</div>
+                            </div>
+                            <input type="hidden" id="pt-val-rt" value="">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Parcelas</label>
+                        <div class="pt-dropdown">
+                            <button type="button" class="pt-btn" id="pt-btn-parc" onclick="ptToggle('parc')">
+                                <span id="pt-txt-parc">1x (à vista)</span>
+                                <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
+                            </button>
+                            <div class="pt-lista" id="pt-lista-parc"></div>
+                            <input type="hidden" id="pt-val-parc" value="1">
+                        </div>
+                        <p id="pt-dica-parc" class="text-[10px] text-slate-400 mt-1.5">1x–3x: valor à vista · 4x–10x: valor parcelado</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 px-6 pb-6">
+                <button type="button" onclick="fecharModalProtheus()" class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Cancelar</button>
+                <button type="button" id="pt-btn-enviar" onclick="enviarParaProtheus()" class="flex-[2] bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest"><i class="fas fa-paper-plane mr-1"></i> Enviar para o Protheus</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) window.fecharModalProtheus();
+        if (!e.target.closest('.pt-dropdown')) {
+            document.querySelectorAll('.pt-lista.aberto').forEach(l => l.classList.remove('aberto'));
+        }
+    });
+})();
+
+let _ptReqAtual = null;
+
+function ptModalidade() {
+    const n = parseInt(document.getElementById('pt-val-parc').value) || 1;
+    return n <= 3 ? 'a_vista' : 'parcelado';
+}
+
+function ptRenderItens() {
+    const req = _ptReqAtual;
+    if (!req) return;
+    const snap = req.snapshot || {};
+    const modalidade = ptModalidade();
+    const corpo = document.getElementById('pt-corpo-itens');
+
+    corpo.innerHTML = (req.itens || []).map(it => {
+        const unit = modalidade === 'a_vista'
+            ? (it.valorUnitarioAVista || 0)
+            : (it.valorUnitarioParcelado || it.valorUnitarioAVista || 0);
+        const sub = modalidade === 'a_vista'
+            ? (it.subtotalAVista || unit * (parseInt(it.qtd) || 0))
+            : (it.subtotalParcelado || unit * (parseInt(it.qtd) || 0));
+        return `<tr>
+            <td class="font-mono text-slate-500" style="padding:8px 10px;">${it.codigo || '-'}</td>
+            <td style="padding:8px 10px;">${it.descricao || 'Item'}</td>
+            <td class="text-center font-semibold" style="padding:8px 10px;">${it.qtd || 0}</td>
+            <td class="text-right" style="padding:8px 10px;">${parseFloat(unit).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td class="text-right font-semibold" style="padding:8px 10px;">${parseFloat(sub).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+        </tr>`;
+    }).join('');
+
+    const pctFrete = parseFloat(snap.percentualFrete) || 0;
+    const baseBruta = modalidade === 'a_vista'
+        ? (snap.totalBrutoAVista || req.valor_alvo || 0)
+        : (snap.totalBrutoParcelado || (snap.totalBrutoAVista || req.valor_alvo || 0) * 1.05);
+    const frete = pctFrete > 0
+        ? Math.round(baseBruta * (pctFrete / 100) * 100) / 100
+        : (snap.valorFrete || 0);
+    const total = modalidade === 'a_vista'
+        ? (snap.totalGeralAVista || req.valor_alvo || 0)
+        : (snap.totalGeralParcelado || (snap.totalGeralAVista || req.valor_alvo || 0) * 1.05);
+
+    document.getElementById('pt-frete').textContent = parseFloat(frete).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('pt-total').textContent = parseFloat(total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('pt-linha-modalidade').textContent = modalidade === 'a_vista' ? 'Valores à vista' : 'Valores parcelados';
+}
+
+function ptMontarParcelas() {
+    const lista = document.getElementById('pt-lista-parc');
+    let html = '';
+    for (let n = 1; n <= 10; n++) {
+        const label = n <= 3 ? `${n}x (à vista)` : `${n}x (parcelado)`;
+        html += `<div class="pt-item ${n === 1 ? 'selecionado' : ''}" data-v="${n}" onclick="ptSelecionar('parc', '${n}', '${label}')">${label}</div>`;
+    }
+    lista.innerHTML = html;
+}
+
+window.abrirModalProtheus = function (id) {
+    const req = window.minhasSolicitacoes.find(s => s.id === id);
+    if (!req) return;
+    _ptReqAtual = req;
+    document.getElementById('pt-alerta').classList.add('hidden');
+
+    document.getElementById('pt-codigo').textContent = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
+    document.getElementById('pt-val-rt').value = '';
+    document.getElementById('pt-txt-rt').textContent = 'Selecione...';
+    document.getElementById('pt-lista-rt').querySelectorAll('.pt-item').forEach(i => i.classList.remove('selecionado'));
+    document.getElementById('pt-val-parc').value = '1';
+    document.getElementById('pt-txt-parc').textContent = '1x (à vista)';
+    ptMontarParcelas();
+
+    const temRT = parseFloat(req.rt) > 0;
+    document.getElementById('pt-grupo-rt').classList.toggle('hidden', !temRT);
+
+    ptRenderItens();
+
+    const modal = document.getElementById('modal-protheus');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+window.fecharModalProtheus = function () {
+    const modal = document.getElementById('modal-protheus');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    _ptReqAtual = null;
+};
+
+window.ptToggle = function (qual) {
+    document.querySelectorAll('.pt-lista.aberto').forEach(l => l.classList.remove('aberto'));
+    document.getElementById('pt-lista-' + qual).classList.add('aberto');
+};
+
+window.ptSelecionar = function (qual, valor, label) {
+    document.getElementById('pt-val-' + qual).value = valor;
+    document.getElementById('pt-txt-' + qual).textContent = label;
+    document.getElementById('pt-lista-' + qual).querySelectorAll('.pt-item').forEach(i => {
+        i.classList.toggle('selecionado', i.dataset.v === valor);
+    });
+    document.getElementById('pt-lista-' + qual).classList.remove('aberto');
+    if (qual === 'parc') ptRenderItens();
+};
+
+window.enviarParaProtheus = function () {
+    const req = _ptReqAtual;
+    if (!req) return;
+    document.getElementById('pt-alerta').classList.add('hidden');
+
+    const temRT = parseFloat(req.rt) > 0;
+    const pagamentoRT = document.getElementById('pt-val-rt').value;
+    if (temRT && !pagamentoRT) {
+        const el = document.getElementById('pt-alerta');
+        el.textContent = 'Este orçamento possui RT. Selecione se o pagamento do RT é em dinheiro ou produto.';
+        el.classList.remove('hidden');
+        return;
+    }
+
+    const parcelas = parseInt(document.getElementById('pt-val-parc').value) || 1;
+    const modalidade = ptModalidade();
+    const snap = req.snapshot || {};
+
+    const payload = {
+        origem: 'climario_orcamentos',
+        codigo_orcamento: req.codigo_orcamento,
+        vendedor: req.vendedor_email,
+        filial: req.filial,
+        condicao_pagamento: {
+            parcelas: parcelas,
+            tipo_preco: modalidade,
+            pagamento_rt: temRT ? pagamentoRT : null
+        },
+        itens: (req.itens || []).map(it => ({
+            sku: it.codigo,
+            descricao: it.descricao,
+            quantidade: parseInt(it.qtd) || 0,
+            valor_unitario: modalidade === 'a_vista'
+                ? (it.valorUnitarioAVista || 0)
+                : (it.valorUnitarioParcelado || it.valorUnitarioAVista || 0),
+            subtotal: modalidade === 'a_vista'
+                ? (it.subtotalAVista || 0)
+                : (it.subtotalParcelado || 0)
+        })),
+        totais: {
+            bruto: modalidade === 'a_vista' ? (snap.totalBrutoAVista || 0) : (snap.totalBrutoParcelado || 0),
+            frete: parseFloat(document.getElementById('pt-frete').textContent.replace(/\D/g, '')) / 100,
+            geral: modalidade === 'a_vista'
+                ? (snap.totalGeralAVista || req.valor_alvo || 0)
+                : (snap.totalGeralParcelado || 0)
+        },
+        enviado_em: new Date().toISOString()
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+
+    window.fecharModalProtheus();
+    alert(`Orçamento #${req.codigo_orcamento} preparado para o Protheus. Aba JSON aberta para conferência.`);
 };
