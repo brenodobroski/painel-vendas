@@ -1124,7 +1124,7 @@ async function carregarMinhasSolicitacoes(userId) {
         // 1. Monta a base da consulta (com vendedor_email e vendedor_id)
         let query = supabase
             .from('solicitacoes_orcamento')
-            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens, vendedor_email, vendedor_id, rt, filial, snapshot')
+            .select('id, codigo_orcamento, created_at, valor_alvo, desconto_solicitado, status, motivo, motivo_reprovacao, itens, vendedor_email, vendedor_id, rt, filial, snapshot, orc_protheus')
             .order('created_at', { ascending: false })
             .limit(limiteAtualMinhasSolicitacoes);
 
@@ -1306,10 +1306,9 @@ function renderizarMinhasSolicitacoes(lista) {
         const barraDivisor = `<span class="w-px h-6 bg-slate-200 mx-0.5"></span>`;
 
         const logoProtheus = '<img src="./img/logo-protheus.svg" alt="Protheus" class="h-3.5 mr-1 inline-block align-middle">';
-        const envioSalvo = window.orcamentosProtheus?.[req.id];
         const botaoProtheus = req.status === 'aprovado'
-            ? (envioSalvo
-                ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-900 text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Ver no Protheus</button>`
+            ? (req.orc_protheus
+                ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-900 text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Ver orçamento</button>`
                 : `<button onclick="abrirModalProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Enviar p/ Protheus</button>`)
             : '';
 
@@ -1831,8 +1830,6 @@ window.forcarDownloadImagem = async function(url) {
 };
 // ============================================================
 // ENVIO PARA O PROTHEUS (orçamentos aprovados)
-// Controle local dos orçamentos já enviados (evita reenvio)
-window.orcamentosProtheus = JSON.parse(localStorage.getItem('clim_orcamentos_protheus') || '{}');
 
 
 // ============================================================
@@ -2134,13 +2131,18 @@ window.enviarParaProtheus = function () {
 
     const json = JSON.stringify(payload, null, 2);
 
-    // Registra o envio localmente: após criado, só é possível visualizar (sem reenvio)
-    window.orcamentosProtheus[req.id] = {
-        numero: payload.numero_orcamento_protheus,
-        enviado_em: payload.enviado_em,
-        json: json
-    };
-    localStorage.setItem('clim_orcamentos_protheus', JSON.stringify(window.orcamentosProtheus));
+    // Grava o número do orçamento no banco: após criado, só é possível visualizar (sem reenvio)
+    const { error: erroGrava } = await supabase
+        .from('solicitacoes_orcamento')
+        .update({ orc_protheus: payload.numero_orcamento_protheus })
+        .eq('id', req.id);
+
+    if (erroGrava) {
+        window.toastClim('Erro ao registrar orçamento no Protheus: ' + erroGrava.message, 'erro');
+        return;
+    }
+    req.orc_protheus = payload.numero_orcamento_protheus;
+    renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
 
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -2150,12 +2152,11 @@ window.enviarParaProtheus = function () {
     abrirModalSucessoProtheus(payload, req, temRT);
 };
 
-// Visualiza novamente o orçamento já criado (sem reenviar)
+// Abre o modal do orçamento já criado no Protheus (visualização, sem reenvio)
 window.verOrcamentoProtheus = function (id) {
-    const envio = window.orcamentosProtheus?.[id];
-    if (!envio) return;
-    const blob = new Blob([envio.json], { type: 'application/json' });
-    window.open(URL.createObjectURL(blob), '_blank');
+    const req = window.minhasSolicitacoes.find(s => s.id === id);
+    if (!req || !req.orc_protheus) return;
+    abrirModalSucessoProtheus({ numero_orcamento_protheus: req.orc_protheus }, req, parseFloat(req.rt) > 0);
 };
 
 // ============================================================
@@ -2336,13 +2337,19 @@ window.fecharModalRcaAviso = function () {
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Número do orçamento</p>
             <p id="pts-numero" class="font-mono text-3xl font-extrabold text-slate-900 mb-6"></p>
 
-            <button type="button" onclick="fecharModalSucessoProtheus()" class="w-full bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest">OK, estou ciente</button>
+            <div class="flex gap-3">
+                <button type="button" onclick="refazerOrcamentoProtheus()" class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest"><i class="fas fa-redo mr-1"></i> Refazer</button>
+                <button type="button" onclick="fecharModalSucessoProtheus()" class="flex-[2] bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest">OK, estou ciente</button>
+            </div>
         </div>
     `;
     document.body.appendChild(modal);
 })();
 
+let _ptReqAtualSucesso = null;
+
 function abrirModalSucessoProtheus(payload, req, temRT) {
+    _ptReqAtualSucesso = req;
     document.getElementById('pts-numero').textContent = payload.numero_orcamento_protheus;
     document.getElementById('pts-linha-rt').classList.toggle('hidden', !temRT);
     document.getElementById('pts-texto-rt').style.display = temRT ? 'inline' : 'none';
@@ -2358,4 +2365,11 @@ window.fecharModalSucessoProtheus = function () {
     const modal = document.getElementById('modal-pt-sucesso');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+};
+
+// Refazer: reabre o modal de envio (ao enviar, o update sobrescreve o orc_protheus no banco)
+window.refazerOrcamentoProtheus = function () {
+    const req = _ptReqAtualSucesso;
+    window.fecharModalSucessoProtheus();
+    if (req) window.abrirModalProtheus(req.id);
 };
