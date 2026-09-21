@@ -2078,7 +2078,7 @@ window.toastClim = function (mensagem, tipo = 'sucesso') {
     setTimeout(fechar, 6000);
 };
 
-window.enviarParaProtheus = function () {
+window.enviarParaProtheus = async function () {
     const req = _ptReqAtual;
     if (!req) return;
     document.getElementById('pt-alerta').classList.add('hidden');
