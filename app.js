@@ -80,10 +80,6 @@ async function verificarAcesso() {
         window.nomeVendedor = perfil?.nome || nomeUsuario;
         window.userIdVendedor = session.user.id;
 
-        // Aviso na tela caso o RCA não esteja cadastrado (necessário p/ Protheus)
-        if (!window.rcaVendedor) {
-            setTimeout(() => window.toastClim('Seu RCA ainda não está cadastrado. Toque em "Meu Perfil" no menu lateral para cadastrar — é necessário para enviar pedidos ao Protheus.', 'aviso', 0), 1500);
-        }
 
 
         // Adiciona o teste de hipotese para as filiais selecionadas e para o admin
@@ -1309,8 +1305,12 @@ function renderizarMinhasSolicitacoes(lista) {
 
         const barraDivisor = `<span class="w-px h-6 bg-slate-200 mx-0.5"></span>`;
 
+        const logoProtheus = '<img src="./img/logo-protheus.svg" alt="Protheus" class="h-3.5 mr-1 inline-block align-middle">';
+        const envioSalvo = window.orcamentosProtheus?.[req.id];
         const botaoProtheus = req.status === 'aprovado'
-            ? `<button onclick="abrirModalProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap"><i class="fas fa-paper-plane mr-1"></i> Enviar p/ Protheus</button>`
+            ? (envioSalvo
+                ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-900 text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Ver no Protheus</button>`
+                : `<button onclick="abrirModalProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Enviar p/ Protheus</button>`)
             : '';
 
         let qtdItens = 0;
@@ -1831,6 +1831,10 @@ window.forcarDownloadImagem = async function(url) {
 };
 // ============================================================
 // ENVIO PARA O PROTHEUS (orçamentos aprovados)
+// Controle local dos orçamentos já enviados (evita reenvio)
+window.orcamentosProtheus = JSON.parse(localStorage.getItem('clim_orcamentos_protheus') || '{}');
+
+
 // ============================================================
 (function injetarModalProtheus() {
     const css = document.createElement('style');
@@ -2124,17 +2128,34 @@ window.enviarParaProtheus = function () {
                 ? (snap.totalGeralAVista || req.valor_alvo || 0)
                 : (snap.totalGeralParcelado || 0)
         },
-        numero_pedido_protheus: 'P' + String(Date.now()).slice(-6),
+        numero_orcamento_protheus: 'O' + String(Date.now()).slice(-6),
         enviado_em: new Date().toISOString()
     };
 
     const json = JSON.stringify(payload, null, 2);
+
+    // Registra o envio localmente: após criado, só é possível visualizar (sem reenvio)
+    window.orcamentosProtheus[req.id] = {
+        numero: payload.numero_orcamento_protheus,
+        enviado_em: payload.enviado_em,
+        json: json
+    };
+    localStorage.setItem('clim_orcamentos_protheus', JSON.stringify(window.orcamentosProtheus));
+
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
 
     window.fecharModalProtheus();
     abrirModalSucessoProtheus(payload, req, temRT);
+};
+
+// Visualiza novamente o orçamento já criado (sem reenviar)
+window.verOrcamentoProtheus = function (id) {
+    const envio = window.orcamentosProtheus?.[id];
+    if (!envio) return;
+    const blob = new Blob([envio.json], { type: 'application/json' });
+    window.open(URL.createObjectURL(blob), '_blank');
 };
 
 // ============================================================
@@ -2150,7 +2171,7 @@ window.enviarParaProtheus = function () {
             <div class="flex items-start justify-between mb-5">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900">Meu Perfil</h3>
-                    <p class="text-xs text-slate-400 mt-1">Seu RCA é obrigatório para enviar pedidos ao Protheus.</p>
+                    <p class="text-xs text-slate-400 mt-1">Seu RCA é obrigatório para enviar orçamentos ao Protheus.</p>
                 </div>
                 <button type="button" onclick="fecharModalPerfil()" class="text-slate-400 hover:text-slate-700 text-xl leading-none px-1">&times;</button>
             </div>
@@ -2263,7 +2284,7 @@ window.salvarPerfil = async function () {
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13.5"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
             <h3 class="text-lg font-bold text-slate-900 mb-2">RCA não cadastrado</h3>
-            <p class="text-sm text-slate-500 mb-6">Para enviar pedidos ao Protheus é necessário ter o seu <b>RCA</b> cadastrado no perfil. Cadastre agora para continuar.</p>
+            <p class="text-sm text-slate-500 mb-6">Para enviar orçamentos ao Protheus é necessário ter o seu <b>RCA</b> cadastrado no perfil. Cadastre agora para continuar.</p>
             <div class="flex gap-3">
                 <button type="button" onclick="fecharModalRcaAviso()" class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Agora não</button>
                 <button type="button" onclick="fecharModalRcaAviso(); abrirModalPerfil();" class="flex-1 bg-blue-700 hover:bg-blue-800 active:scale-[0.98] text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Cadastrar RCA</button>
@@ -2301,17 +2322,18 @@ window.fecharModalRcaAviso = function () {
             <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-4">Pedido criado no Protheus</h3>
+            <h3 class="text-lg font-bold text-slate-900 mb-4">Orçamento criado no Protheus</h3>
 
             <div class="text-left bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-1.5 text-xs text-slate-600 mb-3">
                 <div class="flex justify-between"><span>Cliente</span><b class="text-slate-800">Cliente padrão</b></div>
                 <div class="flex justify-between"><span>Forma de pagamento</span><b class="text-slate-800">CC</b></div>
                 <div id="pts-linha-rt" class="hidden flex justify-between"><span>RT</span><b class="text-slate-800">Instalador padrão</b></div>
+                <div class="flex justify-between border-t border-slate-200 pt-1.5"><span>Status</span><b class="text-amber-600">Bloqueado</b></div>
             </div>
 
-            <p class="text-[11px] text-slate-500 leading-relaxed mb-5">Este pedido foi criado com <b>cliente padrão</b>, forma de pagamento <b>CC</b><span id="pts-texto-rt"> e, para orçamentos com RT, <b>instalador padrão</b></span>. Fica sob <b>compromisso do vendedor</b> alterar essas informações para os dados reais do cliente.</p>
+            <p class="text-[11px] text-slate-500 leading-relaxed mb-5">Este orçamento foi criado <b>bloqueado</b>, com <b>cliente padrão</b>, forma de pagamento <b>CC</b><span id="pts-texto-rt"> e, para orçamentos com RT, <b>instalador padrão</b></span>. Fica sob <b>compromisso do vendedor</b> alterar essas informações para os dados reais do cliente e solicitar o desbloqueio.</p>
 
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Número do pedido</p>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Número do orçamento</p>
             <p id="pts-numero" class="font-mono text-3xl font-extrabold text-slate-900 mb-6"></p>
 
             <button type="button" onclick="fecharModalSucessoProtheus()" class="w-full bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest">OK, estou ciente</button>
@@ -2321,7 +2343,7 @@ window.fecharModalRcaAviso = function () {
 })();
 
 function abrirModalSucessoProtheus(payload, req, temRT) {
-    document.getElementById('pts-numero').textContent = payload.numero_pedido_protheus;
+    document.getElementById('pts-numero').textContent = payload.numero_orcamento_protheus;
     document.getElementById('pts-linha-rt').classList.toggle('hidden', !temRT);
     document.getElementById('pts-texto-rt').style.display = temRT ? 'inline' : 'none';
 
