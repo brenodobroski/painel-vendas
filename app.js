@@ -48,7 +48,7 @@ async function verificarAcesso() {
 
         const { data: perfil, error } = await supabase
             .from('usuarios')
-            .select('role, filial, token_sessao') 
+            .select('role, filial, token_sessao, rca, nome') 
             .eq('id', session.user.id)
             .single();
 
@@ -76,6 +76,14 @@ async function verificarAcesso() {
         // Salvamos as credenciais globais e tratamos espaços invisíveis
         window.filialVendedor = String(perfil?.filial || '1028').trim();
         window.roleUsuario = String(perfil?.role || '').trim();
+        window.rcaVendedor = String(perfil?.rca || '').trim();
+        window.nomeVendedor = perfil?.nome || nomeUsuario;
+        window.userIdVendedor = session.user.id;
+
+        // Aviso na tela caso o RCA não esteja cadastrado (necessário p/ Protheus)
+        if (!window.rcaVendedor) {
+            setTimeout(() => window.toastClim('Seu RCA ainda não está cadastrado. Toque em "Meu Perfil" no menu lateral para cadastrar — é necessário para enviar pedidos ao Protheus.', 'aviso', 0), 1500);
+        }
 
 
         // Adiciona o teste de hipotese para as filiais selecionadas e para o admin
@@ -1986,6 +1994,13 @@ function ptMontarParcelas() {
 window.abrirModalProtheus = function (id) {
     const req = window.minhasSolicitacoes.find(s => s.id === id);
     if (!req) return;
+
+    // Só permite enviar se o RCA estiver cadastrado
+    if (!window.rcaVendedor) {
+        abrirModalRcaAviso();
+        return;
+    }
+
     _ptReqAtual = req;
     document.getElementById('pt-alerta').classList.add('hidden');
 
@@ -2084,6 +2099,7 @@ window.enviarParaProtheus = function () {
         origem: 'climario_orcamentos',
         codigo_orcamento: req.codigo_orcamento,
         vendedor: req.vendedor_email,
+        rca_vendedor: window.rcaVendedor,
         filial: req.filial,
         condicao_pagamento: {
             parcelas: parcelas,
@@ -2118,5 +2134,206 @@ window.enviarParaProtheus = function () {
     window.open(url, '_blank');
 
     window.fecharModalProtheus();
-    window.toastClim(`Pedido ${payload.numero_pedido_protheus} criado no Protheus a partir do orçamento #${req.codigo_orcamento}. Aba JSON aberta para conferência.`, 'sucesso');
+    abrirModalSucessoProtheus(payload, req, temRT);
+};
+
+// ============================================================
+// MEU PERFIL (cadastro do RCA do vendedor)
+// ============================================================
+(function injetarModalPerfil() {
+    const modal = document.createElement('div');
+    modal.id = 'modal-perfil';
+    modal.className = 'fixed inset-0 z-50 hidden items-center justify-center p-4';
+    modal.style.cssText = 'background:rgba(10,22,40,.6);backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-7">
+            <div class="flex items-start justify-between mb-5">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Meu Perfil</h3>
+                    <p class="text-xs text-slate-400 mt-1">Seu RCA é obrigatório para enviar pedidos ao Protheus.</p>
+                </div>
+                <button type="button" onclick="fecharModalPerfil()" class="text-slate-400 hover:text-slate-700 text-xl leading-none px-1">&times;</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Nome</label>
+                    <input type="text" id="perfil-campo-nome" class="w-full px-3 py-2.5 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">RCA</label>
+                    <input type="text" id="perfil-campo-rca" placeholder="Seu código RCA" class="w-full px-3 py-2.5 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Filial</label>
+                        <input type="text" id="perfil-campo-filial" readonly class="w-full px-3 py-2.5 rounded border text-sm bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">E-mail</label>
+                        <input type="text" id="perfil-campo-email" readonly class="w-full px-3 py-2.5 rounded border text-sm bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="fecharModalPerfil()" class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Cancelar</button>
+                <button type="button" onclick="salvarPerfil()" id="btn-salvar-perfil" class="flex-1 bg-blue-700 hover:bg-blue-800 active:scale-[0.98] text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Salvar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) window.fecharModalPerfil(); });
+})();
+
+window.abrirModalPerfil = async function () {
+    // Busca os dados mais recentes do perfil
+    try {
+        const { data } = await supabase
+            .from('usuarios')
+            .select('nome, rca, filial, email')
+            .eq('id', window.userIdVendedor)
+            .single();
+        if (data) {
+            window.rcaVendedor = String(data.rca || '').trim();
+            window.nomeVendedor = data.nome || window.nomeVendedor;
+            window.emailVendedor = data.email || window.emailVendedor;
+        }
+    } catch (e) { /* mantém os valores em memória */ }
+
+    document.getElementById('perfil-campo-nome').value = window.nomeVendedor || '';
+    document.getElementById('perfil-campo-rca').value = window.rcaVendedor || '';
+    document.getElementById('perfil-campo-filial').value = window.filialVendedor || '';
+    document.getElementById('perfil-campo-email').value = (window.emailVendedor || document.getElementById('perfil-email')?.textContent || '');
+
+    document.body.classList.add('clim-modal-aberto');
+    const modal = document.getElementById('modal-perfil');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+window.fecharModalPerfil = function () {
+    document.body.classList.remove('clim-modal-aberto');
+    const modal = document.getElementById('modal-perfil');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
+
+window.salvarPerfil = async function () {
+    const nome = document.getElementById('perfil-campo-nome').value.trim();
+    const rca = document.getElementById('perfil-campo-rca').value.trim();
+    const btn = document.getElementById('btn-salvar-perfil');
+    if (!rca) {
+        window.toastClim('Informe seu RCA para salvar.', 'erro');
+        return;
+    }
+    const original = btn.innerText;
+    btn.innerText = 'Salvando...';
+    btn.disabled = true;
+
+    const { error } = await supabase
+        .from('usuarios')
+        .update({ nome, rca })
+        .eq('id', window.userIdVendedor);
+
+    btn.innerText = original;
+    btn.disabled = false;
+
+    if (error) {
+        window.toastClim('Erro ao salvar: ' + error.message, 'erro');
+        return;
+    }
+    window.nomeVendedor = nome;
+    window.rcaVendedor = rca;
+    window.fecharModalPerfil();
+    window.toastClim('Perfil salvo com sucesso!', 'sucesso');
+};
+
+// ============================================================
+// AVISO: RCA NÃO CADASTRADO (bloqueia envio ao Protheus)
+// ============================================================
+(function injetarModalRcaAviso() {
+    const modal = document.createElement('div');
+    modal.id = 'modal-rca-aviso';
+    modal.className = 'fixed inset-0 z-50 hidden items-center justify-center p-4';
+    modal.style.cssText = 'background:rgba(10,22,40,.6);backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-7 text-center">
+            <div class="w-14 h-14 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13.5"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">RCA não cadastrado</h3>
+            <p class="text-sm text-slate-500 mb-6">Para enviar pedidos ao Protheus é necessário ter o seu <b>RCA</b> cadastrado no perfil. Cadastre agora para continuar.</p>
+            <div class="flex gap-3">
+                <button type="button" onclick="fecharModalRcaAviso()" class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Agora não</button>
+                <button type="button" onclick="fecharModalRcaAviso(); abrirModalPerfil();" class="flex-1 bg-blue-700 hover:bg-blue-800 active:scale-[0.98] text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Cadastrar RCA</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) window.fecharModalRcaAviso(); });
+})();
+
+function abrirModalRcaAviso() {
+    document.body.classList.add('clim-modal-aberto');
+    const modal = document.getElementById('modal-rca-aviso');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+window.fecharModalRcaAviso = function () {
+    document.body.classList.remove('clim-modal-aberto');
+    const modal = document.getElementById('modal-rca-aviso');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
+
+// ============================================================
+// SUCESSO: PEDIDO CRIADO NO PROTHEUS (modal central)
+// ============================================================
+(function injetarModalSucessoProtheus() {
+    const modal = document.createElement('div');
+    modal.id = 'modal-pt-sucesso';
+    modal.className = 'fixed inset-0 z-50 hidden items-center justify-center p-4';
+    modal.style.cssText = 'background:rgba(10,22,40,.6);backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-7 text-center">
+            <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-4">Pedido criado no Protheus</h3>
+
+            <div class="text-left bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-1.5 text-xs text-slate-600 mb-3">
+                <div class="flex justify-between"><span>Cliente</span><b class="text-slate-800">Cliente padrão</b></div>
+                <div class="flex justify-between"><span>Forma de pagamento</span><b class="text-slate-800">CC</b></div>
+                <div id="pts-linha-rt" class="hidden flex justify-between"><span>RT</span><b class="text-slate-800">Instalador padrão</b></div>
+            </div>
+
+            <p class="text-[11px] text-slate-500 leading-relaxed mb-5">Este pedido foi criado com <b>cliente padrão</b>, forma de pagamento <b>CC</b><span id="pts-texto-rt"> e, para orçamentos com RT, <b>instalador padrão</b></span>. Fica sob <b>compromisso do vendedor</b> alterar essas informações para os dados reais do cliente.</p>
+
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Número do pedido</p>
+            <p id="pts-numero" class="font-mono text-3xl font-extrabold text-slate-900 mb-6"></p>
+
+            <button type="button" onclick="fecharModalSucessoProtheus()" class="w-full bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest">OK, estou ciente</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+})();
+
+function abrirModalSucessoProtheus(payload, req, temRT) {
+    document.getElementById('pts-numero').textContent = payload.numero_pedido_protheus;
+    document.getElementById('pts-linha-rt').classList.toggle('hidden', !temRT);
+    document.getElementById('pts-texto-rt').style.display = temRT ? 'inline' : 'none';
+
+    document.body.classList.add('clim-modal-aberto');
+    const modal = document.getElementById('modal-pt-sucesso');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+window.fecharModalSucessoProtheus = function () {
+    document.body.classList.remove('clim-modal-aberto');
+    const modal = document.getElementById('modal-pt-sucesso');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 };
