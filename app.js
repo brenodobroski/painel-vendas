@@ -1830,7 +1830,9 @@ window.forcarDownloadImagem = async function(url) {
         .pt-dropdown { position: relative; }
         .pt-btn { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:10px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; font-weight:600; color:#334155; cursor:pointer; transition:border-color .15s; }
         .pt-btn:hover, .pt-btn:focus { border-color:#3b82f6; outline:none; }
-        .pt-lista { display:none; position:absolute; z-index:80; top:calc(100% + 4px); left:0; width:100%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 12px 28px rgba(0,0,0,.16); overflow:hidden; }
+        .pt-lista { display:none; position:absolute; z-index:80; top:calc(100% + 4px); left:0; width:100%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 12px 28px rgba(0,0,0,.16); max-height:220px; overflow-y:auto; }
+        .pt-lista.pt-sobe { top:auto; bottom:calc(100% + 4px); }
+        body.clim-modal-aberto { overflow: hidden; }
         .pt-lista.aberto { display:block; }
         .pt-item { padding:10px 12px; font-size:12px; font-weight:500; color:#334155; cursor:pointer; transition:background .12s; display:flex; justify-content:space-between; align-items:center; gap:8px; }
         .pt-item:hover { background:#eff6ff; }
@@ -1901,7 +1903,7 @@ window.forcarDownloadImagem = async function(url) {
                                 <span id="pt-txt-parc">1x (à vista)</span>
                                 <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
                             </button>
-                            <div class="pt-lista" id="pt-lista-parc"></div>
+                            <div class="pt-lista pt-sobe" id="pt-lista-parc"></div>
                             <input type="hidden" id="pt-val-parc" value="1">
                         </div>
                         <p id="pt-dica-parc" class="text-[10px] text-slate-400 mt-1.5">1x–3x: valor à vista · 4x–10x: valor parcelado</p>
@@ -2000,12 +2002,14 @@ window.abrirModalProtheus = function (id) {
 
     ptRenderItens();
 
+    document.body.classList.add('clim-modal-aberto');
     const modal = document.getElementById('modal-protheus');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 };
 
 window.fecharModalProtheus = function () {
+    document.body.classList.remove('clim-modal-aberto');
     const modal = document.getElementById('modal-protheus');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
@@ -2025,6 +2029,37 @@ window.ptSelecionar = function (qual, valor, label) {
     });
     document.getElementById('pt-lista-' + qual).classList.remove('aberto');
     if (qual === 'parc') ptRenderItens();
+};
+
+// ---------- Toast (avisos na tela, sem alert) ----------
+window.toastClim = function (mensagem, tipo = 'sucesso') {
+    let wrap = document.getElementById('clim-toast-wrap');
+    if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.id = 'clim-toast-wrap';
+        wrap.style.cssText = 'position:fixed;top:16px;right:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none;';
+        document.body.appendChild(wrap);
+        const st = document.createElement('style');
+        st.textContent = `
+            .clim-toast { pointer-events:all; display:flex; align-items:flex-start; gap:10px; background:#0f172a; color:#e2e8f0; padding:12px 14px; border-radius:10px; box-shadow:0 12px 32px rgba(0,0,0,.35); font-size:13px; line-height:1.45; border-left:3px solid #3b82f6; animation:climTIn .28s cubic-bezier(.21,1.02,.73,1); }
+            .clim-toast.sucesso { border-left-color:#22c55e; }
+            .clim-toast.erro { border-left-color:#ef4444; }
+            .clim-toast.aviso { border-left-color:#f59e0b; }
+            .clim-toast button { flex-shrink:0; background:none; border:none; color:#64748b; font-size:16px; line-height:1; cursor:pointer; padding:2px; }
+            .clim-toast button:hover { color:#e2e8f0; }
+            @keyframes climTIn { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
+            .clim-toast.saindo { opacity:0; transform:translateX(30px); transition:all .25s ease; }
+        `;
+        document.head.appendChild(st);
+    }
+    const el = document.createElement('div');
+    el.className = 'clim-toast ' + tipo;
+    el.innerHTML = '<div style="flex:1;white-space:pre-line;"></div><button aria-label="Fechar">&times;</button>';
+    el.querySelector('div').textContent = mensagem;
+    const fechar = () => { el.classList.add('saindo'); setTimeout(() => el.remove(), 260); };
+    el.querySelector('button').onclick = fechar;
+    wrap.appendChild(el);
+    setTimeout(fechar, 6000);
 };
 
 window.enviarParaProtheus = function () {
@@ -2073,6 +2108,7 @@ window.enviarParaProtheus = function () {
                 ? (snap.totalGeralAVista || req.valor_alvo || 0)
                 : (snap.totalGeralParcelado || 0)
         },
+        numero_pedido_protheus: 'P' + String(Date.now()).slice(-6),
         enviado_em: new Date().toISOString()
     };
 
@@ -2082,5 +2118,5 @@ window.enviarParaProtheus = function () {
     window.open(url, '_blank');
 
     window.fecharModalProtheus();
-    alert(`Orçamento #${req.codigo_orcamento} preparado para o Protheus. Aba JSON aberta para conferência.`);
+    window.toastClim(`Pedido ${payload.numero_pedido_protheus} criado no Protheus a partir do orçamento #${req.codigo_orcamento}. Aba JSON aberta para conferência.`, 'sucesso');
 };
