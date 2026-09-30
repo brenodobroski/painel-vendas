@@ -468,7 +468,7 @@ async function executarCalculoSeguro() {
     const versaoAtual = localStorage.getItem('climario_versao_catalogo') || '1';
 
     // limite de desconto
-    const limiteAlcada = 22.99;
+    const limiteAlcada = 21.99;
     
     const msgHipotese = document.getElementById('msg-hipotese');
     const textoDescontoVisual = document.getElementById('texto-input-desconto');
