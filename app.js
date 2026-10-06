@@ -2173,8 +2173,9 @@ window.enviarParaProtheus = async function () {
     // os números e reescrevemos com toFixed(4) — inteiros ficam inteiros.
     // ============================================================
     function serializarProtheus(obj) {
-        const marcado = JSON.stringify(obj, (k, v) => (typeof v === 'number' ? { __n: v } : v));
-        return marcado.replace(/\{\s*"__n":\s*(-?[\d.]+(?:[eE][+-]?\d+)?)\s*\}/g, (m, n) => {
+        const MARCADOR = '@@NUM:';
+        const marcado = JSON.stringify(obj, (k, v) => (typeof v === 'number' ? MARCADOR + v : v));
+        return marcado.replace(/"@@NUM:([-\d.eE+]+)"/g, (m, n) => {
             const num = parseFloat(n);
             return Number.isInteger(num) ? String(num) : num.toFixed(4);
         });
