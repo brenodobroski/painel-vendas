@@ -1951,6 +1951,7 @@ window.forcarDownloadImagem = async function(url) {
                 <!-- AVISOS OBRIGATÓRIOS -->
                 <div class="mx-6 mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-900 space-y-1">
                     <p class="font-bold uppercase tracking-wide text-[10px] mb-1">Atenção — como o orçamento será criado</p>
+                    <p>• Status: <b>Bloqueado</b></p>
                     <p>• Forma de pagamento: <b>BOL em 1x</b></p>
                     <p>• Cliente: <b>cliente padrão</b></p>
                     <p>• <b>SEM RT</b></p>
@@ -2198,6 +2199,21 @@ window.enviarParaProtheus = async function () {
         return;
     }
 
+    // LOADING: exibe overlay enquanto o Protheus processa
+    const overlayLoading = document.createElement('div');
+    overlayLoading.style.cssText = 'position:fixed;inset:0;z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,22,40,.88);backdrop-filter:blur(4px);';
+    overlayLoading.innerHTML = `
+        <style>@keyframes ptspin{to{transform:rotate(360deg)}}</style>
+        <div style="text-align:center;">
+            <svg width="64" height="64" viewBox="0 0 100 100" style="animation:ptspin 1s linear infinite;margin:0 auto 18px;display:block;">
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#3b82f6" stroke-width="4" stroke-dasharray="200" stroke-dashoffset="140" stroke-linecap="round"/>
+            </svg>
+            <p style="color:#e2e8f0;font-size:15px;font-weight:700;letter-spacing:.05em;margin:0;">Enviando para o Protheus...</p>
+            <p style="color:#64748b;font-size:11px;margin-top:8px;">Aguarde, estamos criando o orçamento</p>
+        </div>`;
+    document.body.appendChild(overlayLoading);
+    const removerLoading = () => { if (overlayLoading.parentNode) overlayLoading.parentNode.removeChild(overlayLoading); };
+
     const parcelas = parseInt(document.getElementById('pt-val-parc').value) || 1;
     const modalidade = ptModalidade(); // 'a_vista' (1x-3x) ou 'parcelado' (4x-10x)
     const snap = req.snapshot || {};
@@ -2354,38 +2370,54 @@ window.enviarParaProtheus = async function () {
 
     // Se a API falhou ou respondeu erro: NÃO marca como enviado no banco
     if (erroApi || !resultadoApi || !resultadoApi.sucesso) {
+        removerLoading();
         window.toastClim('O Protheus não confirmou o orçamento. Aba com os detalhes aberta — o orçamento NÃO foi marcado como enviado.', 'erro', 0);
         return;
     }
 
-    // Sucesso: grava o número de controle e finaliza
+    // Sucesso: usa o número OFICIAL devolvido pelo Protheus
     const numeroFicticio = 'O' + String(Date.now()).slice(-6);
+    const numeroOficial = (resultadoApi.corpo && resultadoApi.corpo.orcamento) ? String(resultadoApi.corpo.orcamento) : numeroFicticio;
     const { error: erroGrava } = await supabase
         .from('solicitacoes_orcamento')
-        .update({ orc_protheus: numeroFicticio })
+        .update({ orc_protheus: numeroOficial })
         .eq('id', req.id);
 
     if (erroGrava) {
+        removerLoading();
         window.toastClim('Orçamento criado no Protheus, mas falhou ao registrar localmente: ' + erroGrava.message, 'aviso', 0);
         return;
     }
-    req.orc_protheus = numeroFicticio;
+    req.orc_protheus = numeroOficial;
     renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
 
+    // Itens com descrição (o payload do Protheus não leva descrição, então enriquece com os dados do orçamento)
+    const descricoes = {};
+    (req.itens || []).forEach(it => { descricoes[String(it.codigo)] = it.descricao || ''; });
+    const itensComDescricao = payloadProtheus.itens.map(pi => ({ ...pi, descricao: descricoes[String(pi.codigo)] || '' }));
+
+    removerLoading();
     window.fecharModalProtheus();
-    abrirModalSucessoProtheus({ numero: numeroFicticio, itens: payloadProtheus.itens }, req, temRT);
+    abrirModalSucessoProtheus({ numero: numeroOficial, itens: itensComDescricao, frete: valFrete, total: valPagto }, req, temRT);
 };
 
 // Abre o modal do orçamento já criado no Protheus (visualização, sem reenvio)
 window.verOrcamentoProtheus = function (id) {
     const req = window.minhasSolicitacoes.find(s => s.id === id);
     if (!req || !req.orc_protheus) return;
+    const snap = req.snapshot || {};
     const itens = (req.itens || []).map(it => ({
         codigo: it.codigo,
+        descricao: it.descricao,
         qtd: parseInt(it.qtd) || 0,
         valorUni: it.valorUnitarioAVista || 0
     }));
-    abrirModalSucessoProtheus({ numero: req.orc_protheus, itens }, req, parseFloat(req.rt) > 0);
+    abrirModalSucessoProtheus({
+        numero: req.orc_protheus,
+        itens,
+        frete: snap.valorFrete || 0,
+        total: snap.totalGeralAVista || req.valor_alvo || 0
+    }, req, parseFloat(req.rt) > 0);
 };
 
 // ============================================================
@@ -2566,6 +2598,7 @@ window.fecharModalRcaAviso = function () {
                         <thead>
                             <tr class="bg-slate-50 text-slate-500 text-left">
                                 <th class="font-semibold" style="padding:8px 10px;">SKU</th>
+                                <th class="font-semibold" style="padding:8px 10px;">Descrição</th>
                                 <th class="font-semibold text-center" style="padding:8px 10px;">Qtd</th>
                                 <th class="font-semibold text-right" style="padding:8px 10px;">Vlr Unit.</th>
                                 <th class="font-semibold text-right" style="padding:8px 10px;">Subtotal</th>
@@ -2573,6 +2606,10 @@ window.fecharModalRcaAviso = function () {
                         </thead>
                         <tbody id="pts-corpo-itens" class="divide-y divide-slate-100 text-slate-700"></tbody>
                     </table>
+                    <div class="border-t border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1 text-xs">
+                        <div class="flex justify-between text-slate-600"><span>Frete</span><span id="pts-frete" class="font-semibold"></span></div>
+                        <div class="flex justify-between text-slate-900 text-sm"><span class="font-bold">Total do pedido</span><span id="pts-total" class="font-bold"></span></div>
+                    </div>
                 </div>
             </div>
 
@@ -2608,11 +2645,16 @@ function abrirModalSucessoProtheus(dados, req, temRT) {
         const unit = parseFloat(it.valorUni) || 0;
         return `<tr>
             <td class="font-mono text-slate-500" style="padding:8px 10px;">${it.codigo || '-'}</td>
+            <td style="padding:8px 10px;">${it.descricao || 'Item'}</td>
             <td class="text-center font-semibold" style="padding:8px 10px;">${qtd}</td>
             <td class="text-right" style="padding:8px 10px;">${moeda(unit)}</td>
             <td class="text-right font-semibold" style="padding:8px 10px;">${moeda(unit * qtd)}</td>
         </tr>`;
     }).join('');
+    const elFrete = document.getElementById('pts-frete');
+    if (elFrete) elFrete.textContent = moeda(dados.frete);
+    const elTotal = document.getElementById('pts-total');
+    if (elTotal) elTotal.textContent = moeda(dados.total);
 
     document.body.classList.add('clim-modal-aberto');
     const modal = document.getElementById('modal-pt-sucesso');
