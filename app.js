@@ -2580,7 +2580,7 @@ window.fecharModalRcaAviso = function () {
     modal.className = 'fixed inset-0 z-50 hidden items-center justify-center p-4';
     modal.style.cssText = 'background:rgba(10,22,40,.6);backdrop-filter:blur(4px);';
     modal.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto p-7">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-7">
             <div class="text-center">
                 <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
