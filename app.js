@@ -2094,63 +2094,102 @@ window.enviarParaProtheus = async function () {
     }
 
     const parcelas = parseInt(document.getElementById('pt-val-parc').value) || 1;
-    const modalidade = ptModalidade();
+    const modalidade = ptModalidade(); // 'a_vista' (1x-3x) ou 'parcelado' (4x-10x)
     const snap = req.snapshot || {};
 
-    const payload = {
-        origem: 'climario_orcamentos',
-        codigo_orcamento: req.codigo_orcamento,
-        vendedor: req.vendedor_email,
-        rca_vendedor: window.rcaVendedor,
-        filial: req.filial,
-        condicao_pagamento: {
-            parcelas: parcelas,
-            tipo_preco: modalidade,
-            pagamento_rt: temRT ? pagamentoRT : null
-        },
-        itens: (req.itens || []).map(it => ({
-            sku: it.codigo,
-            descricao: it.descricao,
-            quantidade: parseInt(it.qtd) || 0,
-            valor_unitario: modalidade === 'a_vista'
+    // Helpers de arredondamento no padrão do Protheus (4 casas)
+    const r2 = v => Math.round((parseFloat(v) || 0) * 100) / 100;
+    const r4 = v => Math.round((parseFloat(v) || 0) * 10000) / 10000;
+
+    // Frete e total conforme a modalidade escolhida
+    const pctFrete = parseFloat(snap.percentualFrete) || 0;
+    const baseBruta = modalidade === 'a_vista'
+        ? (snap.totalBrutoAVista || req.valor_alvo || 0)
+        : (snap.totalBrutoParcelado || (snap.totalBrutoAVista || req.valor_alvo || 0) * 1.05);
+    const valFrete = pctFrete > 0 ? r4(baseBruta * (pctFrete / 100)) : r4(snap.valorFrete || 0);
+    const valPagto = modalidade === 'a_vista'
+        ? r4(snap.totalGeralAVista || req.valor_alvo || 0)
+        : r4(snap.totalGeralParcelado || 0);
+
+    // Percentual de desconto "do Protheus" que vem da API de cálculo
+    const percDescBase = modalidade === 'a_vista'
+        ? (parseFloat(snap.descontoProtheusAVista) || 0)
+        : (parseFloat(snap.descontoProtheusParcelado) || 0);
+
+    // Data de hoje no formato AAAAMMDD
+    const hoje = new Date();
+    const dataPagto = `${hoje.getFullYear()}${String(hoje.getMonth() + 1).padStart(2, '0')}${String(hoje.getDate()).padStart(2, '0')}`;
+
+    // ============================================================
+    // PAYLOAD NO FORMATO OFICIAL DO PROTHEUS (REST wscmporc/orcamento)
+    // Campos chapados conforme contrato recebido do TI
+    // ============================================================
+    const payloadProtheus = {
+        codigoOrcamento: String(req.codigo_orcamento),
+        rca: window.rcaVendedor,
+        comis: 0,
+        tpFret: "C",
+        valFrete: valFrete,
+        temRt: "N",
+        pgtoRt: "",
+        vendRt: "",
+        valorRt: "",
+        itens: (req.itens || []).map(it => {
+            const qtd = parseInt(it.qtd) || 0;
+            const valorUni = r4(modalidade === 'a_vista'
                 ? (it.valorUnitarioAVista || 0)
-                : (it.valorUnitarioParcelado || it.valorUnitarioAVista || 0),
-            subtotal: modalidade === 'a_vista'
-                ? (it.subtotalAVista || 0)
-                : (it.subtotalParcelado || 0)
-        })),
-        totais: {
-            bruto: modalidade === 'a_vista' ? (snap.totalBrutoAVista || 0) : (snap.totalBrutoParcelado || 0),
-            frete: parseFloat(document.getElementById('pt-frete').textContent.replace(/\D/g, '')) / 100,
-            geral: modalidade === 'a_vista'
-                ? (snap.totalGeralAVista || req.valor_alvo || 0)
-                : (snap.totalGeralParcelado || 0)
-        },
-        numero_orcamento_protheus: 'O' + String(Date.now()).slice(-6),
-        enviado_em: new Date().toISOString()
+                : (it.valorUnitarioParcelado || it.valorUnitarioAVista || 0));
+            const percDesc = r2(percDescBase);
+            // Preço cheio da tabela (sem desconto) — calculado de trás pra frente
+            const prcTab = percDesc < 100 ? r4(valorUni / (1 - (percDesc / 100))) : valorUni;
+            const valDesc = r4((prcTab - valorUni) * qtd);
+            return {
+                qtd: qtd,
+                codigo: parseInt(it.codigo) || 0,
+                valorUni: valorUni,
+                tabela: "029",
+                prcTab: prcTab,
+                percDesc: percDesc,
+                valDesc: valDesc,
+                filRes: "01005"
+            };
+        }),
+        pagto: [
+            {
+                dataPagto: dataPagto,
+                valPagto: valPagto,
+                formaPagto: "BOL",
+                adminisPagto: " ",
+                numcartPagto: " ",
+                formaidPagto: " ",
+                moedaPagto: 0
+            }
+        ]
     };
 
-    const json = JSON.stringify(payload, null, 2);
+    // Número fictício de controle (até a API real devolver o número oficial)
+    const numeroFicticio = 'O' + String(Date.now()).slice(-6);
 
-    // Grava o número do orçamento no banco: após criado, só é possível visualizar (sem reenvio)
+    // Grava o número no banco: após criado, só é possível visualizar (sem reenvio)
     const { error: erroGrava } = await supabase
         .from('solicitacoes_orcamento')
-        .update({ orc_protheus: payload.numero_orcamento_protheus })
+        .update({ orc_protheus: numeroFicticio })
         .eq('id', req.id);
 
     if (erroGrava) {
         window.toastClim('Erro ao registrar orçamento no Protheus: ' + erroGrava.message, 'erro');
         return;
     }
-    req.orc_protheus = payload.numero_orcamento_protheus;
+    req.orc_protheus = numeroFicticio;
     renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
 
+    // Abre aba com o JSON exato que seria enviado ao Protheus (conferência)
+    const json = JSON.stringify(payloadProtheus, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    window.open(URL.createObjectURL(blob), '_blank');
 
     window.fecharModalProtheus();
-    abrirModalSucessoProtheus(payload, req, temRT);
+    abrirModalSucessoProtheus({ numero_orcamento_protheus: numeroFicticio }, req, temRT);
 };
 
 // Abre o modal do orçamento já criado no Protheus (visualização, sem reenvio)
