@@ -1869,7 +1869,7 @@ window.forcarDownloadImagem = async function(url) {
             <!-- ========== PASSO 1: LOGIN PROTHEUS ========== -->
             <div id="pt-passo-1" class="p-6 space-y-4">
                 <div class="text-center pb-1">
-                    <img src="./img/logo-protheus.svg" alt="Protheus" class="h-9 mx-auto mb-3">
+                    <img src="./img/logo-protheus-2.svg" alt="Protheus" class="h-9 mx-auto mb-3">
                     <h4 class="font-bold text-slate-800">Acesso ao Protheus</h4>
                     <p class="text-xs text-slate-400 mt-1">Informe seu usuário e senha do Protheus para continuar.<br>As credenciais <b>não ficam salvas</b> em nenhum lugar.</p>
                 </div>
@@ -1880,8 +1880,14 @@ window.forcarDownloadImagem = async function(url) {
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Senha Protheus</label>
-                    <input type="password" id="pt-pass" autocomplete="off" placeholder="Sua senha do Protheus"
-                           class="w-full px-3 py-2.5 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
+                    <div class="relative">
+                        <input type="password" id="pt-pass" autocomplete="off" placeholder="Sua senha do Protheus"
+                               class="w-full px-3 py-2.5 pr-10 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
+                        <button type="button" onclick="ptVerSenha(this)" title="Mostrar/ocultar senha"
+                                class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors">
+                            <i class="fas fa-eye text-sm"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -2084,6 +2090,16 @@ window.fecharModalProtheus = function () {
     _ptReqAtual = null;
 };
 
+// Mostrar/ocultar senha do Protheus
+window.ptVerSenha = function (btn) {
+    const input = document.getElementById('pt-pass');
+    const icone = btn.querySelector('i');
+    const mostrando = input.type === 'text';
+    input.type = mostrando ? 'password' : 'text';
+    icone.classList.toggle('fa-eye', mostrando);
+    icone.classList.toggle('fa-eye-slash', !mostrando);
+};
+
 // Navegação entre passos do modal Protheus
 window.ptAvancarPasso = function () {
     const user = document.getElementById('pt-user').value.trim();
@@ -2277,6 +2293,12 @@ window.enviarParaProtheus = async function () {
     // ============================================================
     const ENDPOINT_PROTHEUS = 'https://climario2004185567.protheus.cloudtotvs.com.br:11158/rest/wscmporc/orcamento';
 
+    // Abre a aba de conferência AGORA (antes de qualquer await) pra o navegador não bloquear como popup
+    const abaConf = window.open('', '_blank');
+    if (abaConf) {
+        abaConf.document.write('<title>Protheus — Conferência</title><body style="margin:0;background:#0f172a;padding:24px;"><pre id="json" style="color:#e2e8f0;font-size:13px;white-space:pre-wrap;font-family:monospace;">Enviando para o Protheus...</pre></body>');
+    }
+
     let resultadoApi = null;
     let erroApi = null;
     try {
@@ -2306,7 +2328,8 @@ window.enviarParaProtheus = async function () {
     }
 
     // ============================================================
-    // ABA DE CONFERÊNCIA: mostra exatamente o que foi enviado e o que voltou
+    // CONFERÊNCIA: mostra exatamente o que foi enviado e o que voltou
+    // (na aba aberta antes do envio + no console pra garantir)
     // ============================================================
     const conferencia = {
         endpoint: ENDPOINT_PROTHEUS,
@@ -2315,8 +2338,19 @@ window.enviarParaProtheus = async function () {
         ...(resultadoApi ? { resposta_da_api: resultadoApi } : {}),
         ...(erroApi ? { erro_de_envio: erroApi } : {})
     };
-    const blobConf = new Blob([JSON.stringify(conferencia, null, 2)], { type: 'application/json' });
-    window.open(URL.createObjectURL(blobConf), '_blank');
+    console.log('[Protheus] ========== CONFERÊNCIA ==========');
+    console.log('[Protheus] Enviado:', payloadProtheus);
+    console.log('[Protheus] JSON raw:', jsonEnvio);
+    console.log('[Protheus] Resposta:', resultadoApi || erroApi);
+    console.log('[Protheus] ==================================');
+
+    const conferenciaTxt = JSON.stringify(conferencia, null, 2);
+    if (abaConf && abaConf.document) {
+        const pre = abaConf.document.getElementById('json');
+        if (pre) pre.textContent = conferenciaTxt;
+    } else {
+        console.log('[Protheus] Aba de conferência bloqueada pelo navegador. Conteúdo completo:', conferenciaTxt);
+    }
 
     // Se a API falhou ou respondeu erro: NÃO marca como enviado no banco
     if (erroApi || !resultadoApi || !resultadoApi.sucesso) {
@@ -2339,14 +2373,19 @@ window.enviarParaProtheus = async function () {
     renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
 
     window.fecharModalProtheus();
-    abrirModalSucessoProtheus({ numero_orcamento_protheus: numeroFicticio }, req, temRT);
+    abrirModalSucessoProtheus({ numero: numeroFicticio, itens: payloadProtheus.itens }, req, temRT);
 };
 
 // Abre o modal do orçamento já criado no Protheus (visualização, sem reenvio)
 window.verOrcamentoProtheus = function (id) {
     const req = window.minhasSolicitacoes.find(s => s.id === id);
     if (!req || !req.orc_protheus) return;
-    abrirModalSucessoProtheus({ numero_orcamento_protheus: req.orc_protheus }, req, parseFloat(req.rt) > 0);
+    const itens = (req.itens || []).map(it => ({
+        codigo: it.codigo,
+        qtd: parseInt(it.qtd) || 0,
+        valorUni: it.valorUnitarioAVista || 0
+    }));
+    abrirModalSucessoProtheus({ numero: req.orc_protheus, itens }, req, parseFloat(req.rt) > 0);
 };
 
 // ============================================================
@@ -2509,25 +2548,46 @@ window.fecharModalRcaAviso = function () {
     modal.className = 'fixed inset-0 z-50 hidden items-center justify-center p-4';
     modal.style.cssText = 'background:rgba(10,22,40,.6);backdrop-filter:blur(4px);';
     modal.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-7 text-center">
-            <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-4">Orçamento criado no Protheus</h3>
-
-            <div class="text-left bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-1.5 text-xs text-slate-600 mb-3">
-                <div class="flex justify-between"><span>Cliente</span><b class="text-slate-800">Cliente padrão</b></div>
-                <div class="flex justify-between"><span>Forma de pagamento</span><b class="text-slate-800">CC</b></div>
-                <div id="pts-linha-rt" class="hidden flex justify-between"><span>RT</span><b class="text-slate-800">Instalador padrão</b></div>
-                <div class="flex justify-between border-t border-slate-200 pt-1.5"><span>Status</span><b class="text-amber-600">Bloqueado</b></div>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto p-7">
+            <div class="text-center">
+                <div class="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Orçamento criado no Protheus</h3>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-3 mb-1">Número do orçamento</p>
+                <p id="pts-numero" class="font-mono text-3xl font-extrabold text-slate-900"></p>
             </div>
 
-            <p class="text-[11px] text-slate-500 leading-relaxed mb-5">Este orçamento foi criado <b>bloqueado</b>, com <b>cliente padrão</b>, forma de pagamento <b>CC</b><span id="pts-texto-rt"> e, para orçamentos com RT, <b>instalador padrão</b></span>. Fica sob <b>compromisso do vendedor</b> alterar essas informações para os dados reais do cliente e solicitar o desbloqueio.</p>
+            <!-- Itens criados -->
+            <div class="mt-6">
+                <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Itens do orçamento</h4>
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 text-left">
+                                <th class="font-semibold" style="padding:8px 10px;">SKU</th>
+                                <th class="font-semibold text-center" style="padding:8px 10px;">Qtd</th>
+                                <th class="font-semibold text-right" style="padding:8px 10px;">Vlr Unit.</th>
+                                <th class="font-semibold text-right" style="padding:8px 10px;">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pts-corpo-itens" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
 
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Número do orçamento</p>
-            <p id="pts-numero" class="font-mono text-3xl font-extrabold text-slate-900 mb-6"></p>
+            <!-- Atenção -->
+            <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-900 space-y-1">
+                <p class="font-bold uppercase tracking-wide text-[10px] mb-1">Atenção — como o orçamento foi criado</p>
+                <p>• Status: <b>Bloqueado</b></p>
+                <p>• Forma de Pagamento: <b>BOL 1x</b></p>
+                <p>• Cliente: <b>Cliente Padrão</b></p>
+                <p>• <b>SEM RT</b></p>
+            </div>
 
-            <div class="flex gap-3">
+            <p class="text-[11px] text-slate-500 leading-relaxed mt-4">Fica sob <b>compromisso do vendedor</b> alterar essas informações para os dados reais do cliente.</p>
+
+            <div class="flex gap-3 mt-6">
                 <button type="button" onclick="refazerOrcamentoProtheus()" class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest"><i class="fas fa-redo mr-1"></i> Refazer</button>
                 <button type="button" onclick="fecharModalSucessoProtheus()" class="flex-[2] bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest">OK, estou ciente</button>
             </div>
@@ -2538,11 +2598,21 @@ window.fecharModalRcaAviso = function () {
 
 let _ptReqAtualSucesso = null;
 
-function abrirModalSucessoProtheus(payload, req, temRT) {
+function abrirModalSucessoProtheus(dados, req, temRT) {
     _ptReqAtualSucesso = req;
-    document.getElementById('pts-numero').textContent = payload.numero_orcamento_protheus;
-    document.getElementById('pts-linha-rt').classList.toggle('hidden', !temRT);
-    document.getElementById('pts-texto-rt').style.display = temRT ? 'inline' : 'none';
+    document.getElementById('pts-numero').textContent = dados.numero;
+
+    const moeda = v => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('pts-corpo-itens').innerHTML = (dados.itens || []).map(it => {
+        const qtd = parseInt(it.qtd) || 0;
+        const unit = parseFloat(it.valorUni) || 0;
+        return `<tr>
+            <td class="font-mono text-slate-500" style="padding:8px 10px;">${it.codigo || '-'}</td>
+            <td class="text-center font-semibold" style="padding:8px 10px;">${qtd}</td>
+            <td class="text-right" style="padding:8px 10px;">${moeda(unit)}</td>
+            <td class="text-right font-semibold" style="padding:8px 10px;">${moeda(unit * qtd)}</td>
+        </tr>`;
+    }).join('');
 
     document.body.classList.add('clim-modal-aberto');
     const modal = document.getElementById('modal-pt-sucesso');
