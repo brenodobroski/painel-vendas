@@ -2167,26 +2167,80 @@ window.enviarParaProtheus = async function () {
         ]
     };
 
-    // Número fictício de controle (até a API real devolver o número oficial)
-    const numeroFicticio = 'O' + String(Date.now()).slice(-6);
+    // ============================================================
+    // SERIALIZAÇÃO COM 4 CASAS DECIMAIS (padrão Protheus)
+    // JSON.stringify corta zeros à direita (646.88), então marcamos
+    // os números e reescrevemos com toFixed(4) — inteiros ficam inteiros.
+    // ============================================================
+    function serializarProtheus(obj) {
+        const marcado = JSON.stringify(obj, (k, v) => (typeof v === 'number' ? { __n: v } : v));
+        return marcado.replace(/\{\s*"__n":\s*(-?[\d.]+(?:[eE][+-]?\d+)?)\s*\}/g, (m, n) => {
+            const num = parseFloat(n);
+            return Number.isInteger(num) ? String(num) : num.toFixed(4);
+        });
+    }
 
-    // Grava o número no banco: após criado, só é possível visualizar (sem reenvio)
+    const jsonEnvio = serializarProtheus(payloadProtheus);
+
+    // ============================================================
+    // ENVIO REAL À API DO PROTHEUS
+    // ============================================================
+    const ENDPOINT_PROTHEUS = 'https://climario2004185567.protheus.cloudtotvs.com.br:11158/rest/wscmporc/orcamento';
+
+    let resultadoApi = null;
+    let erroApi = null;
+    try {
+        const resp = await fetch(ENDPOINT_PROTHEUS, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: jsonEnvio
+        });
+        const textoBruto = await resp.text();
+        let dadosResposta = null;
+        try { dadosResposta = JSON.parse(textoBruto); } catch (e) { dadosResposta = textoBruto; }
+        resultadoApi = { status_http: resp.status, sucesso: resp.ok, corpo: dadosResposta };
+    } catch (e) {
+        erroApi = {
+            mensagem: e.message,
+            causaProvavel: 'Provavelmente CORS (o Protheus não libera chamadas diretas do navegador) ou indisponibilidade de rede/rede VPN.'
+        };
+    }
+
+    // ============================================================
+    // ABA DE CONFERÊNCIA: mostra exatamente o que foi enviado e o que voltou
+    // ============================================================
+    const conferencia = {
+        endpoint: ENDPOINT_PROTHEUS,
+        json_enviado_raw: jsonEnvio,
+        payload_enviado: payloadProtheus,
+        ...(resultadoApi ? { resposta_da_api: resultadoApi } : {}),
+        ...(erroApi ? { erro_de_envio: erroApi } : {})
+    };
+    const blobConf = new Blob([JSON.stringify(conferencia, null, 2)], { type: 'application/json' });
+    window.open(URL.createObjectURL(blobConf), '_blank');
+
+    // Se a API falhou ou respondeu erro: NÃO marca como enviado no banco
+    if (erroApi || !resultadoApi || !resultadoApi.sucesso) {
+        window.toastClim('O Protheus não confirmou o orçamento. Aba com os detalhes aberta — o orçamento NÃO foi marcado como enviado.', 'erro', 0);
+        return;
+    }
+
+    // Sucesso: grava o número de controle e finaliza
+    const numeroFicticio = 'O' + String(Date.now()).slice(-6);
     const { error: erroGrava } = await supabase
         .from('solicitacoes_orcamento')
         .update({ orc_protheus: numeroFicticio })
         .eq('id', req.id);
 
     if (erroGrava) {
-        window.toastClim('Erro ao registrar orçamento no Protheus: ' + erroGrava.message, 'erro');
+        window.toastClim('Orçamento criado no Protheus, mas falhou ao registrar localmente: ' + erroGrava.message, 'aviso', 0);
         return;
     }
     req.orc_protheus = numeroFicticio;
     renderizarMinhasSolicitacoes(window.minhasSolicitacoes);
-
-    // Abre aba com o JSON exato que seria enviado ao Protheus (conferência)
-    const json = JSON.stringify(payloadProtheus, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    window.open(URL.createObjectURL(blob), '_blank');
 
     window.fecharModalProtheus();
     abrirModalSucessoProtheus({ numero_orcamento_protheus: numeroFicticio }, req, temRT);
