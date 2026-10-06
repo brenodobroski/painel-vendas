@@ -1859,71 +1859,109 @@ window.forcarDownloadImagem = async function(url) {
             <div class="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900">Enviar para o Protheus</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Orçamento <span id="pt-codigo" class="font-mono font-semibold"></span></p>
+                    <p class="text-xs text-slate-400 mt-0.5">Orçamento <span id="pt-codigo" class="font-mono font-semibold"></span> · <span id="pt-passo-indicador">Passo 1 de 2</span></p>
                 </div>
                 <button type="button" onclick="fecharModalProtheus()" class="text-slate-400 hover:text-slate-700 text-xl leading-none px-1">&times;</button>
             </div>
 
             <div id="pt-alerta" class="hidden mx-6 mt-4 px-3 py-2.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200"></div>
 
-            <div class="p-6 space-y-5">
-                <div>
-                    <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Resumo do pedido</h4>
-                    <div class="border border-slate-200 rounded-lg overflow-hidden">
-                        <table class="w-full text-xs">
-                            <thead>
-                                <tr class="bg-slate-50 text-slate-500 text-left">
-                                    <th class="font-semibold" style="padding:8px 10px;">SKU</th>
-                                    <th class="font-semibold" style="padding:8px 10px;">Descrição</th>
-                                    <th class="font-semibold text-center" style="padding:8px 10px;">Qtd</th>
-                                    <th class="font-semibold text-right" style="padding:8px 10px;">Vlr Unit.</th>
-                                    <th class="font-semibold text-right" style="padding:8px 10px;">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pt-corpo-itens" class="divide-y divide-slate-100 text-slate-700"></tbody>
-                        </table>
-                        <div class="border-t border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1 text-xs">
-                            <div class="flex justify-between text-slate-600"><span>Frete</span><span id="pt-frete" class="font-semibold"></span></div>
-                            <div class="flex justify-between text-slate-900 text-sm"><span class="font-bold">Total do pedido</span><span id="pt-total" class="font-bold"></span></div>
-                            <div id="pt-linha-modalidade" class="text-right text-[10px] font-bold uppercase tracking-widest text-blue-700"></div>
-                        </div>
-                    </div>
+            <!-- ========== PASSO 1: LOGIN PROTHEUS ========== -->
+            <div id="pt-passo-1" class="p-6 space-y-4">
+                <div class="text-center pb-1">
+                    <img src="./img/logo-protheus.svg" alt="Protheus" class="h-9 mx-auto mb-3">
+                    <h4 class="font-bold text-slate-800">Acesso ao Protheus</h4>
+                    <p class="text-xs text-slate-400 mt-1">Informe seu usuário e senha do Protheus para continuar.<br>As credenciais <b>não ficam salvas</b> em nenhum lugar.</p>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div id="pt-grupo-rt" class="hidden">
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Pagamento do RT</label>
-                        <div class="pt-dropdown">
-                            <button type="button" class="pt-btn" id="pt-btn-rt" onclick="ptToggle('rt')">
-                                <span id="pt-txt-rt">Selecione...</span>
-                                <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
-                            </button>
-                            <div class="pt-lista" id="pt-lista-rt">
-                                <div class="pt-item" data-v="dinheiro" onclick="ptSelecionar('rt', 'dinheiro', 'Dinheiro')">Dinheiro</div>
-                                <div class="pt-item" data-v="produto" onclick="ptSelecionar('rt', 'produto', 'Produto')">Produto</div>
-                            </div>
-                            <input type="hidden" id="pt-val-rt" value="">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Parcelas</label>
-                        <div class="pt-dropdown">
-                            <button type="button" class="pt-btn" id="pt-btn-parc" onclick="ptToggle('parc')">
-                                <span id="pt-txt-parc">1x (à vista)</span>
-                                <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
-                            </button>
-                            <div class="pt-lista pt-sobe" id="pt-lista-parc"></div>
-                            <input type="hidden" id="pt-val-parc" value="1">
-                        </div>
-                        <p id="pt-dica-parc" class="text-[10px] text-slate-400 mt-1.5">1x–3x: valor à vista · 4x–10x: valor parcelado</p>
-                    </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Usuário Protheus</label>
+                    <input type="text" id="pt-user" autocomplete="off" placeholder="Seu usuário do Protheus"
+                           class="w-full px-3 py-2.5 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Senha Protheus</label>
+                    <input type="password" id="pt-pass" autocomplete="off" placeholder="Sua senha do Protheus"
+                           class="w-full px-3 py-2.5 rounded border text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700">
                 </div>
             </div>
 
+            <!-- ========== PASSO 2: RESUMO, CONDIÇÕES E CIÊNCIA ========== -->
+            <div id="pt-passo-2" class="hidden">
+                <div class="p-6 space-y-5">
+                    <div>
+                        <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Resumo do pedido</h4>
+                        <div class="border border-slate-200 rounded-lg overflow-hidden">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-500 text-left">
+                                        <th class="font-semibold" style="padding:8px 10px;">SKU</th>
+                                        <th class="font-semibold" style="padding:8px 10px;">Descrição</th>
+                                        <th class="font-semibold text-center" style="padding:8px 10px;">Qtd</th>
+                                        <th class="font-semibold text-right" style="padding:8px 10px;">Vlr Unit.</th>
+                                        <th class="font-semibold text-right" style="padding:8px 10px;">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pt-corpo-itens" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                            </table>
+                            <div class="border-t border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1 text-xs">
+                                <div class="flex justify-between text-slate-600"><span>Frete</span><span id="pt-frete" class="font-semibold"></span></div>
+                                <div class="flex justify-between text-slate-900 text-sm"><span class="font-bold">Total do pedido</span><span id="pt-total" class="font-bold"></span></div>
+                                <div id="pt-linha-modalidade" class="text-right text-[10px] font-bold uppercase tracking-widest text-blue-700"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div id="pt-grupo-rt" class="hidden">
+                            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Pagamento do RT</label>
+                            <div class="pt-dropdown">
+                                <button type="button" class="pt-btn" id="pt-btn-rt" onclick="ptToggle('rt')">
+                                    <span id="pt-txt-rt">Selecione...</span>
+                                    <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
+                                </button>
+                                <div class="pt-lista" id="pt-lista-rt">
+                                    <div class="pt-item" data-v="dinheiro" onclick="ptSelecionar('rt', 'dinheiro', 'Dinheiro')">Dinheiro</div>
+                                    <div class="pt-item" data-v="produto" onclick="ptSelecionar('rt', 'produto', 'Produto')">Produto</div>
+                                </div>
+                                <input type="hidden" id="pt-val-rt" value="">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Parcelas</label>
+                            <div class="pt-dropdown">
+                                <button type="button" class="pt-btn" id="pt-btn-parc" onclick="ptToggle('parc')">
+                                    <span id="pt-txt-parc">1x (à vista)</span>
+                                    <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
+                                </button>
+                                <div class="pt-lista pt-sobe" id="pt-lista-parc"></div>
+                                <input type="hidden" id="pt-val-parc" value="1">
+                            </div>
+                            <p id="pt-dica-parc" class="text-[10px] text-slate-400 mt-1.5">1x–3x: valor à vista · 4x–10x: valor parcelado</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AVISOS OBRIGATÓRIOS -->
+                <div class="mx-6 mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-900 space-y-1">
+                    <p class="font-bold uppercase tracking-wide text-[10px] mb-1">Atenção — como o orçamento será criado</p>
+                    <p>• Forma de pagamento: <b>BOL em 1x</b></p>
+                    <p>• Cliente: <b>cliente padrão</b></p>
+                    <p>• <b>SEM RT</b></p>
+                </div>
+
+                <!-- CHECKBOX DE CIÊNCIA -->
+                <label class="mx-6 mb-6 flex items-start gap-2.5 text-xs text-slate-600 cursor-pointer select-none">
+                    <input type="checkbox" id="pt-checkbox-ciente" onchange="ptToggleEnviar(this)" class="mt-0.5 w-4 h-4 accent-blue-700 cursor-pointer">
+                    <span>Estou ciente que devo fazer as alterações necessárias no orçamento gerado no Protheus (cliente, condições de pagamento, RT e demais informações).</span>
+                </label>
+            </div>
+
             <div class="flex gap-3 px-6 pb-6">
+                <button type="button" id="pt-btn-voltar" onclick="ptVoltarPasso()" class="hidden flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest"><i class="fas fa-arrow-left mr-1"></i> Voltar</button>
                 <button type="button" onclick="fecharModalProtheus()" class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Cancelar</button>
-                <button type="button" id="pt-btn-enviar" onclick="enviarParaProtheus()" class="flex-[2] bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest"><i class="fas fa-paper-plane mr-1"></i> Enviar para o Protheus</button>
+                <button type="button" id="pt-btn-proximo" onclick="ptAvancarPasso()" class="flex-[2] bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest">Próximo</button>
+                <button type="button" id="pt-btn-enviar" onclick="enviarParaProtheus()" disabled class="hidden flex-[2] bg-slate-900 text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-widest opacity-40 cursor-not-allowed"><i class="fas fa-paper-plane mr-1"></i> Enviar para o Protheus</button>
             </div>
         </div>
     `;
@@ -2006,6 +2044,19 @@ window.abrirModalProtheus = function (id) {
     _ptReqAtual = req;
     document.getElementById('pt-alerta').classList.add('hidden');
 
+    // Reseta para o Passo 1
+    document.getElementById('pt-passo-1').classList.remove('hidden');
+    document.getElementById('pt-passo-2').classList.add('hidden');
+    document.getElementById('pt-btn-voltar').classList.add('hidden');
+    document.getElementById('pt-btn-proximo').classList.remove('hidden');
+    document.getElementById('pt-btn-enviar').classList.add('hidden');
+    document.getElementById('pt-passo-indicador').textContent = 'Passo 1 de 2';
+    document.getElementById('pt-pass').value = '';
+    const checkbox = document.getElementById('pt-checkbox-ciente');
+    checkbox.checked = false;
+    document.getElementById('pt-btn-enviar').disabled = true;
+    document.getElementById('pt-btn-enviar').classList.add('opacity-40', 'cursor-not-allowed');
+
     document.getElementById('pt-codigo').textContent = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
     document.getElementById('pt-val-rt').value = '';
     document.getElementById('pt-txt-rt').textContent = 'Selecione...';
@@ -2031,6 +2082,44 @@ window.fecharModalProtheus = function () {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     _ptReqAtual = null;
+};
+
+// Navegação entre passos do modal Protheus
+window.ptAvancarPasso = function () {
+    const user = document.getElementById('pt-user').value.trim();
+    const pass = document.getElementById('pt-pass').value;
+    if (!user || !pass) {
+        const el = document.getElementById('pt-alerta');
+        el.textContent = 'Informe usuário e senha do Protheus para continuar.';
+        el.classList.remove('hidden');
+        return;
+    }
+    document.getElementById('pt-alerta').classList.add('hidden');
+    document.getElementById('pt-passo-1').classList.add('hidden');
+    document.getElementById('pt-passo-2').classList.remove('hidden');
+    document.getElementById('pt-btn-voltar').classList.remove('hidden');
+    document.getElementById('pt-btn-proximo').classList.add('hidden');
+    document.getElementById('pt-btn-enviar').classList.remove('hidden');
+    document.getElementById('pt-passo-indicador').textContent = 'Passo 2 de 2';
+};
+
+window.ptVoltarPasso = function () {
+    document.getElementById('pt-passo-2').classList.add('hidden');
+    document.getElementById('pt-passo-1').classList.remove('hidden');
+    document.getElementById('pt-btn-voltar').classList.add('hidden');
+    document.getElementById('pt-btn-enviar').classList.add('hidden');
+    document.getElementById('pt-btn-proximo').classList.remove('hidden');
+    document.getElementById('pt-passo-indicador').textContent = 'Passo 1 de 2';
+};
+
+// Só libera o envio quando o vendedor marcar a ciência
+window.ptToggleEnviar = function (checkbox) {
+    const btn = document.getElementById('pt-btn-enviar');
+    btn.disabled = !checkbox.checked;
+    btn.classList.toggle('opacity-40', !checkbox.checked);
+    btn.classList.toggle('cursor-not-allowed', !checkbox.checked);
+    btn.classList.toggle('hover:bg-black', checkbox.checked);
+    btn.classList.toggle('active:scale-[0.98]', checkbox.checked);
 };
 
 window.ptToggle = function (qual) {
@@ -2191,11 +2280,17 @@ window.enviarParaProtheus = async function () {
     let resultadoApi = null;
     let erroApi = null;
     try {
+        // Credenciais do Passo 1 (memória apenas — nunca salvas)
+        const authUser = (document.getElementById('pt-user')?.value || '').trim();
+        const authPass = document.getElementById('pt-pass')?.value || '';
+        const authHeader = 'Basic ' + btoa(unescape(encodeURIComponent(`${authUser}:${authPass}`)));
+
         const resp = await fetch(ENDPOINT_PROTHEUS, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': authHeader
             },
             body: jsonEnvio
         });
