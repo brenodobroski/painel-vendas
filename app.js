@@ -1939,6 +1939,21 @@ window.forcarDownloadImagem = async function(url) {
                             </div>
                         </div>
 
+                                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Parcelas</label>
+                            <div class="pt-dropdown">
+                                <button type="button" class="pt-btn" id="pt-btn-parc" onclick="ptToggle('parc')">
+                                    <span id="pt-txt-parc">1x (à vista)</span>
+                                    <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
+                                </button>
+                                <div class="pt-lista pt-sobe" id="pt-lista-parc"></div>
+                                <input type="hidden" id="pt-val-parc" value="1">
+                            </div>
+                            <p id="pt-dica-parc" class="text-[10px] text-slate-400 mt-1.5">1x–3x: valor à vista · 4x–10x: valor parcelado</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- AVISOS OBRIGATÓRIOS -->
                 <div class="mx-6 mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-900 space-y-1">
                     <p class="font-bold uppercase tracking-wide text-[10px] mb-1">Atenção — como o orçamento será criado</p>
