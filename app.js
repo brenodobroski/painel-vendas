@@ -472,7 +472,7 @@ async function executarCalculoSeguro() {
     const versaoAtual = localStorage.getItem('climario_versao_catalogo') || '1';
 
     // limite de desconto
-    const limiteAlcada = 22.99;
+    const limiteAlcada = 21.99;
     
     const msgHipotese = document.getElementById('msg-hipotese');
     const textoDescontoVisual = document.getElementById('texto-input-desconto');
@@ -1069,6 +1069,12 @@ window.fazerTesteHipotese = function() {
     const totalSemDesconto = totalAtual / (1 - (descontoAtual / 100));
     let novoDesconto = (1 - (valorEvidencia / totalSemDesconto)) * 100;
     if (novoDesconto < 0) novoDesconto = 0;
+
+    // TETO: o teste de hipótese não pode ultrapassar 21.99%
+    if (novoDesconto > 21.99) {
+        alert("O valor alvo excede o limite máximo de 21,99% do teste de hipótese. Ajuste o valor alvo.");
+        return;
+    }
 
     let valorFormatado = novoDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     let valorMatematico = novoDesconto.toFixed(4); 
@@ -1918,35 +1924,20 @@ window.forcarDownloadImagem = async function(url) {
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div id="pt-grupo-rt" class="hidden">
-                            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Pagamento do RT</label>
-                            <div class="pt-dropdown">
-                                <button type="button" class="pt-btn" id="pt-btn-rt" onclick="ptToggle('rt')">
-                                    <span id="pt-txt-rt">Selecione...</span>
-                                    <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
-                                </button>
-                                <div class="pt-lista" id="pt-lista-rt">
-                                    <div class="pt-item" data-v="dinheiro" onclick="ptSelecionar('rt', 'dinheiro', 'Dinheiro')">Dinheiro</div>
-                                    <div class="pt-item" data-v="produto" onclick="ptSelecionar('rt', 'produto', 'Produto')">Produto</div>
-                                </div>
-                                <input type="hidden" id="pt-val-rt" value="">
-                            </div>
-                        </div>
-
                         <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Parcelas</label>
+                            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Filial de criação</label>
                             <div class="pt-dropdown">
-                                <button type="button" class="pt-btn" id="pt-btn-parc" onclick="ptToggle('parc')">
-                                    <span id="pt-txt-parc">1x (à vista)</span>
+                                <button type="button" class="pt-btn" id="pt-btn-filres" onclick="ptToggle('filres')">
+                                    <span id="pt-txt-filres">01005</span>
                                     <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
                                 </button>
-                                <div class="pt-lista pt-sobe" id="pt-lista-parc"></div>
-                                <input type="hidden" id="pt-val-parc" value="1">
+                                <div class="pt-lista" id="pt-lista-filres">
+                                    <div class="pt-item selecionado" data-v="01005" onclick="ptSelecionar('filres', '01005', '01005')">01005</div>
+                                    <div class="pt-item" data-v="01039" onclick="ptSelecionar('filres', '01039', '01039')">01039</div>
+                                </div>
+                                <input type="hidden" id="pt-val-filres" value="01005">
                             </div>
-                            <p id="pt-dica-parc" class="text-[10px] text-slate-400 mt-1.5">1x–3x: valor à vista · 4x–10x: valor parcelado</p>
                         </div>
-                    </div>
-                </div>
 
                 <!-- AVISOS OBRIGATÓRIOS -->
                 <div class="mx-6 mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-900 space-y-1">
@@ -2065,15 +2056,14 @@ window.abrirModalProtheus = function (id) {
     document.getElementById('pt-btn-enviar').classList.add('opacity-40', 'cursor-not-allowed');
 
     document.getElementById('pt-codigo').textContent = req.codigo_orcamento ? `#${req.codigo_orcamento}` : '-';
-    document.getElementById('pt-val-rt').value = '';
-    document.getElementById('pt-txt-rt').textContent = 'Selecione...';
-    document.getElementById('pt-lista-rt').querySelectorAll('.pt-item').forEach(i => i.classList.remove('selecionado'));
     document.getElementById('pt-val-parc').value = '1';
     document.getElementById('pt-txt-parc').textContent = '1x (à vista)';
     ptMontarParcelas();
 
-    const temRT = parseFloat(req.rt) > 0;
-    document.getElementById('pt-grupo-rt').classList.toggle('hidden', !temRT);
+    // Reseta filial de criação para o padrão
+    document.getElementById('pt-val-filres').value = '01005';
+    document.getElementById('pt-txt-filres').textContent = '01005';
+    document.getElementById('pt-lista-filres').querySelectorAll('.pt-item').forEach(i => i.classList.toggle('selecionado', i.dataset.v === '01005'));
 
     ptRenderItens();
 
@@ -2190,14 +2180,7 @@ window.enviarParaProtheus = async function () {
     if (!req) return;
     document.getElementById('pt-alerta').classList.add('hidden');
 
-    const temRT = parseFloat(req.rt) > 0;
-    const pagamentoRT = document.getElementById('pt-val-rt').value;
-    if (temRT && !pagamentoRT) {
-        const el = document.getElementById('pt-alerta');
-        el.textContent = 'Este orçamento possui RT. Selecione se o pagamento do RT é em dinheiro ou produto.';
-        el.classList.remove('hidden');
-        return;
-    }
+    const temRT = false; // RT não é enviado no momento
 
     // LOADING: exibe overlay enquanto o Protheus processa
     const overlayLoading = document.createElement('div');
@@ -2272,7 +2255,7 @@ window.enviarParaProtheus = async function () {
                 prcTab: prcTab,
                 percDesc: percDesc,
                 valDesc: valDesc,
-                filRes: "01005"
+                filRes: document.getElementById('pt-val-filres')?.value || "01005"
             };
         }),
         pagto: [
