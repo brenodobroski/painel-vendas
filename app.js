@@ -2369,7 +2369,7 @@ window.enviarParaProtheus = async function () {
     // Se a API falhou ou respondeu erro: NÃO marca como enviado no banco
     if (erroApi || !resultadoApi || !resultadoApi.sucesso) {
         removerLoading();
-        window.toastClim('O Protheus não confirmou o orçamento. Aba com os detalhes aberta — o orçamento NÃO foi marcado como enviado.', 'erro', 0);
+        abrirModalErroProtheus(erroApi, resultadoApi);
         return;
     }
 
@@ -2416,6 +2416,96 @@ window.verOrcamentoProtheus = function (id) {
         frete: snap.valorFrete || 0,
         total: snap.totalGeralAVista || req.valor_alvo || 0
     }, req, parseFloat(req.rt) > 0);
+};
+
+// ============================================================
+// ERRO: FALHA AO CRIAR ORÇAMENTO NO PROTHEUS (modal com o log)
+// ============================================================
+(function injetarModalErroProtheus() {
+    const modal = document.createElement('div');
+    modal.id = 'modal-pt-erro';
+    modal.className = 'fixed inset-0 z-50 hidden items-center justify-center p-4';
+    modal.style.cssText = 'background:rgba(10,22,40,.6);backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto p-7">
+            <div class="text-center">
+                <div class="w-14 h-14 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Erro ao criar orçamento no Protheus</h3>
+                <p class="text-xs text-slate-400 mt-1">O orçamento <b>NÃO</b> foi criado e <b>NÃO</b> foi marcado como enviado.</p>
+            </div>
+
+            <div class="mt-5 bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs space-y-2">
+                <div class="flex justify-between"><span class="text-slate-500">Status HTTP</span><b id="pte-status" class="font-mono text-red-600"></b></div>
+                <div id="pte-campos" class="space-y-1.5 border-t border-slate-200 pt-2"></div>
+            </div>
+
+            <div class="mt-3">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Resposta bruta do servidor</p>
+                <pre id="pte-bruto" class="bg-slate-900 text-slate-200 text-[11px] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap font-mono max-h-48 overflow-y-auto"></pre>
+            </div>
+
+            <button type="button" onclick="fecharModalErroProtheus()" class="w-full mt-5 bg-slate-900 hover:bg-black active:scale-[0.98] text-white font-semibold py-3 rounded-lg transition-all text-xs uppercase tracking-widest">Entendido, fechar</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) window.fecharModalErroProtheus(); });
+})();
+
+// O Protheas às vezes manda dois JSONs grudados numa string; extrai todos que conseguir
+function parsearErroProtheus(corpo) {
+    const partes = [];
+    if (corpo && typeof corpo === 'object') { partes.push(corpo); return partes; }
+    if (typeof corpo !== 'string') return partes;
+    const blocos = corpo.match(/\{[^]*?\}/g) || [];
+    blocos.forEach(b => { try { partes.push(JSON.parse(b)); } catch (e) { /* ignora bloco inválido */ } });
+    return partes;
+}
+
+function abrirModalErroProtheus(erroApi, resultadoApi) {
+    document.getElementById('pte-status').textContent = resultadoApi ? `HTTP ${resultadoApi.status_http}` : 'FALHA DE REDE';
+
+    let corpo = null;
+    if (resultadoApi) corpo = resultadoApi.corpo;
+    if (!corpo && erroApi) corpo = JSON.stringify(erroApi);
+
+    const campos = document.getElementById('pte-campos');
+    const partes = parsearErroProtheus(corpo);
+
+    if (partes.length > 0) {
+        // Junta os campos de todas as partes (errorCode, errorMessage, mensagem...)
+        const vistos = {};
+        let html = '';
+        partes.forEach(p => {
+            Object.entries(p).forEach(([chave, valor]) => {
+                if (vistos[chave]) return;
+                vistos[chave] = true;
+                let exib = valor;
+                if (typeof valor === 'object') {
+                    try { exib = JSON.stringify(valor); } catch (e) { exib = String(valor); }
+                }
+                html += `<div class="flex justify-between gap-4"><span class="text-slate-500">${chave}</span><b class="font-mono text-right break-all">${String(exib)}</b></div>`;
+            });
+        });
+        campos.innerHTML = html || '<p class="text-slate-400 italic">Sem campos estruturados.</p>';
+    } else {
+        campos.innerHTML = '<p class="text-slate-400 italic">Não foi possível interpretar a resposta.</p>';
+    }
+
+    document.getElementById('pte-bruto').textContent = (typeof corpo === 'string') ? corpo : JSON.stringify(corpo, null, 2);
+
+    document.body.classList.add('clim-modal-aberto');
+    const modal = document.getElementById('modal-pt-erro');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+window.fecharModalErroProtheus = function () {
+    document.body.classList.remove('clim-modal-aberto');
+    const modal = document.getElementById('modal-pt-erro');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 };
 
 // ============================================================
