@@ -2242,6 +2242,7 @@ window.enviarParaProtheus = async function () {
         pgtoRt: "",
         vendRt: "",
         valorRt: "",
+        filial: document.getElementById('pt-val-filres')?.value || "01005",
         itens: (req.itens || []).map(it => {
             const qtd = parseInt(it.qtd) || 0;
             const valorUni = r4(modalidade === 'a_vista'
@@ -2251,7 +2252,6 @@ window.enviarParaProtheus = async function () {
                 qtd: qtd,
                 codigo: parseInt(it.codigo) || 0,
                 valorUni: valorUni,
-                tabela: "029",
                 filRes: document.getElementById('pt-val-filres')?.value || "01005"
             };
         }),
