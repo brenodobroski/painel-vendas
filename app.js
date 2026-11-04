@@ -2230,11 +2230,6 @@ window.enviarParaProtheus = async function () {
         ? r4(snap.totalGeralAVista || req.valor_alvo || 0)
         : r4(snap.totalGeralParcelado || 0);
 
-    // Percentual de desconto "do Protheus" que vem da API de cálculo
-    const percDescBase = modalidade === 'a_vista'
-        ? (parseFloat(snap.descontoProtheusAVista) || 0)
-        : (parseFloat(snap.descontoProtheusParcelado) || 0);
-
     // Data de hoje no formato AAAAMMDD
     const hoje = new Date();
     const dataPagto = `${hoje.getFullYear()}${String(hoje.getMonth() + 1).padStart(2, '0')}${String(hoje.getDate()).padStart(2, '0')}`;
@@ -2258,18 +2253,11 @@ window.enviarParaProtheus = async function () {
             const valorUni = r4(modalidade === 'a_vista'
                 ? (it.valorUnitarioAVista || 0)
                 : (it.valorUnitarioParcelado || it.valorUnitarioAVista || 0));
-            const percDesc = r2(percDescBase);
-            // Preço cheio da tabela (sem desconto) — calculado de trás pra frente
-            const prcTab = percDesc < 100 ? r4(valorUni / (1 - (percDesc / 100))) : valorUni;
-            const valDesc = r4((prcTab - valorUni) * qtd);
             return {
                 qtd: qtd,
                 codigo: parseInt(it.codigo) || 0,
                 valorUni: valorUni,
                 tabela: "029",
-                prcTab: prcTab,
-                percDesc: percDesc,
-                valDesc: valDesc,
                 filRes: document.getElementById('pt-val-filres')?.value || "01005"
             };
         }),
