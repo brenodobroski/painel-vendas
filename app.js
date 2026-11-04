@@ -1070,12 +1070,6 @@ window.fazerTesteHipotese = function() {
     let novoDesconto = (1 - (valorEvidencia / totalSemDesconto)) * 100;
     if (novoDesconto < 0) novoDesconto = 0;
 
-    // TETO: o teste de hipótese não pode ultrapassar 21.99%
-    if (novoDesconto > 21.99) {
-        alert("O valor alvo excede o limite máximo de 21,99% do teste de hipótese. Ajuste o valor alvo.");
-        return;
-    }
-
     let valorFormatado = novoDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     let valorMatematico = novoDesconto.toFixed(4); 
 
