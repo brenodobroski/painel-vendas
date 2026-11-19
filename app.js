@@ -9,6 +9,17 @@ window.filialVendedor = '1002';
 window.roleUsuario = ''; // Variável global para armazenar se é Admin
 
 // ==========================================
+// FILIAIS LIBERADAS PARA ENVIO AO PROTHEUS
+// Adicione os códigos das filiais neste array conforme for liberando (ex: ['1028', '1005'])
+// ==========================================
+const FILIAIS_LIBERADAS_PROTHEUS = ['1028'];
+
+function isFilialLiberadaProtheus() {
+    const filialAtual = String(window.filialVendedor || '').trim();
+    return FILIAIS_LIBERADAS_PROTHEUS.map(f => String(f).trim()).includes(filialAtual);
+}
+
+// ==========================================
 // RASTREADOR DE LOCALIZAÇÃO E LOGS (ORÇAMENTO)
 // ==========================================
 async function registrarLogAcessoOrcamento(userId, email) {
@@ -1275,6 +1286,8 @@ function renderizarMinhasSolicitacoes(lista) {
         return;
     }
 
+    const filialLiberadaProtheus = isFilialLiberadaProtheus();
+
     lista.forEach(req => {
         const dataFormatada = new Date(req.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
@@ -1307,7 +1320,7 @@ function renderizarMinhasSolicitacoes(lista) {
 
         const logoProtheus = '<img src="./img/logo-protheus.svg" alt="Protheus" class="h-3.5 mr-1 inline-block align-middle">';
         const logoProtheus2 = '<img src="./img/logo-protheus-2.svg" alt="Protheus" class="h-3.5 mr-1 inline-block align-middle">';
-        const botaoProtheus = req.status === 'aprovado'
+        const botaoProtheus = (req.status === 'aprovado' && filialLiberadaProtheus)
             ? (req.orc_protheus
                 ? `<button onclick="verOrcamentoProtheus('${req.id}')" class="border border-slate-900 text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus2} Ver orçamento</button>`
                 : `<button onclick="abrirModalProtheus('${req.id}')" class="bg-slate-900 hover:bg-black text-white px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors whitespace-nowrap">${logoProtheus} Enviar p/ Protheus</button>`)
@@ -1350,7 +1363,7 @@ function renderizarMinhasSolicitacoes(lista) {
                 <div class="flex gap-2 items-center">
                     ${botaoPrincipal}
                     ${req.status !== 'pendente' ? botaoRefazer : ''}
-                    ${req.status === 'aprovado' ? barraDivisor + botaoProtheus : ''}
+                    ${botaoProtheus ? barraDivisor + botaoProtheus : ''}
                 </div>
             </div>
         `;
@@ -2039,6 +2052,8 @@ function ptMontarParcelas() {
 }
 
 window.abrirModalProtheus = function (id) {
+    if (!isFilialLiberadaProtheus()) return;
+
     const req = window.minhasSolicitacoes.find(s => s.id === id);
     if (!req) return;
 
@@ -2285,15 +2300,9 @@ window.enviarParaProtheus = async function () {
     const jsonEnvio = serializarProtheus(payloadProtheus);
 
     // ============================================================
-    // ENVIO REAL À API DO PROTHEUS
+    // ENVIO REAL À API DO PROTHEUS (PRODUÇÃO)
     // ============================================================
-    const ENDPOINT_PROTHEUS = 'https://climario2004185567.protheus.cloudtotvs.com.br:11158/rest/wscmporc/orcamento';
-
-    // Abre a aba de conferência AGORA (antes de qualquer await) pra o navegador não bloquear como popup
-    const abaConf = window.open('', '_blank');
-    if (abaConf) {
-        abaConf.document.write('<title>Protheus — Conferência</title><body style="margin:0;background:#0f172a;padding:24px;"><pre id="json" style="color:#e2e8f0;font-size:13px;white-space:pre-wrap;font-family:monospace;">Enviando para o Protheus...</pre></body>');
-    }
+    const ENDPOINT_PROTHEUS = 'https://climario2004185566.protheus.cloudtotvs.com.br:8400/rest/wscmporc/orcamento';
 
     let resultadoApi = null;
     let erroApi = null;
@@ -2324,29 +2333,14 @@ window.enviarParaProtheus = async function () {
     }
 
     // ============================================================
-    // CONFERÊNCIA: mostra exatamente o que foi enviado e o que voltou
-    // (na aba aberta antes do envio + no console pra garantir)
+    // LOG NO CONSOLE: registra exatamente o que foi enviado e o que voltou
     // ============================================================
-    const conferencia = {
-        endpoint: ENDPOINT_PROTHEUS,
-        json_enviado_raw: jsonEnvio,
-        payload_enviado: payloadProtheus,
-        ...(resultadoApi ? { resposta_da_api: resultadoApi } : {}),
-        ...(erroApi ? { erro_de_envio: erroApi } : {})
-    };
     console.log('[Protheus] ========== CONFERÊNCIA ==========');
+    console.log('[Protheus] Endpoint:', ENDPOINT_PROTHEUS);
     console.log('[Protheus] Enviado:', payloadProtheus);
     console.log('[Protheus] JSON raw:', jsonEnvio);
     console.log('[Protheus] Resposta:', resultadoApi || erroApi);
     console.log('[Protheus] ==================================');
-
-    const conferenciaTxt = JSON.stringify(conferencia, null, 2);
-    if (abaConf && abaConf.document) {
-        const pre = abaConf.document.getElementById('json');
-        if (pre) pre.textContent = conferenciaTxt;
-    } else {
-        console.log('[Protheus] Aba de conferência bloqueada pelo navegador. Conteúdo completo:', conferenciaTxt);
-    }
 
     // Se a API falhou ou respondeu erro: NÃO marca como enviado no banco
     if (erroApi || !resultadoApi || !resultadoApi.sucesso) {
