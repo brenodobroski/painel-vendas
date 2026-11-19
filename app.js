@@ -12,7 +12,7 @@ window.roleUsuario = ''; // Variável global para armazenar se é Admin
 // FILIAIS LIBERADAS PARA ENVIO AO PROTHEUS
 // Adicione os códigos das filiais neste array conforme for liberando (ex: ['1028', '1005'])
 // ==========================================
-const FILIAIS_LIBERADAS_PROTHEUS = ['1028'];
+const FILIAIS_LIBERADAS_PROTHEUS = ['1043','1028'];
 
 function isFilialLiberadaProtheus() {
     const filialAtual = String(window.filialVendedor || '').trim();
